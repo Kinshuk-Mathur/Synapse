@@ -285,7 +285,7 @@ export default function Home() {
         >
           <div className="brand-lockup">
             <Image
-              src="/assets/synapse-wordmark-dark.jpeg"
+              src="/assets/main-logo.jpeg"
               alt="SYNAPSE logo"
               width={186}
               height={74}

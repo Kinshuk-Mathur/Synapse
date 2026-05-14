@@ -182,6 +182,7 @@ input {
 .brand-wordmark {
   width: 172px;
   height: auto;
+  border-radius: 7px;
   object-fit: contain;
   filter: drop-shadow(0 0 22px color-mix(in oklab, var(--color-pulse) 45%, var(--transparent)));
 }
