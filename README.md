@@ -156,7 +156,7 @@ synapse/
 
 ---
 
-## 👥 Team Kinova
+## 👥 Team Neuron
 
 | Name | Role |
 |---|---|
