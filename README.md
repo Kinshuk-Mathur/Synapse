@@ -26,7 +26,7 @@ Synapse is a **Chrome extension paired with a web dashboard** that helps student
 - 📊 **Visualize progress** with weekly reports and goal tracking
 - 🤖 **Get personalized guidance** from an AI study coach that knows their actual data
 
-No manual logging. No complicated setup. Just click, study, and grow.
+
 
 ---
 
