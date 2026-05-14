@@ -16,10 +16,10 @@
   --theme-inferno-2: #2d2d34;
   --theme-inferno-3: #ff6b00;
   --theme-inferno-4: #d90429;
-  --theme-pink-1: #cf0068;
-  --theme-pink-2: #ff0381;
-  --theme-pink-3: #ff369b;
-  --theme-pink-4: #ff9cee;
+  --theme-pink-1: #120711;
+  --theme-pink-2: #2a0d21;
+  --theme-pink-3: #8f0d56;
+  --theme-pink-4: #ffffff;
   --color-bg: #0d0d10;
   --color-surface: #16161c;
   --color-accent: #4b0082;
@@ -75,13 +75,13 @@
 }
 
 [data-theme="pink"] {
-  --color-bg: #cf0068;
-  --color-surface: #ff0381;
-  --color-accent: #ff369b;
-  --color-pulse: #ff9cee;
-  --color-gold: #ffcee7;
-  --color-sky: #ff6984;
-  --color-lime: #ffffff;
+  --color-bg: #120711;
+  --color-surface: #2a0d21;
+  --color-accent: #8f0d56;
+  --color-pulse: #ff4fa3;
+  --color-gold: #ffffff;
+  --color-sky: #ff9ccf;
+  --color-lime: #f8f4ff;
   --color-text: #ffffff;
 }
 
@@ -608,14 +608,14 @@ input {
   animation: floatBrain 5s ease-in-out infinite;
 }
 
-.orbit-ring {
+.signal-ring {
   position: absolute;
   width: 184px;
   height: 60px;
   border: 2px solid color-mix(in oklab, var(--color-pulse) 78%, var(--transparent));
   border-radius: 999px;
   transform: rotate(-14deg);
-  animation: orbitPulse 4s ease-in-out infinite;
+  animation: signalPulse 4s ease-in-out infinite;
 }
 
 .stats-grid {
@@ -1073,7 +1073,7 @@ input {
   }
 }
 
-@keyframes orbitPulse {
+@keyframes signalPulse {
   0%,
   100% {
     opacity: 0.7;

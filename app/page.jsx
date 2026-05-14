@@ -54,7 +54,7 @@ const themes = [
   { id: "obsidian", name: "Obsidian Neon", tone: "Default OS" },
   { id: "midnight", name: "Midnight Tech", tone: "Deep Focus" },
   { id: "inferno", name: "Inferno Focus", tone: "Exam Sprint" },
-  { id: "pink", name: "Pink Aura", tone: "Creative Glow" }
+  { id: "pink", name: "Pink Aura", tone: "Dark Bloom" }
 ];
 
 const navItems = [
@@ -156,7 +156,7 @@ const messages = [
   { side: "user", text: "Hi SYNAPSE, add today's todo list", time: "7:30 PM" },
   {
     side: "ai",
-    text: "Sure ORBIT! I'll help you create your today's todo list. Tell me your tasks one by one and I'll add them for you.",
+    text: "Sure, I'll help you create today's todo list. Tell me your tasks one by one and I'll add them for you.",
     time: "7:31 PM"
   },
   { side: "user", text: "1. Complete Physics Numericals", time: "7:31 PM" },
@@ -318,7 +318,7 @@ export default function Home() {
                 <Flame size={34} />
                 12 <small>days</small>
               </strong>
-              <p>Keep it up, ORBIT!</p>
+              <p>Keep it up!</p>
             </motion.div>
 
             <button className="support-button">
@@ -351,12 +351,12 @@ export default function Home() {
               <div className="profile-chip">
                 <Image
                   src="/assets/synapse-icon-cropped.png"
-                  alt="ORBIT profile"
+                  alt="Student profile"
                   width={36}
                   height={36}
                 />
                 <div>
-                  <strong>ORBIT</strong>
+                  <strong>STUDENT</strong>
                   <small>Focus Mode</small>
                 </div>
                 <ChevronDown size={14} />
@@ -376,11 +376,11 @@ export default function Home() {
                   <Zap size={34} />
                 </div>
                 <div className="hero-copy">
-                  <h1>{greeting}, ORBIT!</h1>
+                  <h1>{greeting}!</h1>
                   <p>Focus. Learn. Achieve. Repeat.</p>
                 </div>
                 <div className="brain-system" aria-hidden="true">
-                  <div className="orbit-ring" />
+                  <div className="signal-ring" />
                   <BrainCircuit size={112} />
                 </div>
               </motion.section>
