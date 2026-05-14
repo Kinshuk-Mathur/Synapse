@@ -9,7 +9,7 @@
 
 [![Made with Love](https://img.shields.io/badge/Made%20with-❤️-red?style=flat-square)](https://github.com)
 [![Track](https://img.shields.io/badge/Track-Deeptech-534AB7?style=flat-square)](https://github.com)
-[![Team](https://img.shields.io/badge/Team-Kinova-1D9E75?style=flat-square)](https://github.com)
+[![Team](https://img.shields.io/badge/Team-Neuron-1D9E75?style=flat-square)](https://github.com)
 [![Status](https://img.shields.io/badge/Status-In%20Development-EF9F27?style=flat-square)](https://github.com)
 
 </div>
