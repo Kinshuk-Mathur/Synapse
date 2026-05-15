@@ -12,7 +12,7 @@ npm run dev
 
 ## Install Firebase Later
 
-Run Firebase install inside this folder only:
+Firebase is used from the modular v9+ SDK. Install it inside this folder only:
 
 ```bash
 cd synapse-dashborad
@@ -20,6 +20,18 @@ npm install firebase
 ```
 
 Then copy `.env.local.example` to `.env.local` and fill the Firebase values from your Firebase project settings.
+
+Core Firebase files:
+
+```txt
+src/lib/firebase.js
+src/context/AuthContext.jsx
+src/components/ProtectedRoute.jsx
+src/services/firestore.js
+src/app/login/page.jsx
+```
+
+For Netlify, add the same `NEXT_PUBLIC_FIREBASE_*` values in Site settings > Environment variables.
 
 ## Netlify
 

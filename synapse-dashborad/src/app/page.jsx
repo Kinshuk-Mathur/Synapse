@@ -20,9 +20,9 @@ import {
   Instagram,
   LayoutDashboard,
   LockKeyhole,
+  LogOut,
   Menu,
   MoreHorizontal,
-  Palette,
   Plus,
   Search,
   Send,
@@ -34,7 +34,6 @@ import {
   Timer,
   Trophy,
   Twitter,
-  UserRound,
   Youtube,
   Zap
 } from "lucide-react";
@@ -49,6 +48,8 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import ProtectedRoute from "../components/ProtectedRoute";
+import { useAuth } from "../context/AuthContext";
 
 const themes = [
   { id: "obsidian", name: "Obsidian Neon", tone: "Default OS" },
@@ -251,6 +252,8 @@ function ThemeSwitcher({ theme, onChange }) {
 export default function Home() {
   const [theme, setTheme] = useState("obsidian");
   const [mounted, setMounted] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("synapse-theme") || "obsidian";
@@ -272,8 +275,20 @@ export default function Home() {
     return "Good Evening";
   }, []);
 
+  const studentName = user?.displayName?.split(" ")[0] || "STUDENT";
+
+  const handleLogout = async () => {
+    try {
+      setLogoutError("");
+      await logout();
+    } catch (error) {
+      setLogoutError(error.message || "Logout failed. Please try again.");
+    }
+  };
+
   return (
-    <main className="site-shell">
+    <ProtectedRoute>
+      <main className="site-shell">
       <div className="ambient-grid" aria-hidden="true" />
 
       <div className="dashboard-frame">
@@ -356,13 +371,22 @@ export default function Home() {
                   height={36}
                 />
                 <div>
-                  <strong>STUDENT</strong>
+                  <strong>{studentName}</strong>
                   <small>Focus Mode</small>
                 </div>
                 <ChevronDown size={14} />
               </div>
+              <button className="logout-button" type="button" onClick={handleLogout}>
+                <LogOut size={17} />
+                <span>Logout</span>
+              </button>
             </div>
           </header>
+          {logoutError ? (
+            <p className="topbar-error" role="alert">
+              {logoutError}
+            </p>
+          ) : null}
 
           <div className="content-grid">
             <div className="primary-column">
@@ -622,6 +646,7 @@ export default function Home() {
           </div>
         </section>
       </div>
-    </main>
+      </main>
+    </ProtectedRoute>
   );
 }
