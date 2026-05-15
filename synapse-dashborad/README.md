@@ -33,6 +33,12 @@ src/app/login/page.jsx
 
 For Netlify, add the same `NEXT_PUBLIC_FIREBASE_*` values in Site settings > Environment variables.
 
+If you deploy `synapse-todo` separately, add this to the dashboard site too:
+
+```txt
+NEXT_PUBLIC_TODO_APP_URL=https://your-synapse-todo-site.netlify.app
+```
+
 ## Netlify
 
 The root `netlify.toml` already tells Netlify to deploy this folder:

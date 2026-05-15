@@ -1109,6 +1109,471 @@ input {
   text-align: center;
 }
 
+.todo-frame {
+  grid-template-columns: 240px minmax(0, 1fr);
+}
+
+.todo-workspace {
+  display: grid;
+  gap: 18px;
+}
+
+.todo-topbar {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.todo-topbar h1 {
+  margin: 14px 0 8px;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+
+.todo-topbar p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.todo-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.82fr) minmax(360px, 1.25fr) minmax(280px, 0.88fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.todo-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-text) 5%, var(--transparent)), color-mix(in oklab, var(--color-surface) 70%, var(--transparent))),
+    var(--panel);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(20px);
+  transition:
+    border-color 240ms ease,
+    box-shadow 240ms ease,
+    background 360ms ease;
+}
+
+.todo-panel:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-glow), var(--shadow-card);
+}
+
+.calendar-panel,
+.task-panel,
+.insight-panel {
+  padding: 20px;
+}
+
+.todo-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.todo-panel-header span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--color-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.todo-panel-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.todo-panel-header strong {
+  color: var(--color-lime);
+  font-size: 14px;
+}
+
+.calendar-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.calendar-controls button,
+.calendar-day,
+.priority-switcher button,
+.add-todo-button,
+.task-check {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    color 220ms ease,
+    transform 220ms ease,
+    background 220ms ease;
+}
+
+.calendar-controls button {
+  width: 36px;
+  height: 36px;
+  color: var(--color-muted);
+}
+
+.calendar-controls button:hover,
+.calendar-day:hover,
+.priority-switcher button:hover,
+.add-todo-button:hover,
+.task-check:hover {
+  border-color: var(--border-strong);
+  color: var(--color-text);
+  box-shadow: 0 0 22px color-mix(in oklab, var(--color-pulse) 26%, var(--transparent));
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.calendar-weekdays {
+  margin-bottom: 10px;
+}
+
+.calendar-weekdays span {
+  color: var(--color-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.calendar-day {
+  position: relative;
+  aspect-ratio: 1;
+  color: var(--color-text);
+  overflow: hidden;
+}
+
+.calendar-day span {
+  position: relative;
+  z-index: 1;
+  font-weight: 700;
+}
+
+.calendar-day.is-muted {
+  color: color-mix(in oklab, var(--color-muted) 52%, var(--transparent));
+}
+
+.calendar-day.is-today {
+  border-color: color-mix(in oklab, var(--color-sky) 44%, var(--transparent));
+}
+
+.calendar-day.is-selected {
+  border-color: var(--border-strong);
+  background:
+    radial-gradient(circle, color-mix(in oklab, var(--color-pulse) 34%, var(--transparent)), var(--transparent) 68%),
+    color-mix(in oklab, var(--color-accent) 32%, var(--transparent));
+  box-shadow: 0 0 26px color-mix(in oklab, var(--color-pulse) 36%, var(--transparent));
+}
+
+.calendar-day.is-locked::after {
+  position: absolute;
+  inset: 5px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--transparent), color-mix(in oklab, var(--color-text) 5%, var(--transparent)));
+  content: "";
+}
+
+.calendar-day i {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-pulse);
+  box-shadow: 0 0 12px var(--color-pulse);
+}
+
+.calendar-day i.all-complete {
+  background: var(--color-lime);
+  box-shadow: 0 0 12px var(--color-lime);
+}
+
+.todo-form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  padding: 12px;
+}
+
+.todo-form input,
+.todo-form textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-bg) 44%, var(--transparent));
+  padding: 13px 14px;
+  color: var(--color-text);
+  resize: vertical;
+}
+
+.todo-form textarea {
+  min-height: 82px;
+}
+
+.todo-form input:disabled,
+.todo-form textarea:disabled,
+.priority-switcher button:disabled,
+.add-todo-button:disabled,
+.task-check:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.todo-form-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.priority-switcher {
+  display: flex;
+  gap: 8px;
+}
+
+.priority-switcher button {
+  min-height: 38px;
+  padding: 0 12px;
+  color: var(--color-muted);
+}
+
+.priority-switcher button.is-active {
+  border-color: var(--border-strong);
+  background: color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
+  color: var(--color-text);
+  box-shadow: 0 0 18px color-mix(in oklab, var(--color-pulse) 28%, var(--transparent));
+}
+
+.add-todo-button {
+  display: inline-flex;
+  min-height: 40px;
+  gap: 8px;
+  padding: 0 14px;
+  background: linear-gradient(135deg, var(--color-pulse), var(--color-accent));
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.selected-task-list {
+  display: grid;
+  gap: 10px;
+}
+
+.task-card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-text) 5%, var(--transparent)), color-mix(in oklab, var(--color-bg) 22%, var(--transparent))),
+    var(--panel-soft);
+  padding: 14px;
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    opacity 220ms ease;
+}
+
+.task-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 24px color-mix(in oklab, var(--color-pulse) 20%, var(--transparent));
+}
+
+.task-card.is-complete {
+  opacity: 0.72;
+}
+
+.task-card.is-complete h3 {
+  text-decoration: line-through;
+}
+
+.task-check {
+  width: 34px;
+  height: 34px;
+  color: var(--color-text);
+}
+
+.task-check.is-checked {
+  border-color: var(--color-pulse);
+  background: var(--color-pulse);
+  box-shadow: 0 0 20px color-mix(in oklab, var(--color-pulse) 42%, var(--transparent));
+}
+
+.task-copy {
+  display: grid;
+  gap: 7px;
+}
+
+.task-copy > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.task-copy h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.task-copy p,
+.task-copy small {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.empty-task-state {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 220px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  padding: 24px;
+  text-align: center;
+}
+
+.empty-task-state svg {
+  color: var(--color-pulse);
+}
+
+.empty-task-state h3,
+.empty-task-state p {
+  margin: 0;
+}
+
+.empty-task-state p {
+  color: var(--color-muted);
+}
+
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.insight-card,
+.motivation-card,
+.pending-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  padding: 14px;
+}
+
+.insight-card span,
+.insight-card small {
+  color: var(--color-muted);
+}
+
+.insight-card strong {
+  display: block;
+  margin: 8px 0;
+  font-size: 30px;
+}
+
+.motivation-card {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  background:
+    radial-gradient(circle at 20% 0%, color-mix(in oklab, var(--color-pulse) 22%, var(--transparent)), var(--transparent) 48%),
+    color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+}
+
+.motivation-card.success {
+  background:
+    radial-gradient(circle at 20% 0%, color-mix(in oklab, var(--color-lime) 22%, var(--transparent)), var(--transparent) 48%),
+    color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+}
+
+.motivation-card svg {
+  color: var(--color-gold);
+}
+
+.motivation-card h3,
+.motivation-card p,
+.pending-section h3 {
+  margin: 0;
+}
+
+.motivation-card p {
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.pending-section {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.pending-list {
+  display: grid;
+  gap: 10px;
+}
+
+.pending-card {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.pending-card strong,
+.pending-card small {
+  display: block;
+}
+
+.pending-card small {
+  margin-top: 4px;
+  color: var(--color-muted);
+}
+
+.priority-dot {
+  width: 9px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--color-gold);
+}
+
+.priority-dot.priority-high {
+  background: var(--color-pulse);
+  box-shadow: 0 0 14px var(--color-pulse);
+}
+
+.priority-dot.priority-medium {
+  background: var(--color-gold);
+  box-shadow: 0 0 14px var(--color-gold);
+}
+
+.priority-dot.priority-low {
+  background: var(--color-sky);
+  box-shadow: 0 0 14px var(--color-sky);
+}
+
 .auth-screen,
 .login-page {
   position: relative;
@@ -1327,6 +1792,14 @@ input {
     grid-template-columns: 1fr;
   }
 
+  .todo-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .insight-panel {
+    grid-column: 1 / -1;
+  }
+
   .ai-panel {
     position: relative;
     top: 0;
@@ -1382,6 +1855,14 @@ input {
 
   .analytics-row,
   .bottom-row {
+    grid-template-columns: 1fr;
+  }
+
+  .todo-topbar {
+    flex-direction: column;
+  }
+
+  .todo-layout {
     grid-template-columns: 1fr;
   }
 }
@@ -1474,5 +1955,37 @@ input {
 
   .quick-actions {
     flex-direction: column;
+  }
+
+  .todo-topbar h1 {
+    font-size: 34px;
+  }
+
+  .calendar-panel,
+  .task-panel,
+  .insight-panel {
+    padding: 16px;
+  }
+
+  .calendar-grid {
+    gap: 6px;
+  }
+
+  .todo-form-row,
+  .priority-switcher,
+  .task-copy > div,
+  .insight-grid {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .priority-switcher button,
+  .add-todo-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .task-card {
+    grid-template-columns: 34px minmax(0, 1fr);
   }
 }

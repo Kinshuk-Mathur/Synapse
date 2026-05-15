@@ -1,5 +1,4 @@
 [build]
-  base = "synapse-dashborad"
   command = "npm run build"
   publish = ".next"
 

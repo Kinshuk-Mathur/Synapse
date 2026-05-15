@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
@@ -51,6 +52,8 @@ import {
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
 
+const todoAppUrl = process.env.NEXT_PUBLIC_TODO_APP_URL || "/";
+
 const themes = [
   { id: "obsidian", name: "Obsidian Neon", tone: "Default OS" },
   { id: "midnight", name: "Midnight Tech", tone: "Deep Focus" },
@@ -59,16 +62,16 @@ const themes = [
 ];
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, active: true },
-  { label: "FocusLock", icon: LockKeyhole },
-  { label: "To-Do List", icon: CheckSquare },
-  { label: "Goals", icon: Target },
-  { label: "Focus Sessions", icon: Timer },
-  { label: "Analytics", icon: BarChart3 },
-  { label: "AI Assistant", icon: Sparkles },
-  { label: "Calendar", icon: CalendarDays },
-  { label: "Resources", icon: FolderOpen },
-  { label: "Settings", icon: Settings }
+  { label: "Dashboard", icon: LayoutDashboard, href: "/", active: true },
+  { label: "FocusLock", icon: LockKeyhole, href: "#" },
+  { label: "To-Do List", icon: CheckSquare, href: todoAppUrl },
+  { label: "Goals", icon: Target, href: "#" },
+  { label: "Focus Sessions", icon: Timer, href: "#" },
+  { label: "Analytics", icon: BarChart3, href: "#" },
+  { label: "AI Assistant", icon: Sparkles, href: "#" },
+  { label: "Calendar", icon: CalendarDays, href: "#" },
+  { label: "Resources", icon: FolderOpen, href: "#" },
+  { label: "Settings", icon: Settings, href: "#" }
 ];
 
 const sparkData = [
@@ -313,15 +316,16 @@ export default function Home() {
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
-                <motion.button
+                <motion.div
                   key={item.label}
-                  className={`nav-item ${item.active ? "is-active" : ""}`}
                   whileHover={{ x: 4 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <Icon size={20} />
-                  <span>{item.label}</span>
-                </motion.button>
+                  <Link href={item.href} className={`nav-item ${item.active ? "is-active" : ""}`}>
+                    <Icon size={20} />
+                    <span>{item.label}</span>
+                  </Link>
+                </motion.div>
               );
             })}
           </nav>
@@ -535,10 +539,10 @@ export default function Home() {
                 >
                   <div className="panel-header">
                     <h2>Today's To-Do</h2>
-                    <button className="add-button">
+                    <Link className="add-button add-task-link" href={todoAppUrl}>
                       <Plus size={14} />
                       Add Task
-                    </button>
+                    </Link>
                   </div>
                   <div className="todo-list">
                     {todos.map((item) => (
