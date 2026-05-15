@@ -7,7 +7,7 @@ import {
   setDoc,
   where
 } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { getFirebaseDb } from "../lib/firebase";
 
 export const COLLECTIONS = {
   users: "users",
@@ -17,19 +17,24 @@ export const COLLECTIONS = {
   analytics: "analytics"
 };
 
-export const collectionRefs = {
-  users: collection(db, COLLECTIONS.users),
-  todos: collection(db, COLLECTIONS.todos),
-  goals: collection(db, COLLECTIONS.goals),
-  focusSessions: collection(db, COLLECTIONS.focusSessions),
-  analytics: collection(db, COLLECTIONS.analytics)
-};
+export function getCollectionRefs() {
+  const db = getFirebaseDb();
+
+  return {
+    users: collection(db, COLLECTIONS.users),
+    todos: collection(db, COLLECTIONS.todos),
+    goals: collection(db, COLLECTIONS.goals),
+    focusSessions: collection(db, COLLECTIONS.focusSessions),
+    analytics: collection(db, COLLECTIONS.analytics)
+  };
+}
 
 export async function createUserProfile(user) {
   if (!user?.uid) {
     throw new Error("Cannot create a user profile without an authenticated user.");
   }
 
+  const db = getFirebaseDb();
   const userRef = doc(db, COLLECTIONS.users, user.uid);
   const snapshot = await getDoc(userRef);
 
@@ -65,6 +70,7 @@ export function userScopedQuery(collectionName, uid) {
     throw new Error("A user id is required for user-scoped Firestore queries.");
   }
 
+  const db = getFirebaseDb();
   return query(collection(db, COLLECTIONS[collectionName]), where("userId", "==", uid));
 }
 
@@ -77,5 +83,6 @@ export function userDoc(collectionName, uid, documentId) {
     throw new Error("A user id and document id are required.");
   }
 
+  const db = getFirebaseDb();
   return doc(db, COLLECTIONS[collectionName], `${uid}_${documentId}`);
 }

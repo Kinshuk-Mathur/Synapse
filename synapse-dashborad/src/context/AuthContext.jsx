@@ -6,7 +6,13 @@ import {
   signOut
 } from "firebase/auth";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { auth, enableAuthPersistence, googleProvider } from "../lib/firebase";
+import {
+  enableAuthPersistence,
+  getFirebaseAuth,
+  getGoogleProvider,
+  hasFirebaseConfig,
+  missingFirebaseConfigKeys
+} from "../lib/firebase";
 import { createUserProfile } from "../services/firestore";
 
 const AuthContext = createContext(null);
@@ -17,8 +23,16 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!hasFirebaseConfig) {
+      setError(`Missing Firebase environment variables: ${missingFirebaseConfigKeys.join(", ")}`);
+      setLoading(false);
+      return undefined;
+    }
+
+    const firebaseAuth = getFirebaseAuth();
+
     const unsubscribe = onAuthStateChanged(
-      auth,
+      firebaseAuth,
       async (currentUser) => {
         try {
           if (currentUser) {
@@ -47,7 +61,7 @@ export function AuthProvider({ children }) {
       setError(null);
       setLoading(true);
       await enableAuthPersistence();
-      const result = await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(getFirebaseAuth(), getGoogleProvider());
       await createUserProfile(result.user);
       setUser(result.user);
       return result.user;
@@ -62,7 +76,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       setError(null);
-      await signOut(auth);
+      await signOut(getFirebaseAuth());
       setUser(null);
     } catch (authError) {
       setError(authError.message || "Logout failed.");
