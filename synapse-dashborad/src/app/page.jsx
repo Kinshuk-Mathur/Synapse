@@ -91,7 +91,7 @@ const sparkData = [
   { value: 56 }
 ];
 
-const statCards = [
+const baseStatCards = [
   {
     label: "Focus Time Today",
     value: "4h 32m",
@@ -102,8 +102,8 @@ const statCards = [
   },
   {
     label: "Tasks Completed",
-    value: "8 / 12",
-    meta: "+23% from yesterday",
+    value: "0 / 0",
+    meta: "Syncing todos...",
     icon: Check,
     chart: "var(--chart-pink)",
     glow: "var(--glow-pink)"
@@ -308,6 +308,44 @@ export default function Home() {
         .slice(0, 4),
     [dashboardTodos]
   );
+
+  const statCards = useMemo(() => {
+    const todayKey = formatDateKey();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = formatDateKey(yesterday);
+    const todayTodos = dashboardTodos.filter((item) => item.selectedDate === todayKey);
+    const yesterdayTodos = dashboardTodos.filter((item) => item.selectedDate === yesterdayKey);
+    const completedToday = todayTodos.filter((item) => item.completed).length;
+    const completedYesterday = yesterdayTodos.filter((item) => item.completed).length;
+    const pendingToday = todayTodos.length - completedToday;
+
+    let todoMeta = "No tasks planned today";
+
+    if (dashboardTodoLoading) {
+      todoMeta = "Syncing todos...";
+    } else if (dashboardTodoError) {
+      todoMeta = "Todo sync unavailable";
+    } else if (todayTodos.length > 0 && yesterdayTodos.length > 0) {
+      const delta = completedToday - completedYesterday;
+      todoMeta =
+        delta === 0
+          ? "Same as yesterday"
+          : `${delta > 0 ? "+" : ""}${delta} from yesterday`;
+    } else if (todayTodos.length > 0) {
+      todoMeta = pendingToday === 0 ? "All tasks complete" : `${pendingToday} pending today`;
+    }
+
+    return baseStatCards.map((card) =>
+      card.label === "Tasks Completed"
+        ? {
+            ...card,
+            value: dashboardTodoLoading ? "... / ..." : `${completedToday} / ${todayTodos.length}`,
+            meta: todoMeta
+          }
+        : card
+    );
+  }, [dashboardTodoError, dashboardTodoLoading, dashboardTodos]);
 
   const handleLogout = async () => {
     try {
