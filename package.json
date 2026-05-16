@@ -1,0 +1,10 @@
+{
+  "name": "synapse",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix synapse-dashborad run dev",
+    "build": "npm --prefix synapse-dashborad run build",
+    "start": "npm --prefix synapse-dashborad run start"
+  }
+}
