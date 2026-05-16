@@ -7,7 +7,6 @@ import {
   Check,
   Copy,
   FileText,
-  Globe2,
   GraduationCap,
   Heart,
   History,
@@ -16,7 +15,6 @@ import {
   MoreHorizontal,
   PanelLeftClose,
   Paperclip,
-  PenLine,
   Plus,
   Send,
   Sparkles,
@@ -59,29 +57,6 @@ const quickActions = [
     label: "Productivity Help",
     icon: Zap,
     prompt: "Help me plan a calm, productive day with priorities, breaks, and focus sessions."
-  }
-];
-
-const toolItems = [
-  {
-    label: "Study Mode",
-    description: "Tutor-style explanations",
-    icon: GraduationCap
-  },
-  {
-    label: "PDF Summary",
-    description: "Prepare file insights",
-    icon: FileText
-  },
-  {
-    label: "Web Research",
-    description: "Ready for future search",
-    icon: Globe2
-  },
-  {
-    label: "Task Builder",
-    description: "Turn answers into plans",
-    icon: PenLine
   }
 ];
 
@@ -442,56 +417,12 @@ function ChatSidebar({
   );
 }
 
-function RightRail({ onPrompt, selectedFile }) {
-  return (
-    <aside className="synapse-ai-rail">
-      <section>
-        <div className="rail-heading">
-          <WandSparkles size={18} />
-          <h2>Tools</h2>
-        </div>
-        <div className="tool-list">
-          {toolItems.map((tool) => {
-            const Icon = tool.icon;
-            return (
-              <button key={tool.label} type="button" onClick={() => onPrompt(tool.label)}>
-                <span className="tool-icon">
-                  <Icon size={17} />
-                </span>
-                <span>
-                  <strong>{tool.label}</strong>
-                  <small>{tool.description}</small>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section>
-        <div className="rail-heading">
-          <FileText size={18} />
-          <h2>Recent File</h2>
-        </div>
-        <div className="recent-file-card">
-          <FileText size={18} />
-          <span>
-            <strong>{selectedFile?.name || "No PDF selected"}</strong>
-            <small>{selectedFile ? fileSize(selectedFile.size) : "Upload a file from the composer"}</small>
-          </span>
-        </div>
-      </section>
-    </aside>
-  );
-}
-
 export default function SynapseAIWorkspace() {
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState("");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [toolsOpen, setToolsOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadError, setUploadError] = useState("");
@@ -571,7 +502,6 @@ export default function SynapseAIWorkspace() {
 
   const handlePrompt = (prompt) => {
     setInput(prompt);
-    setToolsOpen(false);
   };
 
   const handleFile = (file) => {
@@ -874,32 +804,10 @@ export default function SynapseAIWorkspace() {
                     <span>Upload PDF</span>
                   </button>
 
-                  <div className="tools-menu-wrap">
-                    <button type="button" onClick={() => setToolsOpen((value) => !value)}>
-                      <MoreHorizontal size={17} />
-                      <span>Tools</span>
-                    </button>
-                    <AnimatePresence>
-                      {toolsOpen ? (
-                        <motion.div
-                          className="tools-popover"
-                          initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                        >
-                          {toolItems.map((tool) => {
-                            const Icon = tool.icon;
-                            return (
-                              <button key={tool.label} type="button" onClick={() => handlePrompt(tool.label)}>
-                                <Icon size={16} />
-                                <span>{tool.label}</span>
-                              </button>
-                            );
-                          })}
-                        </motion.div>
-                      ) : null}
-                    </AnimatePresence>
-                  </div>
+                  <button type="button" onClick={() => handlePrompt("Turn this answer into a short study plan:")}>
+                    <MoreHorizontal size={17} />
+                    <span>Study Plan</span>
+                  </button>
 
                   <button
                     type="button"
@@ -927,8 +835,6 @@ export default function SynapseAIWorkspace() {
                 SYNAPSE AI can make mistakes. Check important study, code, and planning details.
               </p>
             </section>
-
-            <RightRail onPrompt={handlePrompt} selectedFile={selectedFile} />
           </div>
         </section>
       </div>
