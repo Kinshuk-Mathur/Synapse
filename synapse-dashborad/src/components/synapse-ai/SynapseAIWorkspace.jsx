@@ -4,10 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowRight,
-  Bot,
   Check,
-  ChevronDown,
   Copy,
   FileText,
   Globe2,
@@ -63,14 +60,6 @@ const quickActions = [
     icon: Zap,
     prompt: "Help me plan a calm, productive day with priorities, breaks, and focus sessions."
   }
-];
-
-const suggestedPrompts = [
-  "Explain Newton's second law with examples",
-  "Make a 7 day study plan for finals",
-  "Summarize photosynthesis for revision",
-  "Create a Python function and explain it",
-  "Help me break down today's tasks"
 ];
 
 const toolItems = [
@@ -202,7 +191,6 @@ function TypingDots() {
 
 function MessageBubble({ message, onCopy }) {
   const fromUser = message.role === "user";
-  const Icon = fromUser ? GraduationCap : Sparkles;
 
   return (
     <motion.article
@@ -214,7 +202,12 @@ function MessageBubble({ message, onCopy }) {
     >
       {!fromUser ? (
         <span className="message-avatar" aria-hidden="true">
-          <Icon size={18} />
+          <Image
+            src="/assets/synapse-icon-cropped.png"
+            alt=""
+            width={28}
+            height={28}
+          />
         </span>
       ) : null}
 
@@ -362,21 +355,6 @@ function RightRail({ onPrompt, selectedFile }) {
     <aside className="synapse-ai-rail">
       <section>
         <div className="rail-heading">
-          <Sparkles size={18} />
-          <h2>Suggested Prompts</h2>
-        </div>
-        <div className="rail-list">
-          {suggestedPrompts.map((prompt) => (
-            <button key={prompt} type="button" onClick={() => onPrompt(prompt)}>
-              <span>{prompt}</span>
-              <ArrowRight size={16} />
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="rail-heading">
           <WandSparkles size={18} />
           <h2>Tools</h2>
         </div>
@@ -392,7 +370,6 @@ function RightRail({ onPrompt, selectedFile }) {
                   <strong>{tool.label}</strong>
                   <small>{tool.description}</small>
                 </span>
-                <ArrowRight size={15} />
               </button>
             );
           })}
@@ -675,7 +652,8 @@ export default function SynapseAIWorkspace() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.42, delay: 0.04 }}
               >
-                SYNAPSE AI
+                <span className="synapse-title-brand">synapse</span>
+                <span className="synapse-title-ai">AI</span>
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
@@ -688,11 +666,6 @@ export default function SynapseAIWorkspace() {
 
             <div className="synapse-ai-actions">
               <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
-              <button className="model-pill" type="button">
-                <Bot size={18} />
-                <span>DeepSeek via OpenRouter</span>
-                <ChevronDown size={15} />
-              </button>
               <div className="profile-chip">
                 <Image
                   src="/assets/synapse-icon-cropped.png"
@@ -745,7 +718,12 @@ export default function SynapseAIWorkspace() {
                     animate={{ opacity: 1, y: 0 }}
                   >
                     <span className="message-avatar" aria-hidden="true">
-                      <Sparkles size={18} />
+                      <Image
+                        src="/assets/synapse-icon-cropped.png"
+                        alt=""
+                        width={28}
+                        height={28}
+                      />
                     </span>
                     <div className="message-shell">
                       <TypingDots />
