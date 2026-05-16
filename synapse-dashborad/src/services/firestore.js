@@ -12,6 +12,7 @@ import { getFirebaseDb } from "../lib/firebase";
 export const COLLECTIONS = {
   users: "users",
   todos: "todos",
+  monthlyGoals: "monthlyGoals",
   goals: "goals",
   focusSessions: "focusSessions",
   analytics: "analytics"
@@ -23,6 +24,7 @@ export function getCollectionRefs() {
   return {
     users: collection(db, COLLECTIONS.users),
     todos: collection(db, COLLECTIONS.todos),
+    monthlyGoals: collection(db, COLLECTIONS.monthlyGoals),
     goals: collection(db, COLLECTIONS.goals),
     focusSessions: collection(db, COLLECTIONS.focusSessions),
     analytics: collection(db, COLLECTIONS.analytics)

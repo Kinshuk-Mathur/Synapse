@@ -21,8 +21,8 @@ import {
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
   { label: "FocusLock", icon: LockKeyhole, href: "#" },
-  { label: "To-Do List", icon: CheckSquare, href: "/todo", active: true },
-  { label: "Goals", icon: Target, href: "/goals" },
+  { label: "To-Do List", icon: CheckSquare, href: "/todo" },
+  { label: "Goals", icon: Target, href: "/goals", active: true },
   { label: "Focus Sessions", icon: Timer, href: "#" },
   { label: "Analytics", icon: BarChart3, href: "#" },
   { label: "AI Assistant", icon: Sparkles, href: "#" },
@@ -31,7 +31,7 @@ const navItems = [
   { label: "Settings", icon: Settings, href: "#" }
 ];
 
-export default function TodoSidebar() {
+export default function GoalsSidebar() {
   return (
     <motion.aside
       className="sidebar"
@@ -50,7 +50,7 @@ export default function TodoSidebar() {
         />
       </div>
 
-      <nav className="side-nav" aria-label="Todo sections">
+      <nav className="side-nav" aria-label="Goals sections">
         {navItems.map((item) => {
           const Icon = item.icon;
 
@@ -67,12 +67,12 @@ export default function TodoSidebar() {
 
       <div className="side-footer">
         <motion.div className="streak-card" whileHover={{ y: -4 }}>
-          <span>Current Streak</span>
+          <span>Goal Streak</span>
           <strong>
             <Flame size={34} />
             12 <small>days</small>
           </strong>
-          <p>Keep it up!</p>
+          <p>Consistency wins.</p>
         </motion.div>
 
         <button className="support-button" type="button">

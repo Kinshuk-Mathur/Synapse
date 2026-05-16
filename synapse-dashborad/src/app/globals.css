@@ -2019,6 +2019,711 @@ select {
   font-style: normal;
 }
 
+.goals-dashboard-frame {
+  width: min(1540px, 100%);
+}
+
+.goals-workspace {
+  min-width: 0;
+  padding: 24px 18px 28px;
+}
+
+.goals-topbar,
+.goals-heading-block,
+.goals-header-actions,
+.goals-header-actions button,
+.goals-header-actions label {
+  display: flex;
+  align-items: center;
+}
+
+.goals-topbar {
+  position: relative;
+  z-index: 35;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.goals-heading-block {
+  gap: 14px;
+  margin-right: auto;
+}
+
+.goals-heading-block h1 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 36px);
+  line-height: 1;
+}
+
+.goals-heading-block p {
+  margin: 8px 0 0;
+  color: var(--color-muted);
+}
+
+.goals-header-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.goals-header-actions > button:not(.icon-button):not(.logout-button),
+.goals-header-actions label {
+  min-height: 46px;
+  gap: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--panel) 76%, var(--transparent));
+  padding: 0 14px;
+  color: var(--color-text);
+  box-shadow: 0 12px 36px color-mix(in oklab, var(--color-ink) 28%, var(--transparent));
+  backdrop-filter: blur(18px);
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease;
+}
+
+.goals-header-actions > button:not(.icon-button):not(.logout-button):hover,
+.goals-header-actions label:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
+}
+
+.goals-header-actions input {
+  width: 124px;
+  background: var(--transparent);
+  color-scheme: dark;
+}
+
+.goals-layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+}
+
+.goals-main-column {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.goals-month-strip {
+  display: grid;
+  grid-auto-columns: minmax(158px, 1fr);
+  grid-auto-flow: column;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: thin;
+}
+
+.goal-month-card,
+.goals-workspace-panel,
+.goal-card,
+.goal-side-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-text) 4%, var(--transparent)), color-mix(in oklab, var(--color-surface) 64%, var(--transparent))),
+    var(--panel);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(22px);
+  transition:
+    border-color 240ms ease,
+    box-shadow 240ms ease,
+    transform 240ms ease,
+    background 360ms ease;
+}
+
+.goal-month-card {
+  display: grid;
+  min-height: 210px;
+  gap: 12px;
+  padding: 18px;
+  text-align: left;
+}
+
+.goal-month-card:hover,
+.goal-month-card.is-active,
+.goals-workspace-panel:hover,
+.goal-card:hover,
+.goal-side-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-glow), var(--shadow-card);
+}
+
+.goal-month-card.is-active {
+  background:
+    radial-gradient(circle at 76% 16%, color-mix(in oklab, var(--color-pulse) 25%, var(--transparent)), var(--transparent) 45%),
+    linear-gradient(145deg, color-mix(in oklab, var(--color-pulse) 12%, var(--transparent)), color-mix(in oklab, var(--color-surface) 72%, var(--transparent))),
+    var(--panel);
+}
+
+.goal-month-card strong,
+.goal-month-card b {
+  display: block;
+}
+
+.goal-month-card div span,
+.goal-month-card footer span {
+  color: var(--color-muted);
+}
+
+.goal-ring {
+  width: 76px;
+  height: 76px;
+  justify-self: center;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+
+.goal-ring circle {
+  fill: none;
+  stroke: color-mix(in oklab, var(--color-text) 8%, var(--transparent));
+  stroke-width: 7;
+}
+
+.goal-ring circle:last-child {
+  stroke: color-mix(in oklab, var(--color-pulse) 72%, var(--color-accent));
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 10px color-mix(in oklab, var(--color-pulse) 58%, var(--transparent)));
+}
+
+.goal-month-card footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--grid-line);
+  padding-top: 12px;
+}
+
+.goal-month-card footer b {
+  font-size: 18px;
+}
+
+.goals-workspace-panel {
+  overflow: hidden;
+  padding: 22px;
+}
+
+.goals-panel-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--grid-line);
+  padding-bottom: 18px;
+}
+
+.goals-panel-top h2 {
+  margin: 0 0 14px;
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.goals-panel-top p {
+  margin: 10px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.goals-panel-top > strong {
+  color: var(--color-text);
+  font-size: 24px;
+}
+
+.monthly-progress-line,
+.goal-progress-track {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+}
+
+.monthly-progress-line {
+  width: min(520px, 100%);
+  height: 7px;
+}
+
+.monthly-progress-line i,
+.goal-progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-pulse), color-mix(in oklab, var(--color-accent) 58%, var(--color-sky)));
+  box-shadow: 0 0 18px color-mix(in oklab, var(--color-pulse) 48%, var(--transparent));
+}
+
+.goals-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  gap: 8px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--color-pulse), var(--color-accent));
+  padding: 0 18px;
+  color: var(--color-text);
+  font-weight: 800;
+  box-shadow: 0 0 30px color-mix(in oklab, var(--color-pulse) 34%, var(--transparent));
+}
+
+.goals-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 14px;
+}
+
+.goals-filter-row div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.goals-filter-row button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  padding: 0 13px;
+  color: var(--color-muted);
+  transition:
+    border-color 220ms ease,
+    color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease;
+}
+
+.goals-filter-row button:hover,
+.goals-filter-row button.is-active {
+  border-color: var(--border-strong);
+  background: color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
+  color: var(--color-text);
+  box-shadow: 0 0 20px color-mix(in oklab, var(--color-pulse) 24%, var(--transparent));
+  transform: translateY(-2px);
+}
+
+.goal-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-pulse) 8%, var(--transparent));
+  padding: 16px;
+}
+
+.goal-form.is-editing {
+  margin-top: 0;
+  border-color: var(--border);
+  background: color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+}
+
+.goal-form label {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-bg) 48%, var(--transparent));
+  padding: 0 12px;
+  color: var(--color-muted);
+}
+
+.goal-form label:focus-within {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 18px color-mix(in oklab, var(--color-pulse) 22%, var(--transparent));
+}
+
+.goal-form input,
+.goal-form select {
+  width: 100%;
+  background: var(--transparent);
+  color-scheme: dark;
+}
+
+.goal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.goal-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.goal-form-actions > button:first-child {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  padding: 0 14px;
+  color: var(--color-muted);
+}
+
+.goal-list-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.goal-card {
+  position: relative;
+  display: grid;
+  gap: 15px;
+  overflow: hidden;
+  padding: 18px;
+}
+
+.goal-card.is-complete {
+  border-color: color-mix(in oklab, var(--color-lime) 48%, var(--transparent));
+  box-shadow: 0 0 30px color-mix(in oklab, var(--color-lime) 18%, var(--transparent)), var(--shadow-card);
+}
+
+.goal-complete-burst {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--color-lime);
+  color: var(--color-bg);
+  box-shadow: 0 0 24px color-mix(in oklab, var(--color-lime) 60%, var(--transparent));
+}
+
+.goal-card-top {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.goal-category-icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-pulse) 22%, var(--transparent));
+  color: var(--color-pulse);
+  box-shadow: 0 0 22px color-mix(in oklab, var(--color-pulse) 26%, var(--transparent));
+}
+
+.category-coding {
+  background: color-mix(in oklab, #22c55e 18%, var(--transparent));
+  color: #22c55e;
+}
+
+.category-fitness {
+  background: color-mix(in oklab, var(--color-gold) 18%, var(--transparent));
+  color: var(--color-gold);
+}
+
+.category-content {
+  background: color-mix(in oklab, #ff4f8b 18%, var(--transparent));
+  color: #ff4f8b;
+}
+
+.category-personal {
+  background: color-mix(in oklab, var(--color-sky) 18%, var(--transparent));
+  color: var(--color-sky);
+}
+
+.goal-card h2 {
+  margin: 0 0 5px;
+  font-size: 16px;
+}
+
+.goal-card p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.goal-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.goal-card-actions button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  color: var(--color-muted);
+}
+
+.goal-card-actions button:hover {
+  border-color: var(--border-strong);
+  color: var(--color-text);
+}
+
+.goal-card-meta,
+.goal-progress-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.goal-card-meta span,
+.goal-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  padding: 6px 10px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.goal-status {
+  color: var(--color-pulse);
+}
+
+.status-completed {
+  color: var(--color-lime);
+}
+
+.status-not-started {
+  color: #ff4f8b;
+}
+
+.goal-progress-row strong {
+  margin-right: 10px;
+  font-weight: 700;
+}
+
+.goal-progress-row span,
+.goal-progress-row small {
+  color: var(--color-muted);
+}
+
+.goal-progress-track {
+  height: 7px;
+}
+
+.goal-note {
+  border-top: 1px solid var(--grid-line);
+  padding-top: 12px;
+  font-size: 13px;
+}
+
+.goals-empty-state {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 3%, var(--transparent));
+  padding: 28px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.goals-empty-state span {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-pulse), var(--color-accent));
+  color: var(--color-text);
+  font-size: 32px;
+  box-shadow: var(--shadow-glow);
+}
+
+.goals-empty-state h3 {
+  margin: 14px 0 8px;
+  color: var(--color-text);
+}
+
+.goals-empty-state p {
+  margin: 0;
+}
+
+.goals-right-rail {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.goal-side-card {
+  padding: 18px;
+}
+
+.goal-side-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.goal-side-title svg {
+  color: var(--color-pulse);
+}
+
+.goal-side-title h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.overview-ring-wrap {
+  position: relative;
+  display: grid;
+  min-height: 150px;
+  place-items: center;
+}
+
+.goals-overview-ring {
+  width: 142px;
+  height: 142px;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+
+.goals-overview-ring circle {
+  fill: none;
+  stroke: color-mix(in oklab, var(--color-text) 9%, var(--transparent));
+  stroke-width: 10;
+}
+
+.goals-overview-ring circle:last-child {
+  stroke: color-mix(in oklab, var(--color-pulse) 74%, var(--color-accent));
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 12px color-mix(in oklab, var(--color-pulse) 58%, var(--transparent)));
+}
+
+.overview-ring-wrap div {
+  position: absolute;
+  display: grid;
+  place-items: center;
+}
+
+.overview-ring-wrap strong {
+  font-size: 30px;
+}
+
+.overview-ring-wrap span,
+.overview-metrics,
+.goal-side-card small,
+.streak-goals-card p,
+.quote-card small {
+  color: var(--color-muted);
+}
+
+.overview-metrics {
+  display: grid;
+  gap: 10px;
+  border-bottom: 1px solid var(--grid-line);
+  padding-bottom: 14px;
+}
+
+.overview-metrics p {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.overview-metrics i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.monthly-overview-card > small {
+  display: block;
+  margin-top: 12px;
+}
+
+.mini-trend-chart {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: end;
+  gap: 12px;
+  height: 112px;
+  border-bottom: 1px solid var(--grid-line);
+  padding: 8px 4px 0;
+}
+
+.mini-trend-chart span {
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(180deg, var(--color-pulse), var(--color-accent));
+  box-shadow: 0 0 16px color-mix(in oklab, var(--color-pulse) 32%, var(--transparent));
+}
+
+.trend-labels,
+.week-dots {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.trend-labels {
+  margin-top: 10px;
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+.streak-goals-card strong {
+  display: block;
+  color: var(--color-gold);
+  font-size: 32px;
+}
+
+.streak-goals-card strong span {
+  color: var(--color-text);
+  font-size: 16px;
+}
+
+.week-dots {
+  margin-top: 16px;
+}
+
+.week-dots span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+.week-dots .is-lit {
+  border-color: var(--border-strong);
+  background: linear-gradient(135deg, var(--color-pulse), var(--color-accent));
+  color: var(--color-text);
+  box-shadow: 0 0 16px color-mix(in oklab, var(--color-pulse) 32%, var(--transparent));
+}
+
+.quote-card p {
+  margin: 0 0 12px;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
 .auth-screen,
 .login-page {
   position: relative;
@@ -2256,6 +2961,14 @@ select {
   .motivation-panel {
     min-height: auto;
   }
+
+  .goals-layout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .goals-right-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 980px) {
@@ -2325,6 +3038,29 @@ select {
 
   .todo-page-grid,
   .todo-right-column {
+    grid-template-columns: 1fr;
+  }
+
+  .goals-topbar {
+    align-items: flex-start;
+  }
+
+  .goals-heading-block,
+  .goals-header-actions {
+    width: 100%;
+  }
+
+  .goals-header-actions {
+    justify-content: flex-start;
+  }
+
+  .goals-panel-top {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .goal-form-grid,
+  .goals-right-rail {
     grid-template-columns: 1fr;
   }
 }
@@ -2487,5 +3223,53 @@ select {
   .lock-countdown-card {
     grid-template-columns: 1fr;
     text-align: center;
+  }
+
+  .goals-workspace {
+    padding: 14px;
+  }
+
+  .goals-heading-block {
+    align-items: flex-start;
+  }
+
+  .goals-heading-block h1 {
+    font-size: 28px;
+  }
+
+  .goals-header-actions > button:not(.icon-button):not(.logout-button),
+  .goals-header-actions label,
+  .goals-header-actions .theme-switcher {
+    width: 100%;
+  }
+
+  .goals-header-actions .theme-trigger {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .goals-month-strip {
+    grid-auto-columns: minmax(142px, 74vw);
+  }
+
+  .goals-workspace-panel {
+    padding: 16px;
+  }
+
+  .goal-card-top {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .goal-category-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .goal-card-actions {
+    grid-column: 2;
+  }
+
+  .goal-form-actions {
+    flex-direction: column;
   }
 }

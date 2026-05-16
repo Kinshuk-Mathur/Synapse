@@ -54,6 +54,7 @@ import { useAuth } from "../context/AuthContext";
 import { formatDateKey, listenToUserTodos } from "../services/todos";
 
 const todoAppUrl = "/todo";
+const goalsAppUrl = "/goals";
 
 const themes = [
   { id: "obsidian", name: "Obsidian Neon", tone: "Default OS" },
@@ -66,7 +67,7 @@ const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/", active: true },
   { label: "FocusLock", icon: LockKeyhole, href: "#" },
   { label: "To-Do List", icon: CheckSquare, href: todoAppUrl },
-  { label: "Goals", icon: Target, href: "#" },
+  { label: "Goals", icon: Target, href: goalsAppUrl },
   { label: "Focus Sessions", icon: Timer, href: "#" },
   { label: "Analytics", icon: BarChart3, href: "#" },
   { label: "AI Assistant", icon: Sparkles, href: "#" },
@@ -643,7 +644,7 @@ export default function Home() {
                 >
                   <div className="panel-header">
                     <h2>Monthly Goal Progress</h2>
-                    <button>View All</button>
+                    <Link href={goalsAppUrl}>View All</Link>
                   </div>
                   <div className="goal-list">
                     {goals.map((goal) => (
