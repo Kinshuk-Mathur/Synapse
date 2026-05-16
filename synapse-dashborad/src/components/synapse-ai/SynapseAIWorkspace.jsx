@@ -2,19 +2,19 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   Copy,
+  FileCode2,
   FileText,
   GraduationCap,
-  Heart,
+  Home,
   History,
+  ImageIcon,
   Menu,
   MessageSquareText,
-  MoreHorizontal,
-  PanelLeftClose,
-  Paperclip,
   Plus,
   Send,
   Sparkles,
@@ -22,7 +22,6 @@ import {
   ThumbsUp,
   Trash2,
   Upload,
-  WandSparkles,
   X,
   Zap
 } from "lucide-react";
@@ -31,6 +30,8 @@ import { useSynapseTheme } from "../../hooks/useSynapseTheme";
 import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 
 const STORAGE_KEY = "synapse-ai-conversations";
+const DASHBOARD_HREF = "/";
+const SUPPORTED_FILE_COPY = "PDF, JPG, PNG, HTML, text, Markdown, code, or JSON files";
 
 const quickActions = [
   {
@@ -256,8 +257,15 @@ function TypingDots() {
   );
 }
 
+function getAttachmentIcon(attachment) {
+  if (attachment?.type?.startsWith("image/")) return ImageIcon;
+  if (attachment?.name?.match(/\.(html?|css|js|jsx|json|md|txt)$/i)) return FileCode2;
+  return FileText;
+}
+
 function MessageBubble({ message, onCopy }) {
   const fromUser = message.role === "user";
+  const AttachmentIcon = getAttachmentIcon(message.attachment);
 
   return (
     <motion.article
@@ -281,7 +289,7 @@ function MessageBubble({ message, onCopy }) {
       <div className="message-shell">
         {message.attachment ? (
           <div className="message-attachment">
-            <FileText size={15} />
+            <AttachmentIcon size={15} />
             <span>{message.attachment.name}</span>
           </div>
         ) : null}
@@ -343,20 +351,25 @@ function ChatSidebar({
 
       <motion.aside
         className={`synapse-ai-sidebar ${open ? "is-open" : ""}`}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.42 }}
+        initial={false}
+        animate={{
+          opacity: open ? 1 : 0,
+          x: open ? 0 : "-105%"
+        }}
+        transition={{ duration: 0.28, ease: "easeOut" }}
       >
         <div className="synapse-ai-brand">
-          <Image
-            src="/assets/main-logo.jpeg"
-            alt="SYNAPSE logo"
-            width={186}
-            height={74}
-            priority
-          />
-          <button type="button" aria-label="Close sidebar" onClick={onClose}>
-            <PanelLeftClose size={18} />
+          <Link href={DASHBOARD_HREF} className="synapse-ai-brand-link" aria-label="Go to SYNAPSE dashboard">
+            <Image
+              src="/assets/main-logo.jpeg"
+              alt="SYNAPSE logo"
+              width={186}
+              height={74}
+              priority
+            />
+          </Link>
+          <button type="button" aria-label="Close chat history" onClick={onClose}>
+            <X size={20} />
           </button>
         </div>
 
@@ -399,18 +412,21 @@ function ChatSidebar({
           ))}
         </div>
 
-        <div className="synapse-sidebar-user">
+        <div className="synapse-sidebar-footer-brand">
           <Image
             src="/assets/synapse-icon-cropped.png"
-            alt="Student profile"
-            width={42}
-            height={42}
+            alt=""
+            width={46}
+            height={46}
           />
           <div>
-            <strong>Focus Mode</strong>
-            <span>Student workspace</span>
+            <strong>SYNAPSE AI</strong>
+            <span>Study workspace</span>
+            <Link href={DASHBOARD_HREF}>
+              <Home size={14} />
+              Main dashboard
+            </Link>
           </div>
-          <Heart size={16} />
         </div>
       </motion.aside>
     </>
@@ -425,6 +441,7 @@ export default function SynapseAIWorkspace() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [copied, setCopied] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -435,6 +452,14 @@ export default function SynapseAIWorkspace() {
 
   const studentName = user?.displayName?.split(" ")[0] || "Kinshuk";
   const activeConversation = conversations.find((conversation) => conversation.id === activeId);
+  const SelectedFileIcon = getAttachmentIcon(
+    selectedFile
+      ? {
+          name: selectedFile.name,
+          type: selectedFile.type
+        }
+      : null
+  );
 
   useEffect(() => {
     try {
@@ -479,7 +504,6 @@ export default function SynapseAIWorkspace() {
     setInput("");
     setSelectedFile(null);
     setUploadError("");
-    setSidebarOpen(false);
   };
 
   const handleDeleteChat = (conversationId) => {
@@ -507,15 +531,36 @@ export default function SynapseAIWorkspace() {
   const handleFile = (file) => {
     if (!file) return;
 
-    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const allowedExtensions = /\.(pdf|jpe?g|png|html?|txt|md|js|jsx|css|json)$/i;
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "text/html",
+      "text/plain",
+      "text/markdown",
+      "text/css",
+      "application/json",
+      "application/javascript",
+      "text/javascript"
+    ];
+    const supported = allowedTypes.includes(file.type) || allowedExtensions.test(file.name);
 
-    if (!isPdf) {
-      setUploadError("Only PDF files are supported right now.");
+    if (!supported) {
+      setUploadError(`Upload ${SUPPORTED_FILE_COPY}.`);
       return;
     }
 
     setUploadError("");
     setSelectedFile(file);
+    setAttachmentMenuOpen(false);
+  };
+
+  const openFilePicker = (accept) => {
+    if (!fileRef.current) return;
+    fileRef.current.accept = accept;
+    fileRef.current.click();
+    setAttachmentMenuOpen(false);
   };
 
   const handleDrop = (event) => {
@@ -538,7 +583,9 @@ export default function SynapseAIWorkspace() {
     if (!conversation || loading || (!trimmed && !selectedFile)) return;
 
     const now = new Date().toISOString();
-    const attachmentText = selectedFile ? `\n\nAttached PDF: ${selectedFile.name}` : "";
+    const attachmentText = selectedFile
+      ? `\n\nAttached file: ${selectedFile.name} (${selectedFile.type || "unknown type"}, ${fileSize(selectedFile.size)}).`
+      : "";
     const userMessage = {
       id: `user-${Date.now()}`,
       role: "user",
@@ -547,7 +594,8 @@ export default function SynapseAIWorkspace() {
       attachment: selectedFile
         ? {
             name: selectedFile.name,
-            size: selectedFile.size
+            size: selectedFile.size,
+            type: selectedFile.type
           }
         : null
     };
@@ -636,14 +684,13 @@ export default function SynapseAIWorkspace() {
     >
       <div className="ambient-grid" aria-hidden="true" />
 
-      <div className="synapse-ai-frame">
+      <div className={`synapse-ai-frame ${sidebarOpen ? "history-open" : "history-closed"}`}>
         <ChatSidebar
           conversations={conversations}
           activeId={activeId}
           onNewChat={handleNewChat}
           onOpenChat={(id) => {
             setActiveId(id);
-            setSidebarOpen(false);
           }}
           onDeleteChat={handleDeleteChat}
           open={sidebarOpen}
@@ -652,6 +699,15 @@ export default function SynapseAIWorkspace() {
 
         <section className="synapse-ai-workspace">
           <header className="synapse-ai-topbar">
+            <Link href={DASHBOARD_HREF} className="ai-top-logo" aria-label="Go to SYNAPSE dashboard">
+              <Image
+                src="/assets/main-logo.jpeg"
+                alt="SYNAPSE"
+                width={132}
+                height={52}
+                priority
+              />
+            </Link>
             <button
               className="icon-button menu-button"
               type="button"
@@ -677,6 +733,10 @@ export default function SynapseAIWorkspace() {
                 <span className="synapse-title-brand">synapse</span>
                 <span className="synapse-title-ai">AI</span>
               </motion.h1>
+              <Link href={DASHBOARD_HREF} className="ai-title-home-link">
+                <Home size={14} />
+                Main dashboard
+              </Link>
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -756,7 +816,8 @@ export default function SynapseAIWorkspace() {
 
               <div className={`pdf-drop-layer ${dragging ? "is-visible" : ""}`}>
                 <Upload size={26} />
-                <strong>Drop PDF to attach</strong>
+                <strong>Drop file to attach</strong>
+                <span>{SUPPORTED_FILE_COPY}</span>
               </div>
 
               <motion.div
@@ -767,7 +828,7 @@ export default function SynapseAIWorkspace() {
               >
                 {selectedFile ? (
                   <div className="composer-file-preview">
-                    <FileText size={18} />
+                    <SelectedFileIcon size={18} />
                     <span>
                       <strong>{selectedFile.name}</strong>
                       <small>{fileSize(selectedFile.size)} ready</small>
@@ -795,27 +856,51 @@ export default function SynapseAIWorkspace() {
                   <input
                     ref={fileRef}
                     type="file"
-                    accept="application/pdf"
+                    accept=".pdf,image/png,image/jpeg,.html,.htm,.txt,.md,.js,.jsx,.css,.json"
                     className="hidden-file-input"
                     onChange={(event) => handleFile(event.target.files?.[0])}
                   />
-                  <button type="button" onClick={() => fileRef.current?.click()}>
-                    <Paperclip size={17} />
-                    <span>Upload PDF</span>
-                  </button>
-
-                  <button type="button" onClick={() => handlePrompt("Turn this answer into a short study plan:")}>
-                    <MoreHorizontal size={17} />
-                    <span>Study Plan</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handlePrompt("Improve this answer and make it exam-ready:")}
-                  >
-                    <WandSparkles size={17} />
-                    <span>Improve</span>
-                  </button>
+                  <div className="attachment-plus-wrap">
+                    <motion.button
+                      className="attachment-plus-button"
+                      type="button"
+                      onClick={() => setAttachmentMenuOpen((value) => !value)}
+                      aria-label="Open attachment menu"
+                      whileHover={{ y: -2, scale: 1.03 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Plus size={20} />
+                    </motion.button>
+                    <AnimatePresence>
+                      {attachmentMenuOpen ? (
+                        <motion.div
+                          className="attachment-menu"
+                          initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                          transition={{ duration: 0.18 }}
+                        >
+                          <button type="button" onClick={() => openFilePicker(".pdf,application/pdf")}>
+                            <FileText size={17} />
+                            <span>Upload PDF</span>
+                          </button>
+                          <button type="button" onClick={() => openFilePicker("image/png,image/jpeg")}>
+                            <ImageIcon size={17} />
+                            <span>Upload image</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openFilePicker(".html,.htm,.txt,.md,.js,.jsx,.css,.json,text/*,application/json")
+                            }
+                          >
+                            <FileCode2 size={17} />
+                            <span>Upload file</span>
+                          </button>
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
+                  </div>
 
                   <motion.button
                     className="send-ai-button"
