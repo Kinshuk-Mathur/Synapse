@@ -71,7 +71,7 @@ export function userScopedQuery(collectionName, uid) {
   }
 
   const db = getFirebaseDb();
-  return query(collection(db, COLLECTIONS[collectionName]), where("userId", "==", uid));
+  return query(collection(db, COLLECTIONS[collectionName]), where("uid", "==", uid));
 }
 
 export function userDoc(collectionName, uid, documentId) {

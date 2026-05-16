@@ -51,8 +51,9 @@ import {
 } from "recharts";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
+import { formatDateKey, listenToUserTodos } from "../services/todos";
 
-const todoAppUrl = process.env.NEXT_PUBLIC_TODO_APP_URL || "/";
+const todoAppUrl = "/todo";
 
 const themes = [
   { id: "obsidian", name: "Obsidian Neon", tone: "Default OS" },
@@ -141,13 +142,6 @@ const distractions = [
   { name: "Reddit", time: "32m", value: 32, icon: MoreHorizontal, tone: "var(--chart-orange)" },
   { name: "Twitter", time: "18m", value: 21, icon: Twitter, tone: "var(--chart-blue)" },
   { name: "Other", time: "12m", value: 14, icon: MoreHorizontal, tone: "var(--color-muted)" }
-];
-
-const todos = [
-  { task: "Complete Physics Numericals", priority: "High", done: true },
-  { task: "Watch Calculus Lecture", priority: "Medium", done: true },
-  { task: "Revise Chemistry Chapter 5", priority: "High", done: false },
-  { task: "Practice 20 Math Questions", priority: "Low", done: false }
 ];
 
 const goals = [
@@ -256,6 +250,9 @@ export default function Home() {
   const [theme, setTheme] = useState("obsidian");
   const [mounted, setMounted] = useState(false);
   const [logoutError, setLogoutError] = useState("");
+  const [dashboardTodos, setDashboardTodos] = useState([]);
+  const [dashboardTodoLoading, setDashboardTodoLoading] = useState(true);
+  const [dashboardTodoError, setDashboardTodoError] = useState("");
   const { user, logout } = useAuth();
 
   useEffect(() => {
@@ -279,6 +276,38 @@ export default function Home() {
   }, []);
 
   const studentName = user?.displayName?.split(" ")[0] || "STUDENT";
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setDashboardTodos([]);
+      setDashboardTodoLoading(false);
+      return undefined;
+    }
+
+    setDashboardTodoLoading(true);
+
+    return listenToUserTodos(
+      user.uid,
+      (nextTodos) => {
+        setDashboardTodos(nextTodos);
+        setDashboardTodoError("");
+        setDashboardTodoLoading(false);
+      },
+      (todoError) => {
+        setDashboardTodoError(todoError.message || "Unable to load pending tasks.");
+        setDashboardTodoLoading(false);
+      }
+    );
+  }, [user?.uid]);
+
+  const dashboardPendingTodos = useMemo(
+    () =>
+      dashboardTodos
+        .filter((item) => !item.completed && item.selectedDate <= formatDateKey())
+        .sort((a, b) => String(a.selectedDate).localeCompare(String(b.selectedDate)))
+        .slice(0, 4),
+    [dashboardTodos]
+  );
 
   const handleLogout = async () => {
     try {
@@ -538,25 +567,33 @@ export default function Home() {
                   transition={{ duration: 0.45, delay: 0.28 }}
                 >
                   <div className="panel-header">
-                    <h2>Today's To-Do</h2>
+                    <h2>Pending Tasks</h2>
                     <Link className="add-button add-task-link" href={todoAppUrl}>
                       <Plus size={14} />
-                      Add Task
+                      Open Todo
                     </Link>
                   </div>
                   <div className="todo-list">
-                    {todos.map((item) => (
-                      <div className="todo-item" key={item.task}>
-                        <span className={`check-box ${item.done ? "is-done" : ""}`}>
-                          {item.done ? <Check size={14} /> : null}
-                        </span>
-                        <p>{item.task}</p>
-                        <em className={`priority priority-${item.priority.toLowerCase()}`}>
-                          {item.priority}
-                        </em>
-                        <MoreHorizontal size={18} />
-                      </div>
-                    ))}
+                    {dashboardTodoLoading ? (
+                      <div className="todo-empty-row">Syncing pending tasks...</div>
+                    ) : dashboardTodoError ? (
+                      <div className="todo-empty-row">{dashboardTodoError}</div>
+                    ) : dashboardPendingTodos.length ? (
+                      dashboardPendingTodos.map((item) => (
+                        <Link className="todo-item dashboard-pending-item" key={item.id} href={todoAppUrl}>
+                          <span className="check-box" />
+                          <p>{item.task}</p>
+                          <em className={`priority priority-${String(item.priority).toLowerCase()}`}>
+                            {item.priority || "Medium"}
+                          </em>
+                          <small>{item.selectedDate === formatDateKey() ? "Today" : item.selectedDate}</small>
+                        </Link>
+                      ))
+                    ) : (
+                      <Link className="todo-empty-row todo-empty-link" href={todoAppUrl}>
+                        No pending tasks. Add a clean plan for today.
+                      </Link>
+                    )}
                   </div>
                 </motion.article>
 
