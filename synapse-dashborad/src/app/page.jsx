@@ -55,6 +55,7 @@ import { formatDateKey, listenToUserTodos } from "../services/todos";
 
 const todoAppUrl = "/todo";
 const goalsAppUrl = "/goals";
+const synapseAiUrl = "/synapse-ai";
 
 const themes = [
   { id: "obsidian", name: "Obsidian Neon", tone: "Default OS" },
@@ -70,7 +71,7 @@ const navItems = [
   { label: "Goals", icon: Target, href: goalsAppUrl },
   { label: "Focus Sessions", icon: Timer, href: "#" },
   { label: "Analytics", icon: BarChart3, href: "#" },
-  { label: "AI Assistant", icon: Sparkles, href: "#" },
+  { label: "SYNAPSE AI", icon: Sparkles, href: synapseAiUrl },
   { label: "Calendar", icon: CalendarDays, href: "#" },
   { label: "Resources", icon: FolderOpen, href: "#" },
   { label: "Settings", icon: Settings, href: "#" }
