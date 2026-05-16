@@ -359,15 +359,6 @@ function ChatSidebar({
         transition={{ duration: 0.28, ease: "easeOut" }}
       >
         <div className="synapse-ai-brand">
-          <Link href={DASHBOARD_HREF} className="synapse-ai-brand-link" aria-label="Go to SYNAPSE dashboard">
-            <Image
-              src="/assets/main-logo.jpeg"
-              alt="SYNAPSE logo"
-              width={186}
-              height={74}
-              priority
-            />
-          </Link>
           <button type="button" aria-label="Close chat history" onClick={onClose}>
             <X size={20} />
           </button>
@@ -716,35 +707,6 @@ export default function SynapseAIWorkspace() {
             >
               <Menu size={22} />
             </button>
-
-            <div className="synapse-ai-title">
-              <motion.span
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35 }}
-              >
-                AI Chat Workspace
-              </motion.span>
-              <motion.h1
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.42, delay: 0.04 }}
-              >
-                <span className="synapse-title-brand">synapse</span>
-                <span className="synapse-title-ai">AI</span>
-              </motion.h1>
-              <Link href={DASHBOARD_HREF} className="ai-title-home-link">
-                <Home size={14} />
-                Main dashboard
-              </Link>
-              <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.42, delay: 0.08 }}
-              >
-                Your AI Productivity & Study Assistant
-              </motion.p>
-            </div>
 
             <div className="synapse-ai-actions">
               <TodoThemeSwitcher theme={theme} onChange={applyTheme} />

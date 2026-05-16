@@ -2096,7 +2096,6 @@ textarea {
 }
 
 .synapse-ai-brand,
-.synapse-ai-brand-link,
 .synapse-ai-brand button,
 .new-ai-chat-button,
 .chat-history-label,
@@ -2108,7 +2107,6 @@ textarea {
 .synapse-ai-topbar,
 .synapse-ai-actions,
 .ai-top-logo,
-.ai-title-home-link,
 .quick-action-row,
 .message-actions,
 .message-actions button,
@@ -2120,19 +2118,11 @@ textarea {
 }
 
 .synapse-ai-brand {
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 54px;
+  justify-content: flex-end;
+  min-height: 38px;
 }
 
-.synapse-ai-brand-link {
-  min-width: 0;
-  text-decoration: none;
-}
-
-.synapse-ai-brand-link img,
 .ai-top-logo img {
-  width: 176px;
   height: auto;
   border-radius: 7px;
   object-fit: contain;
@@ -2405,85 +2395,8 @@ textarea {
   transform: translateY(-2px);
 }
 
-.synapse-ai-title {
-  display: grid;
-  min-width: 0;
-  justify-items: center;
-  margin-right: auto;
-  text-align: center;
-}
-
-.synapse-ai-title > span {
-  color: var(--color-muted);
-  font-size: 13px;
-}
-
-.synapse-ai-title h1 {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  margin: 2px 0 4px;
-  background: linear-gradient(90deg, var(--color-text), var(--color-pulse), var(--color-sky), var(--color-text));
-  background-size: 260% 100%;
-  background-clip: text;
-  color: transparent;
-  font-size: clamp(38px, 4vw, 58px);
-  font-weight: 950;
-  line-height: 1;
-  letter-spacing: 0;
-  text-shadow: 0 0 36px color-mix(in oklab, var(--color-pulse) 28%, var(--transparent));
-  animation: synapse-title-flow 6s linear infinite;
-}
-
-.synapse-title-brand {
-  font-weight: 950;
-  text-transform: lowercase;
-}
-
-.synapse-title-ai {
-  font-weight: 950;
-  text-transform: uppercase;
-}
-
-@keyframes synapse-title-flow {
-  to {
-    background-position: 260% 0;
-  }
-}
-
-.synapse-ai-title p {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 15px;
-}
-
-.ai-title-home-link {
-  width: fit-content;
-  justify-self: center;
-  gap: 6px;
-  margin: 2px 0 6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
-  padding: 6px 10px;
-  color: var(--color-muted);
-  font-size: 12px;
-  text-decoration: none;
-  transition:
-    border-color 220ms ease,
-    color 220ms ease,
-    box-shadow 220ms ease,
-    transform 220ms ease;
-}
-
-.ai-title-home-link:hover {
-  border-color: var(--border-strong);
-  color: var(--color-text);
-  box-shadow: 0 0 18px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
-  transform: translateY(-1px);
-}
-
 .synapse-ai-actions {
+  margin-left: auto;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 12px;
@@ -4325,13 +4238,8 @@ textarea {
     flex-wrap: wrap;
   }
 
-  .synapse-ai-title {
-    flex: 1;
-    justify-items: start;
-    text-align: left;
-  }
-
   .synapse-ai-actions {
+    margin-left: 0;
     width: 100%;
     justify-content: flex-start;
   }
@@ -4349,10 +4257,6 @@ textarea {
 
   .synapse-ai-topbar {
     gap: 12px;
-  }
-
-  .synapse-ai-title h1 {
-    font-size: 34px;
   }
 
   .synapse-ai-actions .theme-switcher,
@@ -4411,10 +4315,6 @@ textarea {
   .quick-action-row button {
     min-height: 38px;
     padding: 0 11px;
-  }
-
-  .synapse-ai-title p {
-    font-size: 13px;
   }
 
   .composer-toolbar {
