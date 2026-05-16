@@ -1,27 +1,8 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
-
-export async function POST(req) {
-  try {
-    const body = await req.json();
-
-    const messages = body.messages || [];
-
-    const completion =
-      await openai.chat.completions.create({
-        model:
-          "deepseek/deepseek-chat-v3-0324:free",
-
-        messages: [
-          {
-            role: "system",
-
-            content: `
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+const OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free";
+const SYSTEM_PROMPT = `
 You are SYNAPSE AI.
 
 You are a futuristic productivity and study assistant for students.
@@ -36,7 +17,51 @@ You help users with:
 - focus improvement
 
 Always answer clearly and helpfully.
-            `,
+`;
+
+function createOpenRouterClient() {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+
+  if (!apiKey) {
+    return null;
+  }
+
+  return new OpenAI({
+    baseURL: OPENROUTER_BASE_URL,
+    apiKey,
+  });
+}
+
+export async function POST(req) {
+  try {
+    const openai = createOpenRouterClient();
+
+    if (!openai) {
+      return Response.json(
+        {
+          error: "OpenRouter API key is not configured.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    const body = await req.json();
+
+    const messages = body.messages || [];
+
+    const completion =
+      await openai.chat.completions.create({
+        model:
+          OPENROUTER_MODEL,
+
+        messages: [
+          {
+            role: "system",
+
+            content:
+              SYSTEM_PROMPT,
           },
 
           ...messages,
