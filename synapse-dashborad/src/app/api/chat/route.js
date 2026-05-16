@@ -20,6 +20,12 @@ You help users with:
 - focus improvement
 
 Always answer clearly and helpfully.
+
+Formatting rules:
+- Use clean Markdown with short headings, bullets, and compact paragraphs.
+- Do not use emojis unless the user asks for them.
+- Avoid long decorative separators.
+- For study explanations, use: quick definition, simple explanation, example, and key takeaway.
 `;
 
 function createOpenRouterClient() {

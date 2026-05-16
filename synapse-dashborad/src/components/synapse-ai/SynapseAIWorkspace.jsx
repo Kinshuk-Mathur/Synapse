@@ -126,51 +126,143 @@ function makeTitle(text) {
   return clean.length > 42 ? `${clean.slice(0, 42)}...` : clean;
 }
 
+function renderInlineMarkdown(text) {
+  const tokens = String(text).split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
+
+  return tokens.map((token, index) => {
+    if (token.startsWith("**") && token.endsWith("**")) {
+      return <strong key={`${token}-${index}`}>{token.slice(2, -2)}</strong>;
+    }
+
+    if (token.startsWith("`") && token.endsWith("`")) {
+      return <code key={`${token}-${index}`}>{token.slice(1, -1)}</code>;
+    }
+
+    return <span key={`${token}-${index}`}>{token}</span>;
+  });
+}
+
 function MarkdownMessage({ content }) {
-  const parts = String(content).split(/```/g);
+  const sections = String(content).split(/```/g);
+  const elements = [];
+
+  const flushParagraph = (lines, key) => {
+    if (!lines.length) return;
+
+    elements.push(
+      <p key={`p-${key}`}>
+        {lines.map((line, index) => (
+          <span key={`${line}-${index}`}>
+            {renderInlineMarkdown(line)}
+            {index < lines.length - 1 ? <br /> : null}
+          </span>
+        ))}
+      </p>
+    );
+  };
+
+  sections.forEach((section, sectionIndex) => {
+    if (sectionIndex % 2 === 1) {
+      elements.push(
+        <pre key={`code-${sectionIndex}`}>
+          <code>{section.replace(/^\w+\n/, "").trim()}</code>
+        </pre>
+      );
+      return;
+    }
+
+    const lines = section.split("\n");
+    let paragraph = [];
+    let list = [];
+
+    const flushList = (key) => {
+      if (!list.length) return;
+
+      elements.push(
+        <ul key={`ul-${key}`}>
+          {list.map((item, index) => (
+            <li key={`${item}-${index}`}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ul>
+      );
+      list = [];
+    };
+
+    lines.forEach((rawLine, lineIndex) => {
+      const line = rawLine.trim();
+      const key = `${sectionIndex}-${lineIndex}`;
+
+      if (!line) {
+        flushParagraph(paragraph, key);
+        flushList(key);
+        paragraph = [];
+        return;
+      }
+
+      if (/^---+$/.test(line)) {
+        flushParagraph(paragraph, key);
+        flushList(key);
+        paragraph = [];
+        elements.push(<hr key={`hr-${key}`} />);
+        return;
+      }
+
+      const heading = /^(#{1,4})\s+(.+)$/.exec(line);
+      if (heading) {
+        flushParagraph(paragraph, key);
+        flushList(key);
+        paragraph = [];
+        const level = Math.min(heading[1].length, 3);
+        const HeadingTag = `h${level + 2}`;
+
+        elements.push(
+          <HeadingTag key={`h-${key}`}>
+            {renderInlineMarkdown(heading[2])}
+          </HeadingTag>
+        );
+        return;
+      }
+
+      const quote = /^>\s+(.+)$/.exec(line);
+      if (quote) {
+        flushParagraph(paragraph, key);
+        flushList(key);
+        paragraph = [];
+        elements.push(
+          <blockquote key={`quote-${key}`}>
+            {renderInlineMarkdown(quote[1])}
+          </blockquote>
+        );
+        return;
+      }
+
+      const bullet = /^[-*]\s+(.+)$/.exec(line);
+      if (bullet) {
+        flushParagraph(paragraph, key);
+        paragraph = [];
+        list.push(bullet[1]);
+        return;
+      }
+
+      const ordered = /^\d+\.\s+(.+)$/.exec(line);
+      if (ordered) {
+        flushParagraph(paragraph, key);
+        paragraph = [];
+        list.push(ordered[1]);
+        return;
+      }
+
+      flushList(key);
+      paragraph.push(line);
+    });
+
+    flushParagraph(paragraph, `${sectionIndex}-end`);
+    flushList(`${sectionIndex}-end`);
+  });
 
   return (
     <div className="synapse-markdown">
-      {parts.map((part, index) => {
-        if (index % 2 === 1) {
-          const lines = part.replace(/^\w+\n/, "").trim();
-
-          return (
-            <pre key={`${part}-${index}`}>
-              <code>{lines}</code>
-            </pre>
-          );
-        }
-
-        return part
-          .split(/\n{2,}/)
-          .filter(Boolean)
-          .map((block, blockIndex) => {
-            const lines = block.split("\n").filter(Boolean);
-            const isList = lines.every((line) => /^[-*]\s+/.test(line.trim()));
-
-            if (isList) {
-              return (
-                <ul key={`${block}-${blockIndex}`}>
-                  {lines.map((line) => (
-                    <li key={line}>{line.replace(/^[-*]\s+/, "")}</li>
-                  ))}
-                </ul>
-              );
-            }
-
-            return (
-              <p key={`${block}-${blockIndex}`}>
-                {lines.map((line, lineIndex) => (
-                  <span key={`${line}-${lineIndex}`}>
-                    {line}
-                    {lineIndex < lines.length - 1 ? <br /> : null}
-                  </span>
-                ))}
-              </p>
-            );
-          });
-      })}
+      {elements}
     </div>
   );
 }
