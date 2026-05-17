@@ -32,6 +32,7 @@ import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 const STORAGE_KEY = "synapse-ai-conversations";
 const DASHBOARD_HREF = "/";
 const SUPPORTED_FILE_COPY = "PDF, JPG, PNG, HTML, text, Markdown, code, or JSON files";
+const SAFE_AI_ERROR = "SYNAPSE AI is currently busy. Please try again shortly.";
 
 const quickActions = [
   {
@@ -94,6 +95,22 @@ function fileSize(bytes = 0) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function safelyReadChatJson(response) {
+  const rawText = await response.text();
+
+  if (!rawText.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    return {
+      message: SAFE_AI_ERROR
+    };
+  }
 }
 
 function makeTitle(text) {
@@ -620,16 +637,20 @@ export default function SynapseAIWorkspace() {
           messages: nextMessages
         })
       });
-      const data = await response.json();
+      const data = await safelyReadChatJson(response);
 
       if (!response.ok) {
-        throw new Error(data.error || "SYNAPSE AI is unavailable right now.");
+        throw new Error(data.message || SAFE_AI_ERROR);
+      }
+
+      if (!data?.message || typeof data.message !== "string") {
+        throw new Error(SAFE_AI_ERROR);
       }
 
       const assistantMessage = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
-        content: data.message || "I could not generate a response. Try again with a little more detail.",
+        content: data.message,
         createdAt: new Date().toISOString()
       };
 
@@ -642,7 +663,7 @@ export default function SynapseAIWorkspace() {
       const errorMessage = {
         id: `assistant-error-${Date.now()}`,
         role: "assistant",
-        content: error.message || "Something went wrong. Please try again.",
+        content: error.message || SAFE_AI_ERROR,
         createdAt: new Date().toISOString()
       };
 

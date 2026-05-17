@@ -1,10 +1,15 @@
 import OpenAI from "openai";
+import {
+  buildOpenRouterMessages,
+  normalizeChatMessages,
+  routeCompletionThroughModels,
+  SYNAPSE_AI_BUSY_MESSAGE
+} from "../../../lib/aiModels.js";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-const OPENROUTER_MODELS = [
-  "deepseek/deepseek-v4-flash:free",
-  "openrouter/free"
-];
 const SYSTEM_PROMPT = `
 You are SYNAPSE AI.
 
@@ -28,6 +33,15 @@ Formatting rules:
 - For study explanations, use: quick definition, simple explanation, example, and key takeaway.
 `;
 
+function jsonResponse(payload, status = 200) {
+  return Response.json(payload, {
+    status,
+    headers: {
+      "Cache-Control": "no-store"
+    }
+  });
+}
+
 function createOpenRouterClient() {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
@@ -40,29 +54,23 @@ function createOpenRouterClient() {
     apiKey,
     defaultHeaders: {
       "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-      "X-Title": "SYNAPSE AI",
-    },
+      "X-Title": "SYNAPSE AI"
+    }
   });
 }
 
-function getOpenRouterMessage(error) {
-  return error?.error?.message || error?.message || "OpenRouter request failed.";
-}
+async function readJsonBody(req) {
+  const rawBody = await req.text();
 
-function getFriendlyChatError(error) {
-  if (error?.status === 401) {
-    return "OpenRouter API key is invalid. Please check your OPENROUTER_API_KEY.";
+  if (!rawBody.trim()) {
+    return {};
   }
 
-  if (error?.status === 402) {
-    return "OpenRouter needs credits or free-model access for this request.";
+  try {
+    return JSON.parse(rawBody);
+  } catch {
+    throw new Error("Malformed chat request JSON.");
   }
-
-  if (error?.status === 429) {
-    return "OpenRouter rate limit reached. Please wait a minute and try again.";
-  }
-
-  return getOpenRouterMessage(error);
 }
 
 export async function POST(req) {
@@ -70,68 +78,39 @@ export async function POST(req) {
     const openai = createOpenRouterClient();
 
     if (!openai) {
-      return Response.json(
+      console.error("SYNAPSE AI backend: OPENROUTER_API_KEY is missing.");
+      return jsonResponse({ message: SYNAPSE_AI_BUSY_MESSAGE }, 503);
+    }
+
+    const body = await readJsonBody(req);
+    const cleanMessages = normalizeChatMessages(body.messages);
+
+    if (!cleanMessages.length) {
+      return jsonResponse(
         {
-          error: "OpenRouter API key is not configured.",
+          message: "Ask SYNAPSE AI a question to begin."
         },
-        {
-          status: 500,
-        }
+        400
       );
     }
 
-    const body = await req.json();
+    const routedResponse = await routeCompletionThroughModels(
+      openai,
+      buildOpenRouterMessages(SYSTEM_PROMPT, cleanMessages)
+    );
 
-    const messages = body.messages || [];
-    let completion = null;
-    let lastError = null;
-
-    for (const model of OPENROUTER_MODELS) {
-      try {
-        completion =
-          await openai.chat.completions.create({
-            model,
-
-            messages: [
-              {
-                role: "system",
-
-                content:
-                  SYSTEM_PROMPT,
-              },
-
-              ...messages,
-            ],
-          });
-        break;
-      } catch (modelError) {
-        lastError = modelError;
-
-        if (modelError?.status !== 404) {
-          throw modelError;
-        }
-      }
-    }
-
-    if (!completion) {
-      throw lastError || new Error("No OpenRouter model is available right now.");
-    }
-
-    return Response.json({
-      message:
-        completion.choices[0].message.content,
+    return jsonResponse({
+      message: routedResponse.message,
+      modelUsed: routedResponse.modelUsed
     });
-
   } catch (error) {
-    console.error("SYNAPSE AI chat error:", getOpenRouterMessage(error));
+    console.error("SYNAPSE AI routing failed:", error?.message || error);
 
-    return Response.json(
+    return jsonResponse(
       {
-        error: getFriendlyChatError(error),
+        message: SYNAPSE_AI_BUSY_MESSAGE
       },
-      {
-        status: 500,
-      }
+      503
     );
   }
 }
