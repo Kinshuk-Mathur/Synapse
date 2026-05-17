@@ -8,7 +8,7 @@ export const AI_MODELS = [
   },
   {
     name: "Llama",
-    id: "meta-llama/llama-3.3-70b-instruct:free"
+    id: "meta-llama/llama-3.3-8b-instruct:free"
   },
   {
     name: "Mistral",
