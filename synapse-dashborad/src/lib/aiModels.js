@@ -11,12 +11,12 @@ export const AI_MODELS = [
     id: "meta-llama/llama-3.3-70b-instruct:free"
   },
   {
-    name: "Mistral",
-    id: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free"
-  },
-  {
     name: "Gemma",
     id: "google/gemma-4-26b-a4b-it:free"
+  },
+  {
+    name: "Mistral",
+    id: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free"
   }
 ];
 
@@ -25,7 +25,7 @@ export const AI_ROUTER_CONFIG = {
   retriesPerModel: 1,
   maxMessages: 12,
   maxContentLength: 12_000,
-  temperature: 0.35,
+  temperature: 0.25,
   maxTokens: 1_200,
   retryDelayMs: 750,
   maxRateLimitWaitMs: 2_500,
@@ -65,6 +65,30 @@ export function buildOpenRouterMessages(systemPrompt, messages) {
 function isHtmlErrorResponse(value) {
   const trimmed = String(value || "").trim();
   return /^<!doctype html/i.test(trimmed) || /^<html[\s>]/i.test(trimmed);
+}
+
+function getResponseQualityIssue(value) {
+  const text = String(value || "").trim();
+  const cjkMatches = text.match(/[\u3400-\u9fff\uf900-\ufaff]/g) || [];
+  const weirdInternalPatterns = [
+    /\btype\s*:\s*def\b/i,
+    /\bFlatDictionary\b/i,
+    /\bFormal adenosine\b/i,
+    /\bA_plus_B_whole/i,
+    /\bThe user asks:\s*"/i,
+    /\bhidden prompt\b/i,
+    /\binternal template\b/i
+  ];
+
+  if (cjkMatches.length > 0) {
+    return "non-English characters detected";
+  }
+
+  if (weirdInternalPatterns.some((pattern) => pattern.test(text))) {
+    return "internal/template text detected";
+  }
+
+  return "";
 }
 
 function getErrorStatus(error) {
@@ -202,6 +226,12 @@ function extractAssistantMessage(completion) {
 
   if (!trimmed || isHtmlErrorResponse(trimmed)) {
     throw new Error("Invalid response: provider returned unusable content.");
+  }
+
+  const qualityIssue = getResponseQualityIssue(trimmed);
+
+  if (qualityIssue) {
+    throw new Error(`Invalid response: ${qualityIssue}.`);
   }
 
   return trimmed;
