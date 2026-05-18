@@ -52,6 +52,8 @@ function createOpenRouterClient() {
   return new OpenAI({
     baseURL: OPENROUTER_BASE_URL,
     apiKey,
+    maxRetries: 0,
+    timeout: 22_000,
     defaultHeaders: {
       "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
       "X-Title": "SYNAPSE AI"
@@ -74,16 +76,25 @@ async function readJsonBody(req) {
 }
 
 export async function POST(req) {
+  const requestId =
+    globalThis.crypto?.randomUUID?.() || `chat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
   try {
+    console.info(`[SYNAPSE AI ${requestId}] API request received.`);
     const openai = createOpenRouterClient();
 
     if (!openai) {
-      console.error("SYNAPSE AI backend: OPENROUTER_API_KEY is missing.");
+      console.error(`[SYNAPSE AI ${requestId}] OPENROUTER_API_KEY is missing.`);
       return jsonResponse({ message: SYNAPSE_AI_BUSY_MESSAGE }, 503);
     }
 
     const body = await readJsonBody(req);
     const cleanMessages = normalizeChatMessages(body.messages);
+    console.info(
+      `[SYNAPSE AI ${requestId}] Clean messages=${cleanMessages.length}; latestRole=${
+        cleanMessages.at(-1)?.role || "none"
+      }`
+    );
 
     if (!cleanMessages.length) {
       return jsonResponse(
@@ -96,15 +107,23 @@ export async function POST(req) {
 
     const routedResponse = await routeCompletionThroughModels(
       openai,
-      buildOpenRouterMessages(SYSTEM_PROMPT, cleanMessages)
+      buildOpenRouterMessages(SYSTEM_PROMPT, cleanMessages),
+      { requestId }
+    );
+
+    console.info(
+      `[SYNAPSE AI ${requestId}] API response ready. modelUsed=${routedResponse.modelUsed}; emergency=${Boolean(
+        routedResponse.emergency
+      )}`
     );
 
     return jsonResponse({
       message: routedResponse.message,
-      modelUsed: routedResponse.modelUsed
+      modelUsed: routedResponse.modelUsed,
+      emergency: Boolean(routedResponse.emergency)
     });
   } catch (error) {
-    console.error("SYNAPSE AI routing failed:", error?.message || error);
+    console.error(`[SYNAPSE AI ${requestId}] API route failed:`, error?.message || error);
 
     return jsonResponse(
       {
