@@ -501,9 +501,10 @@ function ChatSidebar({
         whileTap={{ scale: 0.98 }}
         onClick={onNewChat}
       >
-        <Plus size={18} />
+        <i className="new-chat-icon" aria-hidden="true">
+          <Plus size={17} />
+        </i>
         <span>New Chat</span>
-        <kbd>⌘ N</kbd>
       </motion.button>
 
       <nav className="ai-dock-nav" aria-label="SYNAPSE AI workspace">
@@ -579,7 +580,18 @@ function formatFileType(file) {
   return "Material";
 }
 
-function ContextPanel({ uploadedFiles, onUpload }) {
+function ContextPanel({ uploadedFiles, onUpload, onDeleteFile }) {
+  const [openFileMenuId, setOpenFileMenuId] = useState("");
+
+  useEffect(() => {
+    if (!openFileMenuId) return undefined;
+
+    const closeMenu = () => setOpenFileMenuId("");
+
+    window.addEventListener("click", closeMenu);
+    return () => window.removeEventListener("click", closeMenu);
+  }, [openFileMenuId]);
+
   return (
     <aside className="synapse-context-panel">
       <section className="context-card">
@@ -606,7 +618,42 @@ function ContextPanel({ uploadedFiles, onUpload }) {
                     <strong>{file.name}</strong>
                     <span>{fileSize(file.size)} · {fileType}</span>
                   </div>
-                  <MoreHorizontal size={16} />
+                  <div className="workspace-file-menu-wrap" onClick={(event) => event.stopPropagation()}>
+                    <button
+                      className="workspace-file-menu-button"
+                      type="button"
+                      aria-label={`Open actions for ${file.name}`}
+                      aria-expanded={openFileMenuId === file.id}
+                      onClick={() =>
+                        setOpenFileMenuId((current) => (current === file.id ? "" : file.id))
+                      }
+                    >
+                      <MoreHorizontal size={16} />
+                    </button>
+
+                    <AnimatePresence>
+                      {openFileMenuId === file.id ? (
+                        <motion.div
+                          className="workspace-file-menu"
+                          initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                          transition={{ duration: 0.16 }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onDeleteFile(file.id);
+                              setOpenFileMenuId("");
+                            }}
+                          >
+                            <Trash2 size={14} />
+                            <span>Delete file</span>
+                          </button>
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
+                  </div>
                 </article>
               );
             })
@@ -645,6 +692,7 @@ export default function SynapseAIWorkspace() {
   const [hydrated, setHydrated] = useState(false);
   const streamRef = useRef(null);
   const fileRef = useRef(null);
+  const attachmentMenuRef = useRef(null);
   const { theme, applyTheme } = useSynapseTheme();
   const { user } = useAuth();
 
@@ -700,6 +748,18 @@ export default function SynapseAIWorkspace() {
       behavior: "smooth"
     });
   }, [activeConversation?.messages.length, loading]);
+
+  useEffect(() => {
+    if (!attachmentMenuOpen) return undefined;
+
+    const closeAttachmentMenu = (event) => {
+      if (attachmentMenuRef.current?.contains(event.target)) return;
+      setAttachmentMenuOpen(false);
+    };
+
+    window.addEventListener("pointerdown", closeAttachmentMenu);
+    return () => window.removeEventListener("pointerdown", closeAttachmentMenu);
+  }, [attachmentMenuOpen]);
 
   const updateConversation = (conversationId, updater) => {
     setConversations((current) =>
@@ -771,6 +831,14 @@ export default function SynapseAIWorkspace() {
       return [nextFile, ...withoutDuplicate].slice(0, 12);
     });
     setAttachmentMenuOpen(false);
+  };
+
+  const handleDeleteUploadedFile = (fileId) => {
+    setUploadedFiles((current) => current.filter((file) => file.id !== fileId));
+
+    if (selectedFile && getFileMeta(selectedFile).id === fileId) {
+      setSelectedFile(null);
+    }
   };
 
   const openFilePicker = (accept) => {
@@ -1066,7 +1134,7 @@ export default function SynapseAIWorkspace() {
                     className="hidden-file-input"
                     onChange={(event) => handleFile(event.target.files?.[0])}
                   />
-                  <div className="attachment-plus-wrap">
+                  <div className="attachment-plus-wrap" ref={attachmentMenuRef}>
                     <motion.button
                       className="attachment-plus-button"
                       type="button"
@@ -1137,7 +1205,11 @@ export default function SynapseAIWorkspace() {
               </p>
             </section>
 
-            <ContextPanel uploadedFiles={uploadedFiles} onUpload={() => openFilePicker(".pdf,image/png,image/jpeg,.html,.htm,.txt,.md,.js,.jsx,.css,.json")} />
+            <ContextPanel
+              uploadedFiles={uploadedFiles}
+              onUpload={() => openFilePicker(".pdf,image/png,image/jpeg,.html,.htm,.txt,.md,.js,.jsx,.css,.json")}
+              onDeleteFile={handleDeleteUploadedFile}
+            />
           </div>
         </section>
       </div>
