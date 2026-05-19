@@ -5,19 +5,31 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  BarChart3,
+  BookOpen,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   FileCode2,
   FileText,
+  FolderOpen,
   GraduationCap,
   Home,
   History,
   ImageIcon,
+  ListTodo,
+  LockKeyhole,
   Menu,
   MessageSquareText,
+  Mic,
+  MoreHorizontal,
+  Paperclip,
   Plus,
   Send,
   Sparkles,
+  StickyNote,
+  Target,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -60,6 +72,32 @@ const quickActions = [
     icon: Zap,
     prompt: "Help me plan a calm, productive day with priorities, breaks, and focus sessions."
   }
+];
+
+const dockNavItems = [
+  { label: "AI Chat", icon: MessageSquareText, href: "/synapse-ai", active: true },
+  { label: "Todo List", icon: ListTodo, href: "/todo" },
+  { label: "Goals", icon: Target, href: "/goals" },
+  { label: "Focus Lock", icon: LockKeyhole, href: "/" },
+  { label: "Saved Notes", icon: StickyNote, href: "/" }
+];
+
+const contextStats = [
+  { label: "Focus today", value: "4h 32m", tone: "pulse" },
+  { label: "Goal progress", value: "68%", tone: "sky" },
+  { label: "Weak subject", value: "Physics", tone: "gold" }
+];
+
+const studyInsights = [
+  "Revise electrostatics formulas once before solving numericals.",
+  "Your strongest sessions happen after 7 PM.",
+  "Two goals are close to completion this month."
+];
+
+const recentUploads = [
+  { name: "Physics Notes.pdf", meta: "2.4 MB · PDF", icon: FileText },
+  { name: "Force Diagram.png", meta: "Image · linked chat", icon: ImageIcon },
+  { name: "Class Notes.txt", meta: "Study notes", icon: FileCode2 }
 ];
 
 function createWelcomeMessage() {
@@ -460,93 +498,173 @@ function ChatSidebar({
   );
 
   return (
-    <>
-      <AnimatePresence>
-        {open ? (
-          <motion.button
-            className="synapse-ai-scrim"
-            type="button"
-            aria-label="Close chat history"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-          />
-        ) : null}
-      </AnimatePresence>
+    <motion.aside
+      className={`synapse-ai-sidebar ${open ? "is-open" : "is-collapsed"}`}
+      initial={false}
+      animate={{ width: open ? 280 : 88 }}
+      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="synapse-ai-brand">
+        <Link href={DASHBOARD_HREF} aria-label="Go to SYNAPSE dashboard">
+          <Image src="/assets/main-logo.jpeg" alt="SYNAPSE" width={138} height={52} priority />
+        </Link>
+        <button type="button" aria-label={open ? "Collapse sidebar" : "Expand sidebar"} onClick={onClose}>
+          {open ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+        </button>
+      </div>
 
-      <motion.aside
-        className={`synapse-ai-sidebar ${open ? "is-open" : ""}`}
-        initial={false}
-        animate={{
-          opacity: open ? 1 : 0,
-          x: open ? 0 : "-105%"
-        }}
-        transition={{ duration: 0.28, ease: "easeOut" }}
+      <motion.button
+        className="new-ai-chat-button"
+        type="button"
+        whileHover={{ y: -2 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={onNewChat}
       >
-        <div className="synapse-ai-brand">
-          <button type="button" aria-label="Close chat history" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
+        <Plus size={18} />
+        <span>New Chat</span>
+        <kbd>⌘ N</kbd>
+      </motion.button>
 
-        <motion.button
-          className="new-ai-chat-button"
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onNewChat}
-        >
-          <Plus size={18} />
-          <span>New Chat</span>
-        </motion.button>
+      <nav className="ai-dock-nav" aria-label="SYNAPSE AI workspace">
+        <span className="dock-section-label">Main</span>
+        {dockNavItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link key={item.label} href={item.href} className={item.active ? "is-active" : ""}>
+              <Icon size={17} />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
-        <div className="chat-history-label">
-          <History size={15} />
-          <span>Chat History</span>
-        </div>
+      <div className="chat-history-label">
+        <History size={15} />
+        <span>Recent Chats</span>
+      </div>
 
-        <div className="synapse-history-list">
-          {sorted.map((conversation) => (
-            <motion.div
-              key={conversation.id}
-              className={`history-row ${conversation.id === activeId ? "is-active" : ""}`}
-              whileHover={{ x: 3 }}
+      <div className="synapse-history-list">
+        {sorted.slice(0, 7).map((conversation) => (
+          <motion.div
+            key={conversation.id}
+            className={`history-row ${conversation.id === activeId ? "is-active" : ""}`}
+            whileHover={{ x: open ? 3 : 0 }}
+          >
+            <button type="button" onClick={() => onOpenChat(conversation.id)} title={conversation.title}>
+              <MessageSquareText size={16} />
+              <span>{conversation.title}</span>
+            </button>
+            <button
+              className="delete-history-button"
+              type="button"
+              aria-label={`Delete ${conversation.title}`}
+              onClick={() => onDeleteChat(conversation.id)}
             >
-              <button type="button" onClick={() => onOpenChat(conversation.id)}>
-                <MessageSquareText size={16} />
-                <span>{conversation.title}</span>
-              </button>
-              <button
-                className="delete-history-button"
-                type="button"
-                aria-label={`Delete ${conversation.title}`}
-                onClick={() => onDeleteChat(conversation.id)}
-              >
-                <Trash2 size={15} />
-              </button>
-            </motion.div>
+              <Trash2 size={15} />
+            </button>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="synapse-sidebar-footer-brand">
+        <Image src="/assets/synapse-icon-cropped.png" alt="" width={42} height={42} />
+        <div>
+          <strong>SYNAPSE AI</strong>
+          <span>Online study companion</span>
+          <Link href={DASHBOARD_HREF}>
+            <Home size={14} />
+            Main dashboard
+          </Link>
+        </div>
+      </div>
+    </motion.aside>
+  );
+}
+
+function ContextPanel({ selectedFile, onUpload }) {
+  return (
+    <aside className="synapse-context-panel">
+      <section className="context-card context-memory-card">
+        <div className="context-card-heading">
+          <div>
+            <span>Study Memory</span>
+            <strong>Current focus</strong>
+          </div>
+          <BookOpen size={18} />
+        </div>
+        <p>Preparing for problem-solving sessions with physics, goals, and revision material linked.</p>
+      </section>
+
+      <section className="context-card context-stats-grid">
+        {contextStats.map((stat) => (
+          <div key={stat.label} className={`context-stat tone-${stat.tone}`}>
+            <span>{stat.label}</span>
+            <strong>{stat.value}</strong>
+          </div>
+        ))}
+      </section>
+
+      <section className="context-card">
+        <div className="context-card-heading">
+          <div>
+            <span>Insights</span>
+            <strong>Study signals</strong>
+          </div>
+          <BarChart3 size={18} />
+        </div>
+        <div className="insight-list">
+          {studyInsights.map((insight) => (
+            <p key={insight}>{insight}</p>
           ))}
         </div>
+      </section>
 
-        <div className="synapse-sidebar-footer-brand">
-          <Image
-            src="/assets/synapse-icon-cropped.png"
-            alt=""
-            width={46}
-            height={46}
-          />
+      <section className="context-card">
+        <div className="context-card-heading">
           <div>
-            <strong>SYNAPSE AI</strong>
-            <span>Study workspace</span>
-            <Link href={DASHBOARD_HREF}>
-              <Home size={14} />
-              Main dashboard
-            </Link>
+            <span>Workspace Files</span>
+            <strong>Recent materials</strong>
           </div>
+          <button type="button" onClick={onUpload}>
+            <Plus size={15} />
+            Upload
+          </button>
         </div>
-      </motion.aside>
-    </>
+        <div className="workspace-file-list">
+          {selectedFile ? (
+            <article className="workspace-file is-live">
+              <FolderOpen size={18} />
+              <div>
+                <strong>{selectedFile.name}</strong>
+                <span>{fileSize(selectedFile.size)} · ready in this chat</span>
+              </div>
+              <MoreHorizontal size={16} />
+            </article>
+          ) : null}
+          {recentUploads.map((file) => {
+            const Icon = file.icon;
+            return (
+              <article key={file.name} className="workspace-file">
+                <Icon size={18} />
+                <div>
+                  <strong>{file.name}</strong>
+                  <span>{file.meta}</span>
+                </div>
+                <MoreHorizontal size={16} />
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="context-card drop-mini-card">
+        <Upload size={22} />
+        <div>
+          <strong>Drop study files</strong>
+          <span>PDFs, images, notes, code</span>
+        </div>
+      </section>
+    </aside>
   );
 }
 
@@ -555,7 +673,7 @@ export default function SynapseAIWorkspace() {
   const [activeId, setActiveId] = useState("");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dragging, setDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
@@ -815,30 +933,31 @@ export default function SynapseAIWorkspace() {
           }}
           onDeleteChat={handleDeleteChat}
           open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
+          onClose={() => setSidebarOpen((value) => !value)}
         />
 
         <section className="synapse-ai-workspace">
           <header className="synapse-ai-topbar">
-            <Link href={DASHBOARD_HREF} className="ai-top-logo" aria-label="Go to SYNAPSE dashboard">
-              <Image
-                src="/assets/main-logo.jpeg"
-                alt="SYNAPSE"
-                width={132}
-                height={52}
-                priority
-              />
-            </Link>
             <button
               className="icon-button menu-button"
               type="button"
-              aria-label="Open chat history"
-              onClick={() => setSidebarOpen(true)}
+              aria-label="Toggle workspace sidebar"
+              onClick={() => setSidebarOpen((value) => !value)}
             >
               <Menu size={22} />
             </button>
 
+            <div className="ai-workspace-greeting">
+              <span>Good evening, {studentName}</span>
+              <strong>Ready to continue your learning journey?</strong>
+            </div>
+
             <div className="synapse-ai-actions">
+              <div className="model-chip">
+                <Sparkles size={16} />
+                <span>SYNAPSE Router</span>
+                <ChevronRight size={14} />
+              </div>
               <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
               <div className="profile-chip">
                 <Image
@@ -857,7 +976,7 @@ export default function SynapseAIWorkspace() {
 
           <div className="synapse-ai-layout">
             <section className="synapse-chat-panel">
-              <div className="quick-action-row">
+              <div className="workspace-quick-actions">
                 {quickActions.map((action, index) => {
                   const Icon = action.icon;
                   return (
@@ -871,8 +990,21 @@ export default function SynapseAIWorkspace() {
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handlePrompt(action.prompt)}
                     >
-                      <Icon size={16} />
-                      <span>{action.label}</span>
+                      <Icon size={18} />
+                      <span>
+                        <strong>{action.label}</strong>
+                        <small>
+                          {action.label === "Summarize PDF"
+                            ? "Extract key points"
+                            : action.label === "Solve Doubt"
+                              ? "Clear explanations"
+                              : action.label === "Study Plan"
+                                ? "Plan your week"
+                                : action.label === "Explain Topic"
+                                  ? "Simple examples"
+                                  : "Focus support"}
+                        </small>
+                      </span>
                     </motion.button>
                   );
                 })}
@@ -961,7 +1093,7 @@ export default function SynapseAIWorkspace() {
                       whileHover={{ y: -2, scale: 1.03 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Plus size={20} />
+                      <Paperclip size={19} />
                     </motion.button>
                     <AnimatePresence>
                       {attachmentMenuOpen ? (
@@ -995,6 +1127,16 @@ export default function SynapseAIWorkspace() {
                   </div>
 
                   <motion.button
+                    className="voice-ai-button"
+                    type="button"
+                    aria-label="Voice input"
+                    whileHover={{ y: -2, scale: 1.03 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Mic size={18} />
+                  </motion.button>
+
+                  <motion.button
                     className="send-ai-button"
                     type="button"
                     onClick={handleSend}
@@ -1012,6 +1154,8 @@ export default function SynapseAIWorkspace() {
                 SYNAPSE AI can make mistakes. Check important study, code, and planning details.
               </p>
             </section>
+
+            <ContextPanel selectedFile={selectedFile} onUpload={() => openFilePicker(".pdf,image/png,image/jpeg,.html,.htm,.txt,.md,.js,.jsx,.css,.json")} />
           </div>
         </section>
       </div>

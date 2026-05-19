@@ -4330,3 +4330,737 @@ textarea {
     width: 46px;
   }
 }
+
+/* Premium SYNAPSE AI workspace refresh */
+.synapse-ai-shell {
+  --ai-radius: 14px;
+  --ai-radius-lg: 18px;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    linear-gradient(125deg, color-mix(in oklab, var(--color-bg) 92%, var(--color-ink)), color-mix(in oklab, var(--color-surface) 76%, var(--color-bg))),
+    var(--color-bg);
+}
+
+.synapse-ai-shell::before {
+  position: fixed;
+  inset: -18%;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 18% 12%, color-mix(in oklab, var(--color-pulse) 18%, var(--transparent)), var(--transparent) 36%),
+    radial-gradient(ellipse at 82% 18%, color-mix(in oklab, var(--color-accent) 16%, var(--transparent)), var(--transparent) 34%),
+    radial-gradient(ellipse at 54% 92%, color-mix(in oklab, var(--color-sky) 10%, var(--transparent)), var(--transparent) 38%);
+  content: "";
+  filter: blur(26px);
+  opacity: 0.78;
+  animation: synapse-premium-ambient 22s ease-in-out infinite alternate;
+}
+
+@keyframes synapse-premium-ambient {
+  from {
+    transform: translate3d(-1.2%, -0.8%, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(1.2%, 1.1%, 0) scale(1.035);
+  }
+}
+
+.synapse-ai-frame {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  width: min(1840px, 100%);
+  height: 100vh;
+  gap: 20px;
+  padding: 18px;
+  overflow: hidden;
+  transition: grid-template-columns 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.synapse-ai-frame.history-closed {
+  grid-template-columns: 88px minmax(0, 1fr);
+}
+
+.synapse-ai-frame.history-open {
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.synapse-ai-sidebar {
+  position: relative;
+  top: auto;
+  min-height: 0;
+  height: calc(100vh - 36px);
+  gap: 18px;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+  border-radius: var(--ai-radius-lg);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--panel) 88%, var(--transparent)), color-mix(in oklab, var(--color-bg) 72%, var(--transparent))),
+    color-mix(in oklab, var(--color-bg) 88%, var(--transparent));
+  padding: 16px;
+  box-shadow:
+    0 24px 80px color-mix(in oklab, var(--color-ink) 42%, var(--transparent)),
+    inset 0 1px 0 color-mix(in oklab, var(--color-text) 8%, var(--transparent));
+  pointer-events: auto;
+  backdrop-filter: blur(28px);
+}
+
+.synapse-ai-sidebar.is-collapsed {
+  align-items: center;
+  padding-inline: 12px;
+}
+
+.synapse-ai-brand {
+  justify-content: space-between;
+  min-height: 44px;
+  gap: 10px;
+}
+
+.synapse-ai-brand a {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.synapse-ai-brand img {
+  width: 138px;
+  height: 52px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.synapse-ai-sidebar.is-collapsed .synapse-ai-brand a {
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.synapse-ai-brand button,
+.icon-button.menu-button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  color: color-mix(in oklab, var(--color-text) 72%, var(--color-muted));
+  transition:
+    border-color 220ms ease,
+    background 220ms ease,
+    color 220ms ease,
+    transform 220ms ease;
+}
+
+.synapse-ai-brand button:hover,
+.icon-button.menu-button:hover {
+  border-color: color-mix(in oklab, var(--color-pulse) 42%, var(--transparent));
+  background: color-mix(in oklab, var(--color-pulse) 12%, var(--transparent));
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+.new-ai-chat-button {
+  justify-content: space-between;
+  min-height: 48px;
+  gap: 10px;
+  border-radius: 13px;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 42%, var(--transparent)), color-mix(in oklab, var(--color-accent) 34%, var(--transparent))),
+    color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  font-weight: 760;
+  box-shadow: 0 18px 42px color-mix(in oklab, var(--color-pulse) 17%, var(--transparent));
+}
+
+.new-ai-chat-button kbd {
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-bg) 30%, var(--transparent));
+  padding: 3px 7px;
+  color: color-mix(in oklab, var(--color-text) 62%, var(--color-muted));
+  font-size: 11px;
+}
+
+.synapse-ai-sidebar.is-collapsed .new-ai-chat-button {
+  width: 50px;
+  justify-content: center;
+  padding: 0;
+}
+
+.synapse-ai-sidebar.is-collapsed .new-ai-chat-button span,
+.synapse-ai-sidebar.is-collapsed .new-ai-chat-button kbd,
+.synapse-ai-sidebar.is-collapsed .dock-section-label,
+.synapse-ai-sidebar.is-collapsed .chat-history-label span,
+.synapse-ai-sidebar.is-collapsed .history-row span,
+.synapse-ai-sidebar.is-collapsed .delete-history-button,
+.synapse-ai-sidebar.is-collapsed .synapse-sidebar-footer-brand div {
+  display: none;
+}
+
+.ai-dock-nav {
+  display: grid;
+  gap: 6px;
+}
+
+.dock-section-label,
+.chat-history-label {
+  margin: 4px 0 4px;
+  color: color-mix(in oklab, var(--color-text) 48%, var(--color-muted));
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ai-dock-nav a {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid var(--transparent);
+  border-radius: 12px;
+  padding: 0 12px;
+  color: color-mix(in oklab, var(--color-text) 72%, var(--color-muted));
+  text-decoration: none;
+  transition:
+    border-color 220ms ease,
+    background 220ms ease,
+    color 220ms ease,
+    transform 220ms ease;
+}
+
+.ai-dock-nav a:hover,
+.ai-dock-nav a.is-active {
+  border-color: color-mix(in oklab, var(--color-pulse) 36%, var(--transparent));
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 18%, var(--transparent)), color-mix(in oklab, var(--color-accent) 12%, var(--transparent))),
+    color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  color: var(--color-text);
+}
+
+.synapse-ai-sidebar.is-collapsed .ai-dock-nav a,
+.synapse-ai-sidebar.is-collapsed .history-row button:first-child {
+  width: 48px;
+  justify-content: center;
+  padding: 0;
+}
+
+.chat-history-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.synapse-history-list {
+  gap: 5px;
+  padding: 0;
+}
+
+.history-row {
+  min-height: 38px;
+  border-radius: 12px;
+}
+
+.history-row button:first-child {
+  min-height: 38px;
+  padding: 0 10px;
+}
+
+.synapse-sidebar-footer-brand {
+  margin-top: auto;
+  border-radius: 14px;
+  padding: 12px;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 10%, var(--transparent)), color-mix(in oklab, var(--color-text) 4%, var(--transparent))),
+    color-mix(in oklab, var(--color-surface) 55%, var(--transparent));
+}
+
+.synapse-sidebar-footer-brand img {
+  width: 42px;
+  height: 42px;
+}
+
+.synapse-ai-workspace,
+.history-closed .synapse-ai-workspace,
+.history-open .synapse-ai-workspace {
+  grid-column: 2;
+  width: 100%;
+  max-width: none;
+  height: calc(100vh - 36px);
+  margin: 0;
+  overflow: hidden;
+  padding: 2px 0 0;
+}
+
+.synapse-ai-topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  margin-bottom: 16px;
+}
+
+.ai-workspace-greeting {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.ai-workspace-greeting span {
+  color: var(--color-text);
+  font-size: clamp(22px, 2.1vw, 34px);
+  font-weight: 850;
+  line-height: 1.1;
+}
+
+.ai-workspace-greeting strong {
+  overflow: hidden;
+  color: color-mix(in oklab, var(--color-text) 64%, var(--color-muted));
+  font-size: 14px;
+  font-weight: 520;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.synapse-ai-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.model-chip {
+  display: inline-flex;
+  height: 42px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 28%, var(--transparent));
+  border-radius: 13px;
+  background: color-mix(in oklab, var(--panel) 72%, var(--transparent));
+  padding: 0 12px;
+  color: var(--color-text);
+  box-shadow: 0 12px 32px color-mix(in oklab, var(--color-pulse) 10%, var(--transparent));
+  backdrop-filter: blur(18px);
+}
+
+.profile-chip {
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--panel) 78%, var(--transparent));
+}
+
+.synapse-ai-layout {
+  display: grid;
+  min-height: 0;
+  height: calc(100% - 80px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 20px;
+}
+
+.synapse-chat-panel {
+  display: flex;
+  min-height: 0;
+  border: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+  border-radius: var(--ai-radius-lg);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--panel) 72%, var(--transparent)), color-mix(in oklab, var(--color-bg) 78%, var(--transparent))),
+    color-mix(in oklab, var(--color-bg) 80%, var(--transparent));
+  box-shadow:
+    0 24px 80px color-mix(in oklab, var(--color-ink) 34%, var(--transparent)),
+    inset 0 1px 0 color-mix(in oklab, var(--color-text) 7%, var(--transparent));
+}
+
+.workspace-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 10px;
+  padding: 14px 16px 6px;
+}
+
+.workspace-quick-actions button {
+  display: flex;
+  min-width: 0;
+  min-height: 68px;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-text) 5%, var(--transparent)), color-mix(in oklab, var(--color-surface) 44%, var(--transparent)));
+  padding: 12px;
+  color: var(--color-text);
+}
+
+.workspace-quick-actions button svg {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 11px;
+  background: color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
+  padding: 8px;
+  color: var(--color-pulse);
+}
+
+.workspace-quick-actions span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  text-align: left;
+}
+
+.workspace-quick-actions strong,
+.workspace-quick-actions small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-quick-actions small {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.synapse-chat-stream {
+  gap: 22px;
+  padding: 26px clamp(18px, 4vw, 54px) 18px;
+}
+
+.synapse-message {
+  max-width: min(760px, 92%);
+}
+
+.synapse-message.from-ai {
+  width: min(760px, 96%);
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: color-mix(in oklab, var(--color-pulse) 13%, var(--transparent));
+}
+
+.message-avatar img {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
+
+.message-shell {
+  border-color: color-mix(in oklab, var(--color-text) 11%, var(--transparent));
+  border-radius: 15px;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-text) 4%, var(--transparent)), color-mix(in oklab, var(--color-surface) 58%, var(--transparent))),
+    color-mix(in oklab, var(--panel) 80%, var(--transparent));
+  padding: 18px 20px;
+  box-shadow: 0 18px 48px color-mix(in oklab, var(--color-ink) 26%, var(--transparent));
+}
+
+.from-user .message-shell {
+  border-color: color-mix(in oklab, var(--color-pulse) 44%, var(--transparent));
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 30%, var(--transparent)), color-mix(in oklab, var(--color-accent) 22%, var(--transparent))),
+    color-mix(in oklab, var(--panel) 78%, var(--transparent));
+}
+
+.synapse-markdown {
+  gap: 12px;
+  font-size: 15px;
+  line-height: 1.68;
+}
+
+.synapse-ai-composer {
+  margin: 0 clamp(14px, 3vw, 38px) 12px;
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.composer-input-shell textarea {
+  min-height: 42px;
+  font-size: 15px;
+}
+
+.composer-toolbar {
+  align-items: center;
+}
+
+.composer-toolbar button {
+  width: 40px;
+  min-height: 40px;
+  border-radius: 12px;
+  padding: 0;
+}
+
+.composer-toolbar .send-ai-button {
+  width: 48px;
+  margin-left: auto;
+  border-color: color-mix(in oklab, var(--color-pulse) 42%, var(--transparent));
+  background:
+    linear-gradient(135deg, var(--color-pulse), color-mix(in oklab, var(--color-accent) 76%, var(--color-pulse))),
+    var(--color-pulse);
+  color: white;
+  box-shadow: 0 16px 42px color-mix(in oklab, var(--color-pulse) 35%, var(--transparent));
+}
+
+.attachment-menu {
+  border-radius: 14px;
+}
+
+.synapse-context-panel {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.context-card {
+  border: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+  border-radius: var(--ai-radius-lg);
+  background:
+    linear-gradient(160deg, color-mix(in oklab, var(--panel) 78%, var(--transparent)), color-mix(in oklab, var(--color-bg) 72%, var(--transparent))),
+    color-mix(in oklab, var(--color-bg) 82%, var(--transparent));
+  padding: 16px;
+  box-shadow: 0 18px 54px color-mix(in oklab, var(--color-ink) 28%, var(--transparent));
+  backdrop-filter: blur(24px);
+}
+
+.context-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.context-card-heading div {
+  display: grid;
+  gap: 3px;
+}
+
+.context-card-heading span,
+.context-card p,
+.workspace-file span,
+.drop-mini-card span {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.context-card-heading strong,
+.context-card strong,
+.workspace-file strong {
+  color: var(--color-text);
+}
+
+.context-card-heading button {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 36%, var(--transparent));
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--color-pulse) 16%, var(--transparent));
+  padding: 0 10px;
+  color: var(--color-text);
+}
+
+.context-memory-card p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.context-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.context-stat {
+  display: grid;
+  gap: 7px;
+  border-radius: 13px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  padding: 12px 10px;
+}
+
+.context-stat span {
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+.context-stat strong {
+  font-size: 15px;
+}
+
+.tone-pulse strong {
+  color: var(--color-pulse);
+}
+
+.tone-sky strong {
+  color: var(--color-sky);
+}
+
+.tone-gold strong {
+  color: var(--color-gold);
+}
+
+.insight-list {
+  display: grid;
+  gap: 8px;
+}
+
+.insight-list p {
+  margin: 0;
+  border-left: 2px solid color-mix(in oklab, var(--color-pulse) 44%, var(--transparent));
+  padding-left: 10px;
+  line-height: 1.45;
+}
+
+.workspace-file-list {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-file {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  border-radius: 13px;
+  padding: 9px;
+  transition:
+    background 220ms ease,
+    transform 220ms ease;
+}
+
+.workspace-file:hover,
+.workspace-file.is-live {
+  background: color-mix(in oklab, var(--color-pulse) 10%, var(--transparent));
+  transform: translateY(-1px);
+}
+
+.workspace-file > svg:first-child,
+.drop-mini-card > svg {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: color-mix(in oklab, var(--color-pulse) 14%, var(--transparent));
+  padding: 8px;
+  color: var(--color-pulse);
+}
+
+.workspace-file div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.workspace-file strong,
+.workspace-file span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drop-mini-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-style: dashed;
+}
+
+.drop-mini-card div {
+  display: grid;
+  gap: 3px;
+}
+
+@media (max-width: 1280px) {
+  .synapse-ai-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .synapse-context-panel {
+    display: none;
+  }
+
+  .workspace-quick-actions {
+    grid-template-columns: repeat(3, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .synapse-ai-frame,
+  .synapse-ai-frame.history-open,
+  .synapse-ai-frame.history-closed {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .synapse-ai-sidebar {
+    position: fixed;
+    z-index: 80;
+    height: calc(100vh - 24px);
+    transform: translateX(-112%);
+  }
+
+  .synapse-ai-sidebar.is-open {
+    width: min(280px, calc(100vw - 24px)) !important;
+    transform: translateX(0);
+  }
+
+  .synapse-ai-sidebar.is-collapsed {
+    transform: translateX(-112%);
+  }
+
+  .synapse-ai-workspace,
+  .history-closed .synapse-ai-workspace,
+  .history-open .synapse-ai-workspace {
+    grid-column: 1;
+    height: calc(100vh - 24px);
+  }
+
+  .synapse-ai-topbar {
+    flex-wrap: wrap;
+    min-height: auto;
+  }
+
+  .synapse-ai-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  .workspace-quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .ai-workspace-greeting span {
+    font-size: 22px;
+  }
+
+  .model-chip {
+    display: none;
+  }
+
+  .workspace-quick-actions {
+    display: flex;
+    overflow-x: auto;
+    padding: 12px;
+  }
+
+  .workspace-quick-actions button {
+    min-width: 190px;
+  }
+
+  .synapse-chat-stream {
+    padding-inline: 14px;
+  }
+
+  .synapse-ai-composer {
+    margin-inline: 10px;
+  }
+}
