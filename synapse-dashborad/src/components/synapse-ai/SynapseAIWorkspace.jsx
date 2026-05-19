@@ -5,8 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  BarChart3,
-  BookOpen,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -42,6 +40,7 @@ import { useSynapseTheme } from "../../hooks/useSynapseTheme";
 import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 
 const STORAGE_KEY = "synapse-ai-conversations";
+const UPLOADED_FILES_KEY = "synapse-ai-uploaded-files";
 const DASHBOARD_HREF = "/";
 const SUPPORTED_FILE_COPY = "PDF, JPG, PNG, HTML, text, Markdown, code, or JSON files";
 const SAFE_AI_ERROR = "SYNAPSE AI is currently busy. Please try again shortly.";
@@ -80,24 +79,6 @@ const dockNavItems = [
   { label: "Goals", icon: Target, href: "/goals" },
   { label: "Focus Lock", icon: LockKeyhole, href: "/" },
   { label: "Saved Notes", icon: StickyNote, href: "/" }
-];
-
-const contextStats = [
-  { label: "Focus today", value: "4h 32m", tone: "pulse" },
-  { label: "Goal progress", value: "68%", tone: "sky" },
-  { label: "Weak subject", value: "Physics", tone: "gold" }
-];
-
-const studyInsights = [
-  "Revise electrostatics formulas once before solving numericals.",
-  "Your strongest sessions happen after 7 PM.",
-  "Two goals are close to completion this month."
-];
-
-const recentUploads = [
-  { name: "Physics Notes.pdf", meta: "2.4 MB · PDF", icon: FileText },
-  { name: "Force Diagram.png", meta: "Image · linked chat", icon: ImageIcon },
-  { name: "Class Notes.txt", meta: "Study notes", icon: FileCode2 }
 ];
 
 function createWelcomeMessage() {
@@ -501,7 +482,7 @@ function ChatSidebar({
     <motion.aside
       className={`synapse-ai-sidebar ${open ? "is-open" : "is-collapsed"}`}
       initial={false}
-      animate={{ width: open ? 280 : 88 }}
+      animate={{ width: open ? 280 : 0 }}
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="synapse-ai-brand">
@@ -581,48 +562,30 @@ function ChatSidebar({
   );
 }
 
-function ContextPanel({ selectedFile, onUpload }) {
+function getFileMeta(file) {
+  return {
+    id: `${file.name}-${file.size}-${file.lastModified || Date.now()}`,
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    addedAt: new Date().toISOString()
+  };
+}
+
+function formatFileType(file) {
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) return "PDF";
+  if (file.type?.startsWith("image/") || /\.(png|jpe?g)$/i.test(file.name)) return "Image";
+  if (/\.(html?|css|js|jsx|json|md|txt)$/i.test(file.name)) return "File";
+  return "Material";
+}
+
+function ContextPanel({ uploadedFiles, onUpload }) {
   return (
     <aside className="synapse-context-panel">
-      <section className="context-card context-memory-card">
-        <div className="context-card-heading">
-          <div>
-            <span>Study Memory</span>
-            <strong>Current focus</strong>
-          </div>
-          <BookOpen size={18} />
-        </div>
-        <p>Preparing for problem-solving sessions with physics, goals, and revision material linked.</p>
-      </section>
-
-      <section className="context-card context-stats-grid">
-        {contextStats.map((stat) => (
-          <div key={stat.label} className={`context-stat tone-${stat.tone}`}>
-            <span>{stat.label}</span>
-            <strong>{stat.value}</strong>
-          </div>
-        ))}
-      </section>
-
       <section className="context-card">
         <div className="context-card-heading">
           <div>
-            <span>Insights</span>
-            <strong>Study signals</strong>
-          </div>
-          <BarChart3 size={18} />
-        </div>
-        <div className="insight-list">
-          {studyInsights.map((insight) => (
-            <p key={insight}>{insight}</p>
-          ))}
-        </div>
-      </section>
-
-      <section className="context-card">
-        <div className="context-card-heading">
-          <div>
-            <span>Workspace Files</span>
+            <span>Your documents</span>
             <strong>Recent materials</strong>
           </div>
           <button type="button" onClick={onUpload}>
@@ -631,43 +594,42 @@ function ContextPanel({ selectedFile, onUpload }) {
           </button>
         </div>
         <div className="workspace-file-list">
-          {selectedFile ? (
-            <article className="workspace-file is-live">
-              <FolderOpen size={18} />
-              <div>
-                <strong>{selectedFile.name}</strong>
-                <span>{fileSize(selectedFile.size)} · ready in this chat</span>
-              </div>
-              <MoreHorizontal size={16} />
-            </article>
-          ) : null}
-          {recentUploads.map((file) => {
-            const Icon = file.icon;
-            return (
-              <article key={file.name} className="workspace-file">
-                <Icon size={18} />
-                <div>
-                  <strong>{file.name}</strong>
-                  <span>{file.meta}</span>
-                </div>
-                <MoreHorizontal size={16} />
-              </article>
-            );
-          })}
+          {uploadedFiles.length ? (
+            uploadedFiles.map((file) => {
+              const Icon = getAttachmentIcon(file);
+              const fileType = formatFileType(file);
+
+              return (
+                <article key={file.id} className="workspace-file">
+                  <Icon size={18} />
+                  <div>
+                    <strong>{file.name}</strong>
+                    <span>{fileSize(file.size)} · {fileType}</span>
+                  </div>
+                  <MoreHorizontal size={16} />
+                </article>
+              );
+            })
+          ) : (
+            <div className="workspace-empty-state">
+              <FolderOpen size={20} />
+              <strong>No files yet</strong>
+              <span>Upload a PDF, image, note, or code file and it will appear here.</span>
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="context-card drop-mini-card">
+      <section className="context-card drop-mini-card" onClick={onUpload}>
         <Upload size={22} />
         <div>
-          <strong>Drop study files</strong>
+          <strong>Drop or upload files</strong>
           <span>PDFs, images, notes, code</span>
         </div>
       </section>
     </aside>
   );
 }
-
 export default function SynapseAIWorkspace() {
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState("");
@@ -676,6 +638,7 @@ export default function SynapseAIWorkspace() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dragging, setDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -713,9 +676,23 @@ export default function SynapseAIWorkspace() {
   }, []);
 
   useEffect(() => {
+    try {
+      const savedFiles = JSON.parse(window.localStorage.getItem(UPLOADED_FILES_KEY) || "[]");
+      setUploadedFiles(Array.isArray(savedFiles) ? savedFiles : []);
+    } catch {
+      setUploadedFiles([]);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
   }, [conversations, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(UPLOADED_FILES_KEY, JSON.stringify(uploadedFiles));
+  }, [uploadedFiles, hydrated]);
 
   useEffect(() => {
     streamRef.current?.scrollTo({
@@ -788,6 +765,11 @@ export default function SynapseAIWorkspace() {
 
     setUploadError("");
     setSelectedFile(file);
+    setUploadedFiles((current) => {
+      const nextFile = getFileMeta(file);
+      const withoutDuplicate = current.filter((item) => item.id !== nextFile.id);
+      return [nextFile, ...withoutDuplicate].slice(0, 12);
+    });
     setAttachmentMenuOpen(false);
   };
 
@@ -1155,7 +1137,7 @@ export default function SynapseAIWorkspace() {
               </p>
             </section>
 
-            <ContextPanel selectedFile={selectedFile} onUpload={() => openFilePicker(".pdf,image/png,image/jpeg,.html,.htm,.txt,.md,.js,.jsx,.css,.json")} />
+            <ContextPanel uploadedFiles={uploadedFiles} onUpload={() => openFilePicker(".pdf,image/png,image/jpeg,.html,.htm,.txt,.md,.js,.jsx,.css,.json")} />
           </div>
         </section>
       </div>

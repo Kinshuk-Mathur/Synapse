@@ -4378,7 +4378,8 @@ textarea {
 }
 
 .synapse-ai-frame.history-closed {
-  grid-template-columns: 88px minmax(0, 1fr);
+  grid-template-columns: 0 minmax(0, 1fr);
+  gap: 0;
 }
 
 .synapse-ai-frame.history-open {
@@ -4406,8 +4407,13 @@ textarea {
 }
 
 .synapse-ai-sidebar.is-collapsed {
-  align-items: center;
-  padding-inline: 12px;
+  width: 0 !important;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-18px);
 }
 
 .synapse-ai-brand {
@@ -4674,32 +4680,32 @@ textarea {
 
 .workspace-quick-actions {
   display: grid;
-  grid-template-columns: repeat(5, minmax(120px, 1fr));
-  gap: 10px;
-  padding: 14px 16px 6px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px 14px 5px;
 }
 
 .workspace-quick-actions button {
   display: flex;
   min-width: 0;
-  min-height: 68px;
+  min-height: 54px;
   align-items: center;
-  gap: 11px;
+  gap: 8px;
   border: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
   border-radius: 14px;
   background:
     linear-gradient(135deg, color-mix(in oklab, var(--color-text) 5%, var(--transparent)), color-mix(in oklab, var(--color-surface) 44%, var(--transparent)));
-  padding: 12px;
+  padding: 9px 10px;
   color: var(--color-text);
 }
 
 .workspace-quick-actions button svg {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   flex: none;
   border-radius: 11px;
   background: color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
-  padding: 8px;
+  padding: 7px;
   color: var(--color-pulse);
 }
 
@@ -4717,9 +4723,14 @@ textarea {
   white-space: nowrap;
 }
 
+.workspace-quick-actions strong {
+  font-size: 13px;
+  line-height: 1.1;
+}
+
 .workspace-quick-actions small {
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .synapse-chat-stream {
@@ -4969,11 +4980,39 @@ textarea {
   align-items: center;
   gap: 12px;
   border-style: dashed;
+  cursor: pointer;
 }
 
 .drop-mini-card div {
   display: grid;
   gap: 3px;
+}
+
+.workspace-empty-state {
+  display: grid;
+  min-height: 190px;
+  place-items: center;
+  border: 1px dashed color-mix(in oklab, var(--color-text) 14%, var(--transparent));
+  border-radius: 14px;
+  padding: 24px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.workspace-empty-state svg {
+  margin-bottom: 10px;
+  color: color-mix(in oklab, var(--color-pulse) 58%, var(--color-muted));
+}
+
+.workspace-empty-state strong {
+  color: var(--color-text);
+}
+
+.workspace-empty-state span {
+  max-width: 230px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 @media (max-width: 1280px) {
@@ -4986,7 +5025,7 @@ textarea {
   }
 
   .workspace-quick-actions {
-    grid-template-columns: repeat(3, minmax(140px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
