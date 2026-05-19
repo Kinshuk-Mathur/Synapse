@@ -36,6 +36,9 @@ Formatting rules:
 - Use clean Markdown with short headings, bullets, and compact paragraphs.
 - Do not use emojis unless the user asks for them.
 - Avoid long decorative separators.
+- Do not output raw LaTeX delimiters or commands such as \\[, \\], \\frac{}, \\vec{}, \\hat{}, \\text{}, or $$.
+- Write math in student-readable plain text using normal symbols: (a + b)^2 = a^2 + 2ab + b^2, F = k(q1 q2) / r^2, ×, π, ε0.
+- If notation could confuse a student, add a short "where ..." line explaining each symbol.
 - For study explanations, use: quick definition, simple explanation, example, and key takeaway.
 `;
 

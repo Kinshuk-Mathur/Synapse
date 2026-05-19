@@ -119,8 +119,117 @@ function makeTitle(text) {
   return clean.length > 42 ? `${clean.slice(0, 42)}...` : clean;
 }
 
+const SUPERSCRIPT_MAP = {
+  "0": "⁰",
+  "1": "¹",
+  "2": "²",
+  "3": "³",
+  "4": "⁴",
+  "5": "⁵",
+  "6": "⁶",
+  "7": "⁷",
+  "8": "⁸",
+  "9": "⁹",
+  "+": "⁺",
+  "-": "⁻",
+  "=": "⁼",
+  "(": "⁽",
+  ")": "⁾",
+  n: "ⁿ",
+  i: "ⁱ"
+};
+
+const SUBSCRIPT_MAP = {
+  "0": "₀",
+  "1": "₁",
+  "2": "₂",
+  "3": "₃",
+  "4": "₄",
+  "5": "₅",
+  "6": "₆",
+  "7": "₇",
+  "8": "₈",
+  "9": "₉",
+  "+": "₊",
+  "-": "₋",
+  "=": "₌",
+  "(": "₍",
+  ")": "₎",
+  a: "ₐ",
+  e: "ₑ",
+  h: "ₕ",
+  i: "ᵢ",
+  j: "ⱼ",
+  k: "ₖ",
+  l: "ₗ",
+  m: "ₘ",
+  n: "ₙ",
+  o: "ₒ",
+  p: "ₚ",
+  r: "ᵣ",
+  s: "ₛ",
+  t: "ₜ",
+  u: "ᵤ",
+  v: "ᵥ",
+  x: "ₓ"
+};
+
+function toMappedNumber(value, map) {
+  return String(value)
+    .split("")
+    .map((char) => map[char] || map[char.toLowerCase()] || char)
+    .join("");
+}
+
+function convertLatexExpression(value) {
+  let text = String(value || "");
+
+  text = text
+    .replace(/\\left|\\right/g, "")
+    .replace(/\\,/g, " ")
+    .replace(/\\times/g, "×")
+    .replace(/\\cdot/g, "·")
+    .replace(/\\pi/g, "π")
+    .replace(/\\epsilon/g, "ε")
+    .replace(/\\theta/g, "θ")
+    .replace(/\\Delta/g, "Δ")
+    .replace(/\\text\{([^{}]*)\}/g, "$1")
+    .replace(/\\mathrm\{([^{}]*)\}/g, "$1")
+    .replace(/\\mathbf\{([^{}]*)\}/g, "$1")
+    .replace(/\\hat\{([^{}]+)\}/g, "$1̂")
+    .replace(/\\vec\{([^{}]+)\}/g, "$1⃗")
+    .replace(/\\overrightarrow\{([^{}]+)\}/g, "$1⃗");
+
+  text = text
+    .replace(/\^\{([^{}]+)\}/g, (_, power) => toMappedNumber(power, SUPERSCRIPT_MAP))
+    .replace(/\^([A-Za-z0-9+\-=()]+)/g, (_, power) => toMappedNumber(power, SUPERSCRIPT_MAP))
+    .replace(/_\{([^{}]+)\}/g, (_, subscript) => toMappedNumber(subscript, SUBSCRIPT_MAP))
+    .replace(/_([A-Za-z0-9+\-=()]+)/g, (_, subscript) => toMappedNumber(subscript, SUBSCRIPT_MAP));
+
+  for (let index = 0; index < 4; index += 1) {
+    text = text.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, "($1) / ($2)");
+  }
+
+  return text
+    .replace(/\\\[|\\\]|\\\(|\\\)|\$\$/g, "")
+    .replace(/\\[a-zA-Z]+/g, "")
+    .replace(/\s+([,.;:])/g, "$1")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+function normalizeMathContent(content) {
+  return String(content)
+    .replace(/\$\$([\s\S]*?)\$\$/g, (_, expression) => `\n${convertLatexExpression(expression)}\n`)
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, expression) => `\n${convertLatexExpression(expression)}\n`)
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_, expression) => convertLatexExpression(expression))
+    .replace(/(^|\n)(.*\\(?:frac|vec|hat|times|text|epsilon|pi|cdot|left|right).*)/g, (_, prefix, expression) => {
+      return `${prefix}${convertLatexExpression(expression)}`;
+    });
+}
+
 function renderInlineMarkdown(text) {
-  const tokens = String(text).split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
+  const tokens = convertLatexExpression(text).split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
 
   return tokens.map((token, index) => {
     if (token.startsWith("**") && token.endsWith("**")) {
@@ -136,7 +245,7 @@ function renderInlineMarkdown(text) {
 }
 
 function MarkdownMessage({ content }) {
-  const sections = String(content).split(/```/g);
+  const sections = normalizeMathContent(content).split(/```/g);
   const elements = [];
 
   const flushParagraph = (lines, key) => {
