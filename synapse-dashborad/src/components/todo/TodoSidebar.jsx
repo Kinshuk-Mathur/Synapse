@@ -20,10 +20,10 @@ import {
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-  { label: "FocusLock", icon: LockKeyhole, href: "#" },
+  { label: "Focus Lock", icon: LockKeyhole, href: "/focus" },
   { label: "To-Do List", icon: CheckSquare, href: "/todo", active: true },
   { label: "Goals", icon: Target, href: "/goals" },
-  { label: "Focus Sessions", icon: Timer, href: "#" },
+  { label: "Focus Sessions", icon: Timer, href: "/focus" },
   { label: "Analytics", icon: BarChart3, href: "#" },
   { label: "AI Assistant", icon: Sparkles, href: "#" },
   { label: "Calendar", icon: CalendarDays, href: "#" },

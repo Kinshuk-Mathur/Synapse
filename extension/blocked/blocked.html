@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Lock</title>
+  <link rel="stylesheet" href="blocked.css" />
+</head>
+<body>
+  <main class="blocked-shell">
+    <section class="blocked-panel">
+      <div class="brand-lockup">
+        <img src="../assets/icon128.png" alt="" />
+        <div>
+          <span>FOCUSLOCK - powered by Synapse</span>
+          <h1 id="blocked-title">Stay focused.</h1>
+        </div>
+      </div>
+
+      <p id="blocked-copy">This page is paused while your focus session is active.</p>
+
+      <div class="countdown-card">
+        <span id="countdown-label">Session remaining</span>
+        <strong id="countdown">--:--:--</strong>
+        <div class="progress-track">
+          <i id="progress-bar"></i>
+        </div>
+      </div>
+
+      <div class="goal-card">
+        <span>Current goal</span>
+        <strong id="current-goal">Deep study session</strong>
+      </div>
+
+      <button id="return-btn">Return to Focus Tab</button>
+    </section>
+  </main>
+
+  <script src="blocked.js"></script>
+</body>
+</html>

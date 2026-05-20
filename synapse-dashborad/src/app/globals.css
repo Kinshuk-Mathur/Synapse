@@ -5139,7 +5139,253 @@ textarea {
   line-height: 1.45;
 }
 
+.focus-workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.focus-page-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 88% 12%, color-mix(in oklab, var(--color-pulse) 34%, var(--transparent)), var(--transparent) 34%),
+    linear-gradient(145deg, color-mix(in oklab, var(--color-text) 5%, var(--transparent)), color-mix(in oklab, var(--color-surface) 70%, var(--transparent))),
+    var(--panel);
+  padding: 28px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(20px);
+}
+
+.focus-page-hero span {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.focus-page-hero h1 {
+  margin: 8px 0 10px;
+  font-size: clamp(38px, 6vw, 68px);
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.focus-page-hero p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.focus-bridge-status {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 6%, var(--transparent));
+  padding: 0 13px;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.focus-bridge-status.status-connected {
+  border-color: color-mix(in oklab, var(--color-lime) 48%, var(--transparent));
+  color: var(--color-text);
+  box-shadow: 0 0 26px color-mix(in oklab, var(--color-lime) 18%, var(--transparent));
+}
+
+.focus-bridge-status.status-error {
+  border-color: color-mix(in oklab, var(--chart-red) 56%, var(--transparent));
+  color: var(--chart-red);
+}
+
+.focus-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.focus-kpi {
+  display: grid;
+  gap: 10px;
+  min-height: 150px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-text) 4%, var(--transparent)), color-mix(in oklab, var(--color-surface) 68%, var(--transparent))),
+    var(--panel);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(20px);
+}
+
+.focus-kpi svg {
+  color: var(--color-pulse);
+  filter: drop-shadow(0 0 16px color-mix(in oklab, var(--color-pulse) 45%, var(--transparent)));
+}
+
+.focus-kpi span {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.focus-kpi strong {
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1;
+}
+
+.focus-analytics-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  gap: 12px;
+}
+
+.focus-week-panel,
+.focus-distractions-panel,
+.focus-history-panel {
+  min-height: 280px;
+}
+
+.focus-week-panel .panel-header span,
+.focus-distractions-panel .panel-header span,
+.focus-history-panel .panel-header span {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.focus-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  gap: 10px;
+  height: 210px;
+}
+
+.focus-bar-item {
+  display: grid;
+  height: 100%;
+  grid-template-rows: minmax(0, 1fr) 20px;
+  gap: 10px;
+  text-align: center;
+}
+
+.focus-bar-item div {
+  display: flex;
+  min-height: 0;
+  align-items: flex-end;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  padding: 6px;
+}
+
+.focus-bar-item i {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--chart-pink), var(--chart-purple));
+  box-shadow: 0 0 24px color-mix(in oklab, var(--color-pulse) 28%, var(--transparent));
+}
+
+.focus-bar-item span {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.focus-distraction-stack,
+.focus-history-list {
+  display: grid;
+  gap: 10px;
+}
+
+.focus-distraction-row,
+.focus-history-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+}
+
+.focus-distraction-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 13px;
+}
+
+.focus-distraction-row span,
+.focus-history-item span,
+.focus-history-item small,
+.focus-empty {
+  color: var(--color-muted);
+}
+
+.focus-distraction-row strong {
+  color: var(--color-pulse);
+}
+
+.focus-history-list {
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.focus-history-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 70px;
+  padding: 12px 14px;
+}
+
+.focus-history-item div {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.focus-history-item strong,
+.focus-history-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-history-item em {
+  color: var(--color-lime);
+  font-style: normal;
+  font-weight: 800;
+}
+
+.focus-history-item small {
+  white-space: nowrap;
+}
+
+.focus-empty {
+  display: grid;
+  min-height: 120px;
+  place-items: center;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  padding: 16px;
+  text-align: center;
+}
+
 @media (max-width: 1280px) {
+  .focus-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
   .synapse-ai-layout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -5154,6 +5400,15 @@ textarea {
 }
 
 @media (max-width: 900px) {
+  .focus-page-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .focus-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .synapse-ai-frame,
   .synapse-ai-frame.history-open,
   .synapse-ai-frame.history-closed {
@@ -5201,6 +5456,15 @@ textarea {
 }
 
 @media (max-width: 560px) {
+  .focus-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .focus-history-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
   .ai-workspace-greeting span {
     font-size: 22px;
   }

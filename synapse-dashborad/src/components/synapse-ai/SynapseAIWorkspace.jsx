@@ -77,7 +77,7 @@ const dockNavItems = [
   { label: "AI Chat", icon: MessageSquareText, href: "/synapse-ai", active: true },
   { label: "Todo List", icon: ListTodo, href: "/todo" },
   { label: "Goals", icon: Target, href: "/goals" },
-  { label: "Focus Lock", icon: LockKeyhole, href: "/" },
+  { label: "Focus Lock", icon: LockKeyhole, href: "/focus" },
   { label: "Saved Notes", icon: StickyNote, href: "/" }
 ];
 

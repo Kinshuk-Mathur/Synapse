@@ -1,0 +1,16 @@
+{
+  "name": "Focus Lock Synapse Sync Payload",
+  "version": 2,
+  "source": "synapse-focus-extension",
+  "payload": {
+    "activeSession": "Current focus session when one is active, otherwise null.",
+    "stats": {
+      "totalFocusSeconds": "All locally recorded focus seconds.",
+      "sessionsCompleted": "Completed countdown sessions.",
+      "blockedDistractions": "Total blocked attempts.",
+      "currentStreak": "Consecutive local focus days.",
+      "daily": "Date-keyed focus summaries.",
+      "sessionHistory": "Recent session records synced to Firestore focusSessions."
+    }
+  }
+}

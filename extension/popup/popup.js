@@ -1,0 +1,389 @@
+const idleState = document.getElementById("idle-state");
+const activeState = document.getElementById("active-state");
+const statusPill = document.getElementById("status-pill");
+const heroSubtitle = document.getElementById("hero-subtitle");
+const timerEl = document.getElementById("timer");
+const timerLabel = document.getElementById("timer-label");
+const progressValue = document.getElementById("progress-value");
+const activeGoalChip = document.getElementById("active-goal-chip");
+const focusGoalInput = document.getElementById("focus-goal");
+const durationInput = document.getElementById("duration-time");
+const extremeFocusInput = document.getElementById("extreme-focus");
+const startBtn = document.getElementById("start-btn");
+const dashboardBtn = document.getElementById("dashboard-btn");
+const sessionSite = document.getElementById("session-site");
+const violationCount = document.getElementById("violation-count");
+const milestoneCount = document.getElementById("milestone-count");
+const breaksLeftEl = document.getElementById("breaks-left");
+const breakStatusEl = document.getElementById("break-status");
+const breakBtn = document.getElementById("break-btn");
+const unlockBtn = document.getElementById("unlock-btn");
+const todayFocus = document.getElementById("today-focus");
+const todayCompleted = document.getElementById("today-completed");
+const todayBlocked = document.getElementById("today-blocked");
+const streakCount = document.getElementById("streak-count");
+const syncLine = document.getElementById("sync-line");
+const durationPresetButtons = [...document.querySelectorAll(".duration-preset")];
+
+const RING_SIZE = 301.59;
+let timerInterval = null;
+let currentSession = null;
+let currentStats = null;
+let currentSettings = null;
+let settingsSaveTimer = null;
+
+function ignoreRuntimeError() {
+  void chrome.runtime.lastError;
+}
+
+function sendMessage(message) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError) {
+        resolve(null);
+        return;
+      }
+      resolve(response);
+    });
+  });
+}
+
+function getDateKey(timestamp = Date.now()) {
+  const date = new Date(timestamp);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function formatHms(totalSeconds) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds || 0));
+  const hours = Math.floor(safeSeconds / 3600);
+  const mins = Math.floor((safeSeconds % 3600) / 60);
+  const secs = safeSeconds % 60;
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function formatCompact(totalSeconds) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds || 0));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${minutes}m`;
+}
+
+function parseDurationInput(value) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const parts = trimmed.split(":");
+  if (parts.length === 2) parts.unshift("0");
+  if (parts.length !== 3) return null;
+
+  const [hoursText, minutesText, secondsText] = parts;
+  if (![hoursText, minutesText, secondsText].every((part) => /^\d+$/.test(part))) return null;
+
+  const hours = Number(hoursText);
+  const minutes = Number(minutesText);
+  const seconds = Number(secondsText);
+  if (minutes > 59 || seconds > 59) return null;
+
+  const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+  return totalSeconds > 0 ? totalSeconds : null;
+}
+
+function getRemainingSeconds(session) {
+  if (!session?.endTime) return null;
+  return Math.max(0, Math.ceil((session.endTime - Date.now()) / 1000));
+}
+
+function getElapsedSeconds(session) {
+  if (!session?.startTime) return 0;
+  if (session.onBreak) return Math.max(0, Math.floor(session.pausedElapsedSeconds || 0));
+  return Math.max(0, Math.floor((Date.now() - session.startTime) / 1000));
+}
+
+function updateProgress(session) {
+  if (!session?.durationSeconds) {
+    progressValue.style.strokeDashoffset = String(RING_SIZE);
+    return;
+  }
+
+  const elapsed = session.onBreak
+    ? Math.max(0, session.pausedElapsedSeconds || 0)
+    : Math.min(session.durationSeconds, getElapsedSeconds(session));
+  const progress = Math.max(0, Math.min(1, elapsed / session.durationSeconds));
+  progressValue.style.strokeDashoffset = String(RING_SIZE - RING_SIZE * progress);
+}
+
+function getPlatformLabel() {
+  const platform = navigator.userAgentData?.platform || navigator.platform || "";
+  const lower = platform.toLowerCase();
+  if (lower.includes("win")) return "Windows";
+  if (lower.includes("mac")) return "macOS";
+  if (lower.includes("linux")) return "Linux";
+  return "desktop";
+}
+
+function updateTimer(session) {
+  if (!session?.active) {
+    const seconds = parseDurationInput(durationInput.value) || currentSettings?.defaultDurationSeconds || 7200;
+    timerLabel.textContent = "Ready";
+    timerEl.textContent = formatHms(seconds);
+    progressValue.style.strokeDashoffset = String(RING_SIZE);
+    return;
+  }
+
+  if (session.onBreak && session.breakEndTime) {
+    timerLabel.textContent = "Break";
+    timerEl.textContent = formatHms(Math.max(0, Math.ceil((session.breakEndTime - Date.now()) / 1000)));
+  } else if (session.durationSeconds) {
+    timerLabel.textContent = "Remaining";
+    timerEl.textContent = formatHms(getRemainingSeconds(session));
+  } else {
+    timerLabel.textContent = "Elapsed";
+    timerEl.textContent = formatHms(getElapsedSeconds(session));
+  }
+
+  updateProgress(session);
+}
+
+function updateStats(stats = currentStats) {
+  currentStats = stats || currentStats;
+  if (!currentStats) return;
+
+  const today = currentStats.daily?.[getDateKey()] || {};
+  todayFocus.textContent = formatCompact(today.focusSeconds || 0);
+  todayCompleted.textContent = String(today.sessionsCompleted || 0);
+  todayBlocked.textContent = String(today.blockedDistractions || 0);
+  streakCount.textContent = `${currentStats.currentStreak || 0}d`;
+
+  if (currentStats.lastSyncedAt) {
+    syncLine.textContent = `Synced with Synapse ${new Date(currentStats.lastSyncedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.`;
+  } else {
+    syncLine.textContent = "Open the Synapse dashboard to sync analytics.";
+  }
+}
+
+function updateSummary(session) {
+  const breaksLeft = Math.max(0, (session.breaksAllowed || 0) - (session.breaksUsed || 0));
+  violationCount.textContent = String(session.violations || 0);
+  milestoneCount.textContent = String(session.milestoneCount || 0);
+  breaksLeftEl.textContent = session.extremeFocus ? "Off" : String(breaksLeft);
+  sessionSite.textContent = session.lockedTitle || session.lockedUrl || "Current study page";
+  activeGoalChip.textContent = session.focusGoal || "Deep study session";
+
+  if (session.onBreak && session.breakEndTime) {
+    breakStatusEl.style.display = "block";
+    breakStatusEl.textContent = `Break active. Focus resumes in ${formatHms(Math.max(0, Math.ceil((session.breakEndTime - Date.now()) / 1000)))}.`;
+  } else {
+    breakStatusEl.style.display = "none";
+  }
+}
+
+function showActiveUI(session) {
+  currentSession = session;
+  idleState.style.display = "none";
+  activeState.style.display = "grid";
+  statusPill.textContent = "Active";
+  statusPill.classList.add("is-active");
+  heroSubtitle.textContent = session.extremeFocus ? "Extreme Focus is guarding this session" : "FOCUSLOCK - powered by Synapse";
+  dashboardBtn.disabled = true;
+  updateSummary(session);
+  updateTimer(session);
+
+  unlockBtn.disabled = Boolean(session.extremeFocus);
+  unlockBtn.textContent = session.extremeFocus ? "Extreme Focus Locked" : "Stop Session";
+  breakBtn.disabled = Boolean(session.extremeFocus || session.onBreak || ((session.breaksAllowed || 0) - (session.breaksUsed || 0) <= 0));
+  breakBtn.textContent = session.onBreak ? "Break Running" : "Take 6 Minute Break";
+
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (!currentSession?.active) return;
+    updateTimer(currentSession);
+    updateSummary(currentSession);
+  }, 1000);
+}
+
+function showIdleUI() {
+  currentSession = null;
+  idleState.style.display = "grid";
+  activeState.style.display = "none";
+  statusPill.textContent = "Idle";
+  statusPill.classList.remove("is-active");
+  heroSubtitle.textContent = "FOCUSLOCK - powered by Synapse";
+  activeGoalChip.textContent = focusGoalInput.value || currentSettings?.focusGoal || "Deep study session";
+  dashboardBtn.disabled = false;
+  breakStatusEl.style.display = "none";
+
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = null;
+  updateTimer(null);
+}
+
+function applySession(session) {
+  if (session?.active) {
+    showActiveUI(session);
+  } else {
+    showIdleUI();
+  }
+}
+
+function hydrateSettings(settings = {}) {
+  currentSettings = settings;
+  const goal = settings.focusGoal || "Deep study session";
+  focusGoalInput.value = goal;
+  activeGoalChip.textContent = goal;
+
+  const duration = settings.defaultDurationSeconds || 7200;
+  durationInput.value = formatHms(duration);
+  durationPresetButtons.forEach((button) => {
+    button.classList.toggle("is-active", Number(button.dataset.seconds) === duration);
+  });
+}
+
+async function loadState() {
+  const response = await sendMessage({ type: "GET_SESSION" });
+  hydrateSettings(response?.settings || {});
+  updateStats(response?.stats || null);
+  applySession(response?.session || null);
+}
+
+function saveSettingsSoon() {
+  if (settingsSaveTimer) clearTimeout(settingsSaveTimer);
+  settingsSaveTimer = setTimeout(() => {
+    const parsedDuration = parseDurationInput(durationInput.value);
+    sendMessage({
+      type: "UPDATE_SETTINGS",
+      settings: {
+        focusGoal: focusGoalInput.value.trim() || "Deep study session",
+        defaultDurationSeconds: parsedDuration || currentSettings?.defaultDurationSeconds || 7200
+      }
+    }).then((response) => {
+      if (response?.settings) currentSettings = response.settings;
+    });
+  }, 300);
+}
+
+chrome.runtime.sendMessage({ type: "POPUP_OPENED" }, ignoreRuntimeError);
+
+window.addEventListener("unload", () => {
+  chrome.runtime.sendMessage({ type: "POPUP_CLOSED" }, ignoreRuntimeError);
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local") return;
+
+  if (changes.synapseFocusSession) {
+    applySession(changes.synapseFocusSession.newValue || null);
+  }
+
+  if (changes.synapseFocusStats) {
+    updateStats(changes.synapseFocusStats.newValue || null);
+  }
+
+  if (changes.synapseFocusSettings) {
+    currentSettings = changes.synapseFocusSettings.newValue || currentSettings;
+  }
+});
+
+durationPresetButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const seconds = Number(button.dataset.seconds);
+    durationInput.value = formatHms(seconds);
+    durationPresetButtons.forEach((item) => item.classList.toggle("is-active", item === button));
+    updateTimer(null);
+    saveSettingsSoon();
+  });
+});
+
+durationInput.addEventListener("input", () => {
+  durationPresetButtons.forEach((button) => button.classList.remove("is-active"));
+  updateTimer(null);
+  saveSettingsSoon();
+});
+
+focusGoalInput.addEventListener("input", () => {
+  activeGoalChip.textContent = focusGoalInput.value || "Deep study session";
+  saveSettingsSoon();
+});
+
+startBtn.addEventListener("click", async () => {
+  const tabs = await new Promise((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, resolve);
+  });
+  const tab = tabs?.[0];
+  if (!tab?.id) return;
+
+  const durationSeconds = parseDurationInput(durationInput.value);
+  const extremeFocus = Boolean(extremeFocusInput.checked);
+
+  if (!durationSeconds) {
+    syncLine.textContent = "Use a session length like 02:00:00.";
+    return;
+  }
+
+  if (extremeFocus && !durationSeconds) {
+    syncLine.textContent = "Extreme Focus needs a countdown.";
+    return;
+  }
+
+  startBtn.disabled = true;
+  const response = await sendMessage({
+    type: "START_SESSION",
+    tabId: tab.id,
+    windowId: tab.windowId,
+    emergencyCode: "__none__",
+    title: tab.title,
+    url: tab.url,
+    durationSeconds,
+    extremeFocus,
+    focusGoal: focusGoalInput.value.trim() || "Deep study session",
+    platform: getPlatformLabel()
+  });
+  startBtn.disabled = false;
+
+  if (!response?.success) {
+    syncLine.textContent = response?.error || "Unable to start Focus Lock.";
+    return;
+  }
+
+  chrome.tabs.sendMessage(tab.id, { type: "SESSION_STARTED", session: response.session }, ignoreRuntimeError);
+  updateStats(response.stats);
+  applySession(response.session);
+  window.close();
+});
+
+unlockBtn.addEventListener("click", async () => {
+  if (!currentSession?.extremeFocus) {
+    const shouldStop = window.confirm("Stop this Focus Lock session now?");
+    if (!shouldStop) return;
+  }
+
+  const response = await sendMessage({ type: "END_SESSION" });
+  if (!response?.success) {
+    syncLine.textContent = response?.error || "This session cannot be stopped right now.";
+    return;
+  }
+
+  updateStats(response.stats);
+  showIdleUI();
+  window.close();
+});
+
+breakBtn.addEventListener("click", async () => {
+  const response = await sendMessage({ type: "START_BREAK" });
+  if (!response?.success) {
+    syncLine.textContent = response?.error || "Break is not available right now.";
+    return;
+  }
+  applySession(response.session);
+});
+
+dashboardBtn.addEventListener("click", () => {
+  const url = currentSettings?.dashboardUrl || "http://localhost:3000/focus";
+  chrome.tabs.create({ url }, ignoreRuntimeError);
+});
+
+loadState();

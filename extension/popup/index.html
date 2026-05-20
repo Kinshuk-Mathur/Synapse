@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Lock</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main class="focus-shell">
+    <section class="focus-hero">
+      <div class="brand-row">
+        <div class="brand-mark">
+          <img src="../assets/icon48.png" alt="" />
+        </div>
+        <div>
+          <h1>Focus Lock</h1>
+          <p id="hero-subtitle">FOCUSLOCK - powered by Synapse</p>
+        </div>
+        <span class="status-pill" id="status-pill">Idle</span>
+      </div>
+
+      <div class="timer-stage" id="timer-stage">
+        <svg class="progress-ring" viewBox="0 0 112 112" aria-hidden="true">
+          <circle class="progress-track" cx="56" cy="56" r="48"></circle>
+          <circle class="progress-value" id="progress-value" cx="56" cy="56" r="48"></circle>
+        </svg>
+        <div class="timer-copy">
+          <span id="timer-label">Ready</span>
+          <strong id="timer">02:00:00</strong>
+        </div>
+      </div>
+
+      <div class="goal-chip" id="active-goal-chip">Deep study session</div>
+    </section>
+
+    <section class="panel" id="idle-state">
+      <label class="field">
+        <span>Current goal</span>
+        <input id="focus-goal" type="text" maxlength="80" placeholder="Calculus lecture, mock test, revision..." />
+      </label>
+
+      <div class="duration-grid" aria-label="Quick focus durations">
+        <button class="duration-preset" data-seconds="1500">25m</button>
+        <button class="duration-preset" data-seconds="3000">50m</button>
+        <button class="duration-preset is-active" data-seconds="7200">2h</button>
+      </div>
+
+      <label class="field">
+        <span>Session length</span>
+        <input id="duration-time" type="text" inputmode="numeric" placeholder="02:00:00" />
+      </label>
+
+      <label class="toggle-row" for="extreme-focus">
+        <input id="extreme-focus" type="checkbox" />
+        <span>
+          <strong>Extreme Focus</strong>
+          <small>Unlocks only when the countdown finishes.</small>
+        </span>
+      </label>
+
+      <button class="primary-button" id="start-btn">Start Focus Session</button>
+      <button class="ghost-button" id="dashboard-btn">Open Synapse Dashboard</button>
+    </section>
+
+    <section class="panel active-panel" id="active-state">
+      <div class="session-line">
+        <span>Locked tab</span>
+        <strong id="session-site">Current study page</strong>
+      </div>
+
+      <div class="stats-grid">
+        <div>
+          <span>Attempts</span>
+          <strong id="violation-count">0</strong>
+        </div>
+        <div>
+          <span>Milestones</span>
+          <strong id="milestone-count">0</strong>
+        </div>
+        <div>
+          <span>Breaks</span>
+          <strong id="breaks-left">0</strong>
+        </div>
+      </div>
+
+      <p class="break-status" id="break-status"></p>
+
+      <div class="button-stack">
+        <button class="secondary-button" id="break-btn">Take 6 Minute Break</button>
+        <button class="danger-button" id="unlock-btn">Stop Session</button>
+      </div>
+    </section>
+
+    <section class="today-strip">
+      <div>
+        <span>Today</span>
+        <strong id="today-focus">0m</strong>
+      </div>
+      <div>
+        <span>Completed</span>
+        <strong id="today-completed">0</strong>
+      </div>
+      <div>
+        <span>Blocked</span>
+        <strong id="today-blocked">0</strong>
+      </div>
+      <div>
+        <span>Streak</span>
+        <strong id="streak-count">0d</strong>
+      </div>
+    </section>
+
+    <p class="sync-line" id="sync-line">Dashboard sync is ready.</p>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

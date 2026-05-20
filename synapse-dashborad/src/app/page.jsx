@@ -51,6 +51,7 @@ import {
 } from "recharts";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
+import { useSynapseFocus } from "../hooks/useSynapseFocus";
 import { formatDateKey, listenToUserTodos } from "../services/todos";
 
 const todoAppUrl = "/todo";
@@ -66,10 +67,10 @@ const themes = [
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/", active: true },
-  { label: "FocusLock", icon: LockKeyhole, href: "#" },
+  { label: "Focus Lock", icon: LockKeyhole, href: "/focus" },
   { label: "To-Do List", icon: CheckSquare, href: todoAppUrl },
   { label: "Goals", icon: Target, href: goalsAppUrl },
-  { label: "Focus Sessions", icon: Timer, href: "#" },
+  { label: "Focus Sessions", icon: Timer, href: "/focus" },
   { label: "Analytics", icon: BarChart3, href: "#" },
   { label: "SYNAPSE AI", icon: Sparkles, href: synapseAiUrl },
   { label: "Calendar", icon: CalendarDays, href: "#" },
@@ -128,7 +129,7 @@ const baseStatCards = [
   }
 ];
 
-const focusData = [
+const fallbackFocusData = [
   { day: "Mon", hours: 4.2 },
   { day: "Tue", hours: 5.1 },
   { day: "Wed", hours: 4.1 },
@@ -138,7 +139,7 @@ const focusData = [
   { day: "Sun", hours: 4.4 }
 ];
 
-const distractions = [
+const fallbackDistractions = [
   { name: "YouTube", time: "1h 32m", value: 82, icon: Youtube, tone: "var(--chart-red)" },
   { name: "Instagram", time: "58m", value: 58, icon: Instagram, tone: "var(--chart-pink)" },
   { name: "Reddit", time: "32m", value: 32, icon: MoreHorizontal, tone: "var(--chart-orange)" },
@@ -169,6 +170,25 @@ const cardMotion = {
   hidden: { opacity: 0, y: 22 },
   visible: { opacity: 1, y: 0 }
 };
+
+function formatFocusDuration(totalSeconds = 0) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${minutes}m`;
+}
+
+function getDistractionIcon(name = "") {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes("youtube")) return Youtube;
+  if (lowerName.includes("instagram")) return Instagram;
+  if (lowerName.includes("twitter") || lowerName.includes("x ")) return Twitter;
+  return MoreHorizontal;
+}
 
 function MiniLine({ color, ready }) {
   if (!ready) {
@@ -256,6 +276,12 @@ export default function Home() {
   const [dashboardTodoLoading, setDashboardTodoLoading] = useState(true);
   const [dashboardTodoError, setDashboardTodoError] = useState("");
   const { user, logout } = useAuth();
+  const {
+    summary: focusSummary,
+    loading: focusLoading,
+    error: focusError,
+    bridgeStatus: focusBridgeStatus
+  } = useSynapseFocus(user);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("synapse-theme") || "obsidian";
@@ -338,16 +364,54 @@ export default function Home() {
       todoMeta = pendingToday === 0 ? "All tasks complete" : `${pendingToday} pending today`;
     }
 
-    return baseStatCards.map((card) =>
-      card.label === "Tasks Completed"
-        ? {
-            ...card,
-            value: dashboardTodoLoading ? "... / ..." : `${completedToday} / ${todayTodos.length}`,
-            meta: todoMeta
-          }
-        : card
-    );
-  }, [dashboardTodoError, dashboardTodoLoading, dashboardTodos]);
+    return baseStatCards.map((card) => {
+      if (card.label === "Focus Time Today") {
+        return {
+          ...card,
+          value: focusLoading ? "Syncing" : formatFocusDuration(focusSummary.focusSecondsToday),
+          meta: focusError
+            ? "Focus Lock sync unavailable"
+            : focusBridgeStatus === "connected"
+            ? "Live from Focus Lock"
+            : "Open extension to start"
+        };
+      }
+
+      if (card.label === "Tasks Completed") {
+        return {
+          ...card,
+          value: dashboardTodoLoading ? "... / ..." : `${completedToday} / ${todayTodos.length}`,
+          meta: todoMeta
+        };
+      }
+
+      if (card.label === "Focus Score") {
+        return {
+          ...card,
+          value: focusLoading ? "--" : `${focusSummary.productivityScore}%`,
+          meta: focusSummary.currentStreak > 0 ? `${focusSummary.currentStreak}-day focus streak` : "Build today's streak"
+        };
+      }
+
+      if (card.label === "Blocked Distractions") {
+        return {
+          ...card,
+          value: focusLoading ? "--" : String(focusSummary.blockedDistractionsToday),
+          meta: focusSummary.blockedDistractionsToday > 0 ? "Protected by Focus Lock" : "No attempts today"
+        };
+      }
+
+      return card;
+    });
+  }, [
+    dashboardTodoError,
+    dashboardTodoLoading,
+    dashboardTodos,
+    focusBridgeStatus,
+    focusError,
+    focusLoading,
+    focusSummary
+  ]);
 
   const handleLogout = async () => {
     try {
@@ -357,6 +421,23 @@ export default function Home() {
       setLogoutError(error.message || "Logout failed. Please try again.");
     }
   };
+
+  const focusChartData = focusSummary.weeklyData?.length ? focusSummary.weeklyData : fallbackFocusData;
+  const dashboardDistractions = focusSummary.topDistractions?.length
+    ? focusSummary.topDistractions.map((item, index, list) => {
+        const Icon = getDistractionIcon(item.name);
+        const maxCount = Math.max(...list.map((entry) => entry.count), 1);
+        const tones = ["var(--chart-red)", "var(--chart-pink)", "var(--chart-orange)", "var(--chart-blue)", "var(--color-muted)"];
+
+        return {
+          name: item.name,
+          time: `${item.count} blocked`,
+          value: Math.max(14, Math.round((item.count / maxCount) * 100)),
+          icon: Icon,
+          tone: tones[index] || "var(--color-muted)"
+        };
+      })
+    : fallbackDistractions;
 
   return (
     <ProtectedRoute>
@@ -404,7 +485,7 @@ export default function Home() {
               <span>Current Streak</span>
               <strong>
                 <Flame size={34} />
-                12 <small>days</small>
+                {focusSummary.currentStreak || 0} <small>days</small>
               </strong>
               <p>Keep it up!</p>
             </motion.div>
@@ -529,7 +610,7 @@ export default function Home() {
                   <div className="chart-wrap">
                     {mounted ? (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={focusData} margin={{ left: -12, right: 4, top: 8, bottom: 0 }}>
+                        <BarChart data={focusChartData} margin={{ left: -12, right: 4, top: 8, bottom: 0 }}>
                           <defs>
                             <linearGradient id="focusBar" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="0%" stopColor="var(--chart-purple)" stopOpacity={1} />
@@ -578,7 +659,7 @@ export default function Home() {
                     <button>View All</button>
                   </div>
                   <div className="distraction-list">
-                    {distractions.map((item) => {
+                    {dashboardDistractions.map((item) => {
                       const Icon = item.icon;
                       return (
                         <div className="distraction-item" key={item.name}>
