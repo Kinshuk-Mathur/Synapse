@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Lock Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <main class="dashboard-shell">
+    <section class="dashboard-panel">
+      <div class="brand-row">
+        <img src="../assets/icon128.png" alt="" />
+        <div>
+          <span>FOCUSLOCK - powered by Synapse</span>
+          <h1>Open the live Synapse dashboard.</h1>
+        </div>
+      </div>
+
+      <p>
+        Focus Lock now connects to the live Synapse dashboard. Use the button below if you landed here from an older saved tab.
+      </p>
+
+      <div class="command-card">
+        <span>Live dashboard</span>
+        <code>https://synapse24.netlify.app/focus</code>
+      </div>
+
+      <div class="action-row">
+        <button id="retry-btn">Try Opening Dashboard</button>
+        <button id="focus-btn" class="ghost">Return to Focus Tab</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

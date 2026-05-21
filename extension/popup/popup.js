@@ -29,6 +29,7 @@ const syncLine = document.getElementById("sync-line");
 const durationPresetButtons = [...document.querySelectorAll(".duration-preset")];
 
 const RING_SIZE = 301.59;
+const DEFAULT_DASHBOARD_URL = "https://synapse24.netlify.app/focus";
 let timerInterval = null;
 let currentSession = null;
 let currentStats = null;
@@ -49,6 +50,93 @@ function sendMessage(message) {
       resolve(response);
     });
   });
+}
+
+function tabsQuery(queryInfo) {
+  return new Promise((resolve) => {
+    chrome.tabs.query(queryInfo, (tabs) => {
+      if (chrome.runtime.lastError) {
+        resolve([]);
+        return;
+      }
+      resolve(tabs || []);
+    });
+  });
+}
+
+function updateTab(tabId, updateProperties) {
+  return new Promise((resolve) => {
+    chrome.tabs.update(tabId, updateProperties, (tab) => {
+      if (chrome.runtime.lastError) {
+        resolve(null);
+        return;
+      }
+      resolve(tab || null);
+    });
+  });
+}
+
+function focusWindow(windowId) {
+  return new Promise((resolve) => {
+    if (windowId == null) {
+      resolve(false);
+      return;
+    }
+
+    chrome.windows.update(windowId, { focused: true }, () => {
+      resolve(!chrome.runtime.lastError);
+    });
+  });
+}
+
+function createTab(url) {
+  return new Promise((resolve) => {
+    chrome.tabs.create({ url }, (tab) => {
+      if (chrome.runtime.lastError) {
+        resolve(null);
+        return;
+      }
+      resolve(tab || null);
+    });
+  });
+}
+
+function isLikelySynapseDashboardTab(tab) {
+  const url = tab.url || "";
+  const title = tab.title || "";
+
+  return url.includes("localhost:3000")
+    || url.includes("127.0.0.1:3000")
+    || url.includes("synapse24.netlify.app")
+    || /^SYNAPSE\b/i.test(title);
+}
+
+async function focusExistingDashboardTab() {
+  const tabs = await tabsQuery({});
+  const dashboardTab = tabs.find(isLikelySynapseDashboardTab);
+  if (!dashboardTab?.id) return false;
+
+  await focusWindow(dashboardTab.windowId);
+  await updateTab(dashboardTab.id, { active: true });
+  return true;
+}
+
+async function canReachUrl(url) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 900);
+
+  try {
+    await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return true;
+  } catch (_) {
+    clearTimeout(timeoutId);
+    return false;
+  }
 }
 
 function getDateKey(timestamp = Date.now()) {
@@ -407,9 +495,23 @@ breakBtn.addEventListener("click", async () => {
   applySession(response.session);
 });
 
-dashboardBtn.addEventListener("click", () => {
-  const url = currentSettings?.dashboardUrl || "http://localhost:3000/focus";
-  chrome.tabs.create({ url }, ignoreRuntimeError);
+dashboardBtn.addEventListener("click", async () => {
+  dashboardBtn.disabled = true;
+  syncLine.textContent = "Opening Synapse dashboard...";
+
+  const focusedExisting = await focusExistingDashboardTab();
+  if (focusedExisting) {
+    window.close();
+    return;
+  }
+
+  const savedUrl = currentSettings?.dashboardUrl || "";
+  const dashboardUrl = savedUrl.includes("localhost:3000") || savedUrl.includes("127.0.0.1:3000")
+    ? DEFAULT_DASHBOARD_URL
+    : savedUrl || DEFAULT_DASHBOARD_URL;
+
+  await createTab(dashboardUrl);
+  window.close();
 });
 
 loadState();

@@ -39,6 +39,9 @@
         "blocked/blocked.html",
         "blocked/blocked.css",
         "blocked/blocked.js",
+        "dashboard/dashboard.html",
+        "dashboard/dashboard.css",
+        "dashboard/dashboard.js",
         "assets/icon128.png",
         "assets/synapse-icon-transparent.png"
       ],

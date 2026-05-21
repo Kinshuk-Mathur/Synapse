@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS = {
   sameOriginLock: true,
   fullscreenProtection: true,
   blockDistractingSites: true,
-  dashboardUrl: "http://localhost:3000/focus",
+  dashboardUrl: "https://synapse24.netlify.app/focus",
   restrictedHosts: [
     "instagram.com",
     "twitter.com",
