@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BarChart3,
-  CalendarDays,
   CheckSquare,
   Flame,
   FolderOpen,
@@ -28,10 +27,8 @@ const navItems = [
   { label: "Focus Lock", icon: LockKeyhole, href: "/focus", active: true },
   { label: "To-Do List", icon: CheckSquare, href: "/todo" },
   { label: "Goals", icon: Target, href: "/goals" },
-  { label: "Focus Sessions", icon: Timer, href: "/focus" },
   { label: "Analytics", icon: BarChart3, href: "/focus" },
   { label: "SYNAPSE AI", icon: Sparkles, href: "/synapse-ai" },
-  { label: "Calendar", icon: CalendarDays, href: "#" },
   { label: "Resources", icon: FolderOpen, href: "#" },
   { label: "Settings", icon: Settings, href: "#" }
 ];
@@ -55,7 +52,7 @@ function formatTimestamp(timestamp) {
 
 export default function FocusPage() {
   const { user } = useAuth();
-  const { summary, loading, error, bridgeStatus } = useSynapseFocus(user);
+  const { summary, loading, error } = useSynapseFocus(user);
   const weeklyData = summary.weeklyData?.length
     ? summary.weeklyData
     : Array.from({ length: 7 }, (_, index) => {
@@ -131,10 +128,10 @@ export default function FocusPage() {
                 <h1>Focus Lock</h1>
                 <p>Session history, blocked distractions, streaks, and productivity analytics from the browser extension.</p>
               </div>
-              <div className={`focus-bridge-status status-${bridgeStatus}`}>
+              <button className="focus-extension-button" type="button">
                 <ShieldCheck size={18} />
-                <span>{bridgeStatus === "connected" ? "Extension synced" : bridgeStatus === "syncing" ? "Syncing" : "Waiting for extension"}</span>
-              </div>
+                <span>Get Focus Lock Extension</span>
+              </button>
             </header>
 
             {error ? <p className="topbar-error">{error}</p> : null}

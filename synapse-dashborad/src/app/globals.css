@@ -5183,28 +5183,31 @@ textarea {
   line-height: 1.6;
 }
 
-.focus-bridge-status {
+.focus-extension-button {
   display: inline-flex;
   min-height: 42px;
   align-items: center;
   gap: 9px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: color-mix(in oklab, var(--color-text) 6%, var(--transparent));
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 16%, var(--transparent)), color-mix(in oklab, var(--color-accent) 22%, var(--transparent))),
+    color-mix(in oklab, var(--color-text) 6%, var(--transparent));
   padding: 0 13px;
-  color: var(--color-muted);
-  white-space: nowrap;
-}
-
-.focus-bridge-status.status-connected {
-  border-color: color-mix(in oklab, var(--color-lime) 48%, var(--transparent));
   color: var(--color-text);
-  box-shadow: 0 0 26px color-mix(in oklab, var(--color-lime) 18%, var(--transparent));
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 0 26px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease;
 }
 
-.focus-bridge-status.status-error {
-  border-color: color-mix(in oklab, var(--chart-red) 56%, var(--transparent));
-  color: var(--chart-red);
+.focus-extension-button:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
 }
 
 .focus-kpi-grid {

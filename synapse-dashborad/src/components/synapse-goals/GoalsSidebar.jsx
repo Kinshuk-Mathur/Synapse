@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BarChart3,
-  CalendarDays,
   CheckSquare,
   Flame,
   FolderOpen,
@@ -14,8 +13,7 @@ import {
   LockKeyhole,
   Settings,
   Sparkles,
-  Target,
-  Timer
+  Target
 } from "lucide-react";
 
 const navItems = [
@@ -23,10 +21,8 @@ const navItems = [
   { label: "Focus Lock", icon: LockKeyhole, href: "/focus" },
   { label: "To-Do List", icon: CheckSquare, href: "/todo" },
   { label: "Goals", icon: Target, href: "/goals", active: true },
-  { label: "Focus Sessions", icon: Timer, href: "/focus" },
   { label: "Analytics", icon: BarChart3, href: "#" },
-  { label: "AI Assistant", icon: Sparkles, href: "#" },
-  { label: "Calendar", icon: CalendarDays, href: "#" },
+  { label: "SYNAPSE AI", icon: Sparkles, href: "/synapse-ai" },
   { label: "Resources", icon: FolderOpen, href: "#" },
   { label: "Settings", icon: Settings, href: "#" }
 ];
