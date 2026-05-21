@@ -136,7 +136,7 @@ function ensureBaseStyles() {
       background:
         radial-gradient(circle at 50% 8%, rgba(255, 0, 184, 0.2), transparent 34%),
         rgba(4, 4, 7, 0.72);
-      backdrop-filter: blur(8px);
+      backdrop-filter: none;
     }
 
     .synapse-focus-notice {
@@ -219,17 +219,16 @@ function ensureBaseStyles() {
       animation: synapseFocusDot 1.9s infinite;
     }
 
-    html.synapse-focus-active ytd-watch-next-secondary-results-renderer,
-    html.synapse-focus-active ytd-comments,
-    html.synapse-focus-active #comments,
-    html.synapse-focus-active #secondary,
-    html.synapse-focus-active ytd-reel-shelf-renderer,
-    html.synapse-focus-active ytd-rich-grid-renderer,
-    html.synapse-focus-active ytd-guide-renderer,
+    html.synapse-focus-active ytd-watch-flexy #secondary,
+    html.synapse-focus-active ytd-watch-flexy ytd-watch-next-secondary-results-renderer,
+    html.synapse-focus-active ytd-watch-flexy ytd-comments,
+    html.synapse-focus-active ytd-watch-flexy #comments,
+    html.synapse-focus-active ytd-browse ytd-reel-shelf-renderer,
+    html.synapse-focus-active ytd-browse[page-subtype="home"] ytd-rich-grid-renderer,
+    html.synapse-focus-active ytd-browse[page-subtype="subscriptions"] ytd-rich-grid-renderer,
     html.synapse-focus-active a[href^="/shorts"],
     html.synapse-focus-active a[href*="/shorts/"],
     html.synapse-focus-active [aria-label="Shorts"],
-    html.synapse-focus-active [role="complementary"],
     html.synapse-focus-active a[href="/explore/"],
     html.synapse-focus-active a[href^="/reels"],
     html.synapse-focus-active a[href="/reels/"],
@@ -241,6 +240,17 @@ function ensureBaseStyles() {
       opacity: 0.16 !important;
       pointer-events: none !important;
       transition: filter 240ms ease, opacity 240ms ease !important;
+    }
+
+    html.synapse-focus-active #movie_player,
+    html.synapse-focus-active #player,
+    html.synapse-focus-active #player-container,
+    html.synapse-focus-active #primary,
+    html.synapse-focus-active ytd-watch-flexy #primary,
+    html.synapse-focus-active ytd-watch-flexy video {
+      filter: none !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
     }
   `;
 
@@ -462,6 +472,22 @@ function shouldBlockShortcut(event) {
   return youtubeFullscreenToggle;
 }
 
+function getShortcutReason(event) {
+  const lowerKey = (event.key || "").toLowerCase();
+  const commandOrControl = event.ctrlKey || event.metaKey;
+
+  if (event.key === "Escape" || event.key === "F11" || lowerKey === "f") return "fullscreen-exit";
+  if (commandOrControl && lowerKey === "t") return "new-tab";
+  if (commandOrControl && lowerKey === "w") return "tab-close";
+  if (event.altKey && (event.key === "Tab" || event.key === "F4")) return "window-switch";
+  if (event.metaKey && (lowerKey === "m" || lowerKey === "h")) return "window-switch";
+  if (lowerKey === "tab" || lowerKey === "pageup" || lowerKey === "pagedown" || /^[1-9]$/.test(event.key || "")) {
+    return "tab-switch";
+  }
+
+  return "keyboard-shortcut";
+}
+
 function handleBlockedShortcut(event) {
   event.preventDefault();
   event.stopPropagation();
@@ -485,7 +511,7 @@ function handleBlockedShortcut(event) {
     const message = interruptionMessages[Math.floor(Math.random() * interruptionMessages.length)];
     showToast(message);
     playAlertSound("violation");
-    notifyViolation("keyboard-shortcut");
+    notifyViolation(getShortcutReason(event));
   }
 }
 
@@ -779,6 +805,15 @@ chrome.runtime.onMessage.addListener((message) => {
     activateSessionUi(message.session);
     const baseMessage = message.message || milestoneMessages[(message.milestoneCount - 1) % milestoneMessages.length];
     showCenterNotice(baseMessage, `${message.totalMinutes} focused minutes completed.`, 4200);
+  }
+
+  if (message.type === "STOP_WARNING") {
+    activateSessionUi(message.session);
+    showCenterNotice(
+      `Stop check ${message.warningCount}/${message.warningsRequired}`,
+      message.message || "Take one breath before ending the session.",
+      3800
+    );
   }
 
   if (message.type === "SESSION_ENDED") {

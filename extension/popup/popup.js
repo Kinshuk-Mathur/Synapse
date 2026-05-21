@@ -13,9 +13,12 @@ const startBtn = document.getElementById("start-btn");
 const dashboardBtn = document.getElementById("dashboard-btn");
 const sessionSite = document.getElementById("session-site");
 const violationCount = document.getElementById("violation-count");
+const focusScore = document.getElementById("focus-score");
 const milestoneCount = document.getElementById("milestone-count");
 const breaksLeftEl = document.getElementById("breaks-left");
 const breakStatusEl = document.getElementById("break-status");
+const stopWarningEl = document.getElementById("stop-warning");
+const peakIntervalEl = document.getElementById("peak-interval");
 const breakBtn = document.getElementById("break-btn");
 const unlockBtn = document.getElementById("unlock-btn");
 const todayFocus = document.getElementById("today-focus");
@@ -168,17 +171,33 @@ function updateStats(stats = currentStats) {
 
 function updateSummary(session) {
   const breaksLeft = Math.max(0, (session.breaksAllowed || 0) - (session.breaksUsed || 0));
+  const warningsUsed = Math.min(session.stopWarningCount || 0, 3);
+  const topPeak = [...Object.values(session.distractionIntervals || {})].sort((a, b) => (b.count || 0) - (a.count || 0))[0];
   violationCount.textContent = String(session.violations || 0);
+  focusScore.textContent = String(session.focusScore ?? 100);
   milestoneCount.textContent = String(session.milestoneCount || 0);
   breaksLeftEl.textContent = session.extremeFocus ? "Off" : String(breaksLeft);
   sessionSite.textContent = session.lockedTitle || session.lockedUrl || "Current study page";
   activeGoalChip.textContent = session.focusGoal || "Deep study session";
+  peakIntervalEl.textContent = topPeak?.count
+    ? `${topPeak.startMinute}-${topPeak.endMinute} min - ${topPeak.count} attempts`
+    : "Clean so far";
 
   if (session.onBreak && session.breakEndTime) {
     breakStatusEl.style.display = "block";
     breakStatusEl.textContent = `Break active. Focus resumes in ${formatHms(Math.max(0, Math.ceil((session.breakEndTime - Date.now()) / 1000)))}.`;
   } else {
     breakStatusEl.style.display = "none";
+  }
+
+  if (warningsUsed > 0 && warningsUsed < 3) {
+    stopWarningEl.style.display = "block";
+    stopWarningEl.textContent = `${warningsUsed}/3 stop checks used. One steady choice can save this session.`;
+  } else if (warningsUsed >= 3) {
+    stopWarningEl.style.display = "block";
+    stopWarningEl.textContent = "Stop is now unlocked. Click once more if you truly need to end.";
+  } else {
+    stopWarningEl.style.display = "none";
   }
 }
 
@@ -193,8 +212,9 @@ function showActiveUI(session) {
   updateSummary(session);
   updateTimer(session);
 
-  unlockBtn.disabled = Boolean(session.extremeFocus);
-  unlockBtn.textContent = session.extremeFocus ? "Extreme Focus Locked" : "Stop Session";
+  const warningsUsed = Math.min(session.stopWarningCount || 0, 3);
+  unlockBtn.disabled = false;
+  unlockBtn.textContent = warningsUsed >= 3 ? "Stop Session" : `Stop Check ${warningsUsed}/3`;
   breakBtn.disabled = Boolean(session.extremeFocus || session.onBreak || ((session.breaksAllowed || 0) - (session.breaksUsed || 0) <= 0));
   breakBtn.textContent = session.onBreak ? "Break Running" : "Take 6 Minute Break";
 
@@ -216,6 +236,7 @@ function showIdleUI() {
   activeGoalChip.textContent = focusGoalInput.value || currentSettings?.focusGoal || "Deep study session";
   dashboardBtn.disabled = false;
   breakStatusEl.style.display = "none";
+  stopWarningEl.style.display = "none";
 
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = null;
@@ -356,12 +377,17 @@ startBtn.addEventListener("click", async () => {
 });
 
 unlockBtn.addEventListener("click", async () => {
-  if (!currentSession?.extremeFocus) {
-    const shouldStop = window.confirm("Stop this Focus Lock session now?");
-    if (!shouldStop) return;
+  unlockBtn.disabled = true;
+  const response = await sendMessage({ type: "END_SESSION" });
+  unlockBtn.disabled = false;
+
+  if (response?.warningOnly) {
+    currentSession = response.session || currentSession;
+    syncLine.textContent = response.message || "Take one breath before stopping.";
+    applySession(currentSession);
+    return;
   }
 
-  const response = await sendMessage({ type: "END_SESSION" });
   if (!response?.success) {
     syncLine.textContent = response?.error || "This session cannot be stopped right now.";
     return;

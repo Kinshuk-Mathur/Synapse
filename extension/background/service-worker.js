@@ -51,8 +51,29 @@ const REASON_COPY = {
   "fullscreen-exit": "Fullscreen exit detected. Returning you to focus.",
   "video-change": "Video change blocked. Finish the current lesson first.",
   "tab-close": "Focus tab restored. Finish the session before closing it.",
-  "switch-burst": "Too many switches. Take one breath and return to the work."
+  "switch-burst": "Too many switches. Take one breath and return to the work.",
+  "manual-stop": "Stop attempt recorded. Take one breath before ending the session."
 };
+
+const ATTEMPT_TYPE_BY_REASON = {
+  "tab-switch": "tab_switch_attempt",
+  "window-switch": "window_switch_attempt",
+  "new-tab": "new_tab_attempt",
+  "blocked-site": "blocked_site_attempt",
+  "keyboard-shortcut": "shortcut_attempt",
+  "fullscreen-exit": "fullscreen_exit_attempt",
+  "video-change": "video_change_attempt",
+  "tab-close": "focus_tab_close_attempt",
+  "switch-burst": "excessive_switching_attempt",
+  "restore": "focus_tab_restore_attempt",
+  "manual-stop": "manual_stop_attempt"
+};
+
+const STOP_WARNING_MESSAGES = [
+  "Pause for one breath. You started this session for a reason.",
+  "Your future self is quietly asking you to finish this block.",
+  "Last check-in. If you still need to stop, the next click will end the session."
+];
 
 const defaultSession = () => ({
   active: false,
@@ -78,6 +99,11 @@ const defaultSession = () => ({
   focusGoal: DEFAULT_SETTINGS.focusGoal,
   platform: "desktop",
   sessionDistractions: {},
+  distractionAttempts: [],
+  distractionIntervals: {},
+  distractionPeaks: [],
+  focusScore: 100,
+  stopWarningCount: 0,
   recentSwitches: [],
   lastViolationAt: null
 });
@@ -94,6 +120,8 @@ const defaultStats = () => ({
   daily: {},
   reasonCounts: {},
   distractingSites: {},
+  attemptLog: [],
+  intervalHeatmap: {},
   sessionHistory: [],
   lastSyncedAt: null
 });
@@ -150,6 +178,15 @@ function getHost(url) {
 function getOrigin(url) {
   const parsed = safeUrl(url);
   return parsed ? parsed.origin : "";
+}
+
+function getWebsiteLabel(url = "") {
+  const host = getHost(url);
+  if (host) return host;
+  if (url.startsWith("chrome://")) return "chrome";
+  if (url.startsWith("chrome-extension://")) return "extension";
+  if (url.startsWith("file://")) return "local-file";
+  return "browser";
 }
 
 function isInternalUrl(url = "") {
@@ -216,11 +253,56 @@ function ensureDaily(dateKey = getDateKey()) {
       sessionsStarted: 0,
       blockedDistractions: 0,
       reasonCounts: {},
-      distractingSites: {}
+      distractingSites: {},
+      attemptTypes: {},
+      intervalHeatmap: {},
+      focusScoreTotal: 0,
+      focusScoreSamples: 0
     };
   }
 
+  focusStats.daily[dateKey] = {
+    dateKey,
+    focusSeconds: 0,
+    sessionsCompleted: 0,
+    sessionsStarted: 0,
+    blockedDistractions: 0,
+    reasonCounts: {},
+    distractingSites: {},
+    attemptTypes: {},
+    intervalHeatmap: {},
+    focusScoreTotal: 0,
+    focusScoreSamples: 0,
+    ...focusStats.daily[dateKey]
+  };
+
   return focusStats.daily[dateKey];
+}
+
+function getAttemptType(reason) {
+  return ATTEMPT_TYPE_BY_REASON[reason] || "restriction_bypass_attempt";
+}
+
+function getIntervalKey(elapsedSeconds) {
+  const intervalIndex = Math.max(0, Math.floor(elapsedSeconds / 300));
+  return `${intervalIndex * 5}-${intervalIndex * 5 + 5}`;
+}
+
+function computeSessionFocusScore(session = sessionData) {
+  if (!session?.active && !session?.startTime) return 100;
+
+  const attempts = Number(session.violations || 0);
+  const focusSeconds = computeFocusSeconds(session);
+  const focusMinutes = Math.max(1, focusSeconds / 60);
+  const attemptsPerTenMinutes = attempts / Math.max(1, focusMinutes / 10);
+  const peakCount = Math.max(
+    0,
+    ...Object.values(session.distractionIntervals || {}).map((interval) => Number(interval.count || 0))
+  );
+  const completionBonus = session.durationSeconds && focusSeconds >= session.durationSeconds ? 6 : 0;
+  const rawScore = 100 - attemptsPerTenMinutes * 8 - peakCount * 2 + completionBonus;
+
+  return Math.max(0, Math.min(100, Math.round(rawScore)));
 }
 
 function computeStreak() {
@@ -449,19 +531,74 @@ function showBlockedPage(tabId, reason, targetUrl = "") {
 }
 
 function recordViolationStats(reason, targetUrl = "") {
+  const now = Date.now();
   const host = getHost(targetUrl);
+  const website = getWebsiteLabel(targetUrl || sessionData.lockedUrl || "");
   const today = ensureDaily();
+  const attemptType = getAttemptType(reason);
+  const elapsedSeconds = computeFocusSeconds(sessionData, now);
+  const intervalKey = getIntervalKey(elapsedSeconds);
+  const attemptRecord = {
+    id: randomId("attempt"),
+    timestamp: new Date(now).toISOString(),
+    timestampMs: now,
+    type: attemptType,
+    reason,
+    website,
+    sessionId: sessionData.sessionId || "",
+    elapsedSeconds,
+    intervalKey
+  };
 
   focusStats.blockedDistractions += 1;
   focusStats.reasonCounts[reason] = (focusStats.reasonCounts[reason] || 0) + 1;
+  focusStats.attemptLog = [attemptRecord, ...(focusStats.attemptLog || [])].slice(0, 500);
+  focusStats.intervalHeatmap[intervalKey] = (focusStats.intervalHeatmap[intervalKey] || 0) + 1;
   today.blockedDistractions += 1;
   today.reasonCounts[reason] = (today.reasonCounts[reason] || 0) + 1;
+  today.attemptTypes[attemptType] = (today.attemptTypes[attemptType] || 0) + 1;
+  today.intervalHeatmap[intervalKey] = (today.intervalHeatmap[intervalKey] || 0) + 1;
+
+  sessionData.distractionAttempts = [attemptRecord, ...(sessionData.distractionAttempts || [])].slice(0, 250);
+  if (!sessionData.distractionIntervals[intervalKey]) {
+    const [startMinute, endMinute] = intervalKey.split("-").map(Number);
+    sessionData.distractionIntervals[intervalKey] = {
+      intervalKey,
+      intervalIndex: Math.floor(startMinute / 5),
+      startMinute,
+      endMinute,
+      count: 0,
+      types: {},
+      websites: {},
+      attempts: []
+    };
+  }
+
+  const interval = sessionData.distractionIntervals[intervalKey];
+  interval.count += 1;
+  interval.types[attemptType] = (interval.types[attemptType] || 0) + 1;
+  interval.websites[website] = (interval.websites[website] || 0) + 1;
+  interval.attempts = [attemptRecord, ...(interval.attempts || [])].slice(0, 30);
 
   if (host) {
     focusStats.distractingSites[host] = (focusStats.distractingSites[host] || 0) + 1;
     today.distractingSites[host] = (today.distractingSites[host] || 0) + 1;
     sessionData.sessionDistractions[host] = (sessionData.sessionDistractions[host] || 0) + 1;
   }
+
+  sessionData.distractionPeaks = Object.values(sessionData.distractionIntervals)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map((item) => ({
+      intervalKey: item.intervalKey,
+      startMinute: item.startMinute,
+      endMinute: item.endMinute,
+      count: item.count
+    }));
+
+  sessionData.focusScore = computeSessionFocusScore(sessionData);
+  today.focusScoreTotal += sessionData.focusScore;
+  today.focusScoreSamples += 1;
 
   saveStats();
 }
@@ -510,6 +647,9 @@ function recordSessionStats(session, reason, focusSeconds) {
   const dateKey = getDateKey(session.startTime);
   const today = ensureDaily(dateKey);
   const completed = reason === "completed";
+  const focusScore = computeSessionFocusScore(session);
+  const distractionAttempts = session.distractionAttempts || [];
+  const distractionIntervals = Object.values(session.distractionIntervals || {}).sort((a, b) => a.intervalIndex - b.intervalIndex);
   const historyRecord = {
     id: session.sessionId,
     dateKey,
@@ -524,11 +664,18 @@ function recordSessionStats(session, reason, focusSeconds) {
     lockedTitle: session.lockedTitle || "Study session",
     lockedUrl: session.lockedUrl || "",
     platform: session.platform || "desktop",
-    distractionCounts: session.sessionDistractions || {}
+    distractionCounts: session.sessionDistractions || {},
+    distractionAttempts,
+    distractionIntervals,
+    distractionPeaks: session.distractionPeaks || [],
+    focusScore,
+    stopWarningCount: session.stopWarningCount || 0
   };
 
   focusStats.totalFocusSeconds += focusSeconds;
   today.focusSeconds += focusSeconds;
+  today.focusScoreTotal += focusScore;
+  today.focusScoreSamples += 1;
   focusStats.lastFocusDate = dateKey;
 
   if (completed) {
@@ -578,6 +725,39 @@ function endSession(reason = "manual") {
       : "Focus session ended and saved to Synapse.",
     true
   );
+}
+
+function requestManualStop() {
+  if (!sessionData.active) {
+    return { success: true, stats: focusStats };
+  }
+
+  if ((sessionData.stopWarningCount || 0) < STOP_WARNING_MESSAGES.length) {
+    const warningIndex = sessionData.stopWarningCount;
+    sessionData.stopWarningCount += 1;
+    sessionData.violations += 1;
+    sessionData.lastViolationAt = Date.now();
+    recordViolationStats("manual-stop", sessionData.lockedUrl);
+    saveSession();
+    notifyTab(sessionData.lockedTabId, {
+      type: "STOP_WARNING",
+      warningCount: sessionData.stopWarningCount,
+      warningsRequired: STOP_WARNING_MESSAGES.length,
+      message: STOP_WARNING_MESSAGES[warningIndex],
+      session: sessionData
+    });
+    return {
+      success: false,
+      warningOnly: true,
+      warningCount: sessionData.stopWarningCount,
+      warningsRequired: STOP_WARNING_MESSAGES.length,
+      message: STOP_WARNING_MESSAGES[warningIndex],
+      session: sessionData
+    };
+  }
+
+  endSession("manual");
+  return { success: true, stats: focusStats };
 }
 
 function startBreak() {
@@ -813,16 +993,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "END_SESSION") {
-    if (sessionData.active && sessionData.extremeFocus && sessionData.endTime && Date.now() < sessionData.endTime) {
-      sendResponse({
-        success: false,
-        error: "Extreme Focus is on. This session can only end when the countdown finishes."
-      });
-      return true;
-    }
-
-    endSession("manual");
-    sendResponse({ success: true, stats: focusStats });
+    sendResponse(requestManualStop());
     return true;
   }
 

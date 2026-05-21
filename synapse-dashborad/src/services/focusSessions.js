@@ -20,6 +20,9 @@ const EMPTY_SUMMARY = {
   productivityScore: 72,
   weeklyData: [],
   topDistractions: [],
+  topAttemptTypes: [],
+  intervalHeatmap: [],
+  distractionPeaks: [],
   recentSessions: []
 };
 
@@ -87,6 +90,10 @@ export function buildFocusSummary(sessions = []) {
   const todayKey = formatDateKey();
   const dayMap = {};
   const distractionMap = {};
+  const attemptTypeMap = {};
+  const intervalHeatmap = {};
+  let focusScoreTotal = 0;
+  let focusScoreSamples = 0;
 
   sessions.forEach((session) => {
     const dateKey = dateKeyFromSession(session);
@@ -95,16 +102,43 @@ export function buildFocusSummary(sessions = []) {
         dateKey,
         focusSeconds: 0,
         sessionsCompleted: 0,
-        blockedDistractions: 0
+        blockedDistractions: 0,
+        focusScoreTotal: 0,
+        focusScoreSamples: 0
       };
     }
 
     dayMap[dateKey].focusSeconds += Number(session.focusSeconds || 0);
     dayMap[dateKey].blockedDistractions += Number(session.violations || 0);
     if (session.completed) dayMap[dateKey].sessionsCompleted += 1;
+    if (Number.isFinite(Number(session.focusScore))) {
+      const score = Number(session.focusScore);
+      focusScoreTotal += score;
+      focusScoreSamples += 1;
+      dayMap[dateKey].focusScoreTotal += score;
+      dayMap[dateKey].focusScoreSamples += 1;
+    }
 
     Object.entries(session.distractionCounts || {}).forEach(([host, count]) => {
       distractionMap[host] = (distractionMap[host] || 0) + Number(count || 0);
+    });
+
+    (session.distractionAttempts || []).forEach((attempt) => {
+      const type = attempt.type || "restriction_bypass_attempt";
+      attemptTypeMap[type] = (attemptTypeMap[type] || 0) + 1;
+    });
+
+    (session.distractionIntervals || []).forEach((interval) => {
+      if (!interval?.intervalKey) return;
+      if (!intervalHeatmap[interval.intervalKey]) {
+        intervalHeatmap[interval.intervalKey] = {
+          intervalKey: interval.intervalKey,
+          startMinute: Number(interval.startMinute || 0),
+          endMinute: Number(interval.endMinute || 0),
+          count: 0
+        };
+      }
+      intervalHeatmap[interval.intervalKey].count += Number(interval.count || 0);
     });
   });
 
@@ -134,13 +168,25 @@ export function buildFocusSummary(sessions = []) {
     .slice(0, 5);
 
   const focusHoursToday = (today.focusSeconds || 0) / 3600;
-  const productivityScore = Math.max(
-    42,
-    Math.min(
-      99,
-      Math.round(66 + Math.min(24, focusHoursToday * 8) + (today.sessionsCompleted || 0) * 4 - (today.blockedDistractions || 0) * 1.2)
-    )
-  );
+  const productivityScore = focusScoreSamples > 0
+    ? Math.round(focusScoreTotal / focusScoreSamples)
+    : Math.max(
+        42,
+        Math.min(
+          99,
+          Math.round(66 + Math.min(24, focusHoursToday * 8) + (today.sessionsCompleted || 0) * 4 - (today.blockedDistractions || 0) * 1.2)
+        )
+      );
+
+  const intervalHeatmapList = Object.values(intervalHeatmap)
+    .sort((a, b) => a.startMinute - b.startMinute);
+  const distractionPeaks = [...intervalHeatmapList]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+  const topAttemptTypes = Object.entries(attemptTypeMap)
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
 
   return {
     focusSecondsToday: today.focusSeconds || 0,
@@ -153,6 +199,9 @@ export function buildFocusSummary(sessions = []) {
     productivityScore,
     weeklyData,
     topDistractions,
+    topAttemptTypes,
+    intervalHeatmap: intervalHeatmapList,
+    distractionPeaks,
     recentSessions: [...sessions].sort((a, b) => Number(b.startedAt || 0) - Number(a.startedAt || 0)).slice(0, 8)
   };
 }
@@ -197,9 +246,46 @@ function normalizeSessionRecord(uid, record) {
     lockedUrl: record.lockedUrl || "",
     platform: record.platform || "desktop",
     distractionCounts: record.distractionCounts || {},
+    distractionAttempts: record.distractionAttempts || [],
+    distractionIntervals: record.distractionIntervals || [],
+    distractionPeaks: record.distractionPeaks || [],
+    focusScore: Number(record.focusScore || 100),
+    stopWarningCount: Number(record.stopWarningCount || 0),
     source: "focus-lock-extension",
     updatedAt: serverTimestamp()
   };
+}
+
+function normalizeActiveSession(uid, activeSession) {
+  const now = Date.now();
+  const elapsedSeconds = activeSession.onBreak
+    ? Number(activeSession.pausedElapsedSeconds || 0)
+    : Math.max(0, Math.floor((now - Number(activeSession.startTime || now)) / 1000));
+  const focusSeconds = activeSession.durationSeconds
+    ? Math.min(elapsedSeconds, Number(activeSession.durationSeconds))
+    : elapsedSeconds;
+
+  return normalizeSessionRecord(uid, {
+    id: activeSession.sessionId,
+    dateKey: activeSession.startTime ? formatDateKey(new Date(activeSession.startTime)) : formatDateKey(),
+    startedAt: activeSession.startTime || now,
+    endedAt: now,
+    durationSeconds: activeSession.durationSeconds || focusSeconds,
+    focusSeconds,
+    violations: activeSession.violations || 0,
+    completed: false,
+    reason: "active",
+    goal: activeSession.focusGoal || "Deep study session",
+    lockedTitle: activeSession.lockedTitle || "Study session",
+    lockedUrl: activeSession.lockedUrl || "",
+    platform: activeSession.platform || "desktop",
+    distractionCounts: activeSession.sessionDistractions || {},
+    distractionAttempts: activeSession.distractionAttempts || [],
+    distractionIntervals: Object.values(activeSession.distractionIntervals || {}),
+    distractionPeaks: activeSession.distractionPeaks || [],
+    focusScore: activeSession.focusScore ?? 100,
+    stopWarningCount: activeSession.stopWarningCount || 0
+  });
 }
 
 async function commitInChunks(db, operations) {
@@ -231,6 +317,13 @@ export async function recordExtensionFocusPayload(uid, payload) {
   const dailyEntries = Object.values(stats.daily || {});
   const operations = [];
 
+  if (payload.activeSession?.sessionId) {
+    const activeSession = normalizeActiveSession(uid, payload.activeSession);
+    operations.push((batch) => {
+      batch.set(doc(db, COLLECTIONS.focusSessions, `${uid}_${activeSession.id}`), activeSession, { merge: true });
+    });
+  }
+
   history.forEach((record) => {
     const normalized = normalizeSessionRecord(uid, record);
     operations.push((batch) => {
@@ -253,6 +346,11 @@ export async function recordExtensionFocusPayload(uid, payload) {
           blockedDistractions: Number(day.blockedDistractions || 0),
           reasonCounts: day.reasonCounts || {},
           distractingSites: day.distractingSites || {},
+          attemptTypes: day.attemptTypes || {},
+          intervalHeatmap: day.intervalHeatmap || {},
+          averageFocusScore: day.focusScoreSamples
+            ? Math.round(Number(day.focusScoreTotal || 0) / Number(day.focusScoreSamples || 1))
+            : null,
           source: "focus-lock-extension",
           updatedAt: serverTimestamp()
         },

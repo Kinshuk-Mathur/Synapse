@@ -64,6 +64,12 @@ export function useSynapseFocus(user) {
         const payloadSignature = JSON.stringify({
           activeSessionId: data.payload?.activeSession?.sessionId || "",
           activeViolations: data.payload?.activeSession?.violations || 0,
+          activeFocusScore: data.payload?.activeSession?.focusScore || 100,
+          activeStopWarnings: data.payload?.activeSession?.stopWarningCount || 0,
+          activeIntervals: Object.values(data.payload?.activeSession?.distractionIntervals || {}).map((interval) => [
+            interval.intervalKey,
+            interval.count
+          ]),
           totalFocusSeconds: stats.totalFocusSeconds || 0,
           sessionsCompleted: stats.sessionsCompleted || 0,
           sessionsStarted: stats.sessionsStarted || 0,
@@ -74,7 +80,11 @@ export function useSynapseFocus(user) {
             item.focusSeconds,
             item.violations,
             item.completed,
-            item.endedAt
+            item.endedAt,
+            item.focusScore,
+            item.stopWarningCount,
+            item.distractionAttempts?.length || 0,
+            item.distractionIntervals?.map((interval) => [interval.intervalKey, interval.count]) || []
           ])
         });
 

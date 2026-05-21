@@ -363,8 +363,11 @@ input {
 .stats-grid,
 .today-strip {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+}
+
+.stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .stats-grid div,
@@ -393,6 +396,35 @@ input {
   color: rgba(255, 255, 255, 0.76);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.analytics-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 10px 11px;
+}
+
+.analytics-preview span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.analytics-preview strong {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stop-warning {
+  border-color: rgba(255, 200, 87, 0.26);
+  background: rgba(255, 200, 87, 0.1);
 }
 
 .button-stack {
