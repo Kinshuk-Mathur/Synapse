@@ -52,6 +52,8 @@ const REASON_COPY = {
   "video-change": "Video change blocked. Finish the current lesson first.",
   "tab-close": "Focus tab restored. Finish the session before closing it.",
   "switch-burst": "Too many switches. Take one breath and return to the work.",
+  "new-window": "New window blocked. Stay in your focus space.",
+  "miniplayer": "Mini-player blocked. Finish the current lesson first.",
   "manual-stop": "Stop attempt recorded. Take one breath before ending the session."
 };
 
@@ -63,6 +65,8 @@ const ATTEMPT_TYPE_BY_REASON = {
   "keyboard-shortcut": "shortcut_attempt",
   "fullscreen-exit": "fullscreen_exit_attempt",
   "video-change": "video_change_attempt",
+  "new-window": "new_window_attempt",
+  "miniplayer": "miniplayer_attempt",
   "tab-close": "focus_tab_close_attempt",
   "switch-burst": "excessive_switching_attempt",
   "restore": "focus_tab_restore_attempt",

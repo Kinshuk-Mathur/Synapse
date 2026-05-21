@@ -15,6 +15,7 @@ let pauseReminderShown = false;
 let dashboardConnected = false;
 let lastKeyboardWarningAt = 0;
 let lastAdSkipAt = 0;
+let benignStudyControlUntil = 0;
 let extensionContextAlive = true;
 
 function hasRuntime() {
@@ -78,7 +79,9 @@ const reasonMessages = {
   "keyboard-shortcut": "Shortcut blocked. Focus Lock is still on.",
   "fullscreen-exit": "Fullscreen exit detected. Returning you to focus.",
   "switch-burst": "Too many switches. Take one breath and return.",
-  "tab-close": "Focus tab restored. Finish the session before closing it."
+  "tab-close": "Focus tab restored. Finish the session before closing it.",
+  "new-window": "New window blocked. Stay in your focus space.",
+  "miniplayer": "Mini-player blocked. Finish the lesson in focus mode."
 };
 
 function ignoreRuntimeError() {
@@ -442,6 +445,14 @@ function notifyViolation(reason = "tab-switch") {
   safeRuntimeSendMessage({ type: "TAB_VIOLATION", reason, url: location.href });
 }
 
+function markBenignStudyControl(duration = 1800) {
+  benignStudyControlUntil = Math.max(benignStudyControlUntil, Date.now() + duration);
+}
+
+function isBenignStudyControlActive() {
+  return Date.now() < benignStudyControlUntil;
+}
+
 function isYouTubeHost() {
   return location.hostname === "youtube.com" || location.hostname.endsWith(".youtube.com");
 }
@@ -465,19 +476,8 @@ function clearPauseReminder() {
 }
 
 function startPauseReminder() {
-  if (!isLocked || pauseReminderShown) return;
-  pauseReminderShown = true;
-
-  showCenterNotice("Resume the lesson", "Your study video has been paused for five minutes.");
-  pauseAlertInterval = setInterval(() => {
-    const video = getActiveVideo();
-    if (!isLocked || !video || !video.paused || video.ended) {
-      clearPauseReminder();
-      return;
-    }
-
-    showToast("Still paused. Come back when you are ready to continue.");
-  }, 20000);
+  // Pausing a lecture is a normal study action, not a distraction attempt.
+  clearPauseReminder();
 }
 
 function schedulePauseReminder() {
@@ -559,8 +559,9 @@ function getShortcutReason(event) {
   const commandOrControl = event.ctrlKey || event.metaKey;
 
   if (event.key === "Escape" || event.key === "F11" || lowerKey === "f") return "fullscreen-exit";
-  if (isYouTubeMiniPlayerShortcut(event)) return "video-change";
+  if (isYouTubeMiniPlayerShortcut(event)) return "miniplayer";
   if (commandOrControl && lowerKey === "t") return "new-tab";
+  if (commandOrControl && lowerKey === "n") return "new-window";
   if (commandOrControl && lowerKey === "w") return "tab-close";
   if (event.altKey && (event.key === "Tab" || event.key === "F4")) return "window-switch";
   if (event.metaKey && (lowerKey === "m" || lowerKey === "h")) return "window-switch";
@@ -612,6 +613,7 @@ document.addEventListener("keydown", (event) => {
 
 document.addEventListener("visibilitychange", () => {
   if (!isLocked || !document.hidden) return;
+  if (isBenignStudyControlActive()) return;
   const now = Date.now();
   if (now - blurViolationCooldown < 900) return;
   blurViolationCooldown = now;
@@ -620,6 +622,7 @@ document.addEventListener("visibilitychange", () => {
 
 window.addEventListener("blur", () => {
   if (!isLocked) return;
+  if (isBenignStudyControlActive()) return;
   const now = Date.now();
   if (now - blurViolationCooldown < 900) return;
   blurViolationCooldown = now;
@@ -627,6 +630,11 @@ window.addEventListener("blur", () => {
 }, true);
 
 function handleFullscreenExit(reason = "fullscreen-exit") {
+  if (isBenignStudyControlActive()) {
+    setTimeout(() => goFullscreen(), 300);
+    return;
+  }
+
   fullscreenWarningCount += 1;
   const message = fullscreenWarningCount >= 3
     ? "Come back to your session."
@@ -696,7 +704,7 @@ function blockMiniPlayer(reason = "keyboard") {
     : "Mini-player blocked. Finish the current lesson first.";
 
   showCenterNotice("Stay with the lecture", message);
-  notifyViolation("video-change");
+  notifyViolation("miniplayer");
 
   const closeButton = document.querySelector(".ytp-miniplayer-close-button, button[title*='Close mini player'], button[aria-label*='Close mini player'], button[aria-label*='Close miniplayer'], button[title*='Close miniplayer']");
   if (closeButton) setTimeout(() => closeButton.click(), 120);
@@ -751,6 +759,12 @@ function isYouTubeAdControl(target) {
   ));
 }
 
+function isYouTubePlaybackControl(target) {
+  return Boolean(target?.closest?.(
+    "video, .html5-main-video, .ytp-play-button, button[title='Play'], button[title='Pause'], button[aria-label^='Play'], button[aria-label^='Pause']"
+  ));
+}
+
 function trySkipYouTubeAd({ quiet = true } = {}) {
   if (!isLocked || !isYouTubeHost()) return false;
 
@@ -761,6 +775,7 @@ function trySkipYouTubeAd({ quiet = true } = {}) {
   if (now - lastAdSkipAt < 1400) return true;
 
   lastAdSkipAt = now;
+  markBenignStudyControl();
   button.click();
   if (!quiet) showToast("Ad skipped. Back to the lesson.");
   return true;
@@ -823,7 +838,6 @@ function blockYouTubeNavigation() {
     if (isShorts || (newId && lockedVideoId && newId !== lockedVideoId)) {
       history.back();
       showCenterNotice("Recommendation blocked", "Finish the current lesson before opening another video.");
-      notifyViolation("video-change");
     }
   });
 
@@ -839,7 +853,13 @@ function blockYTClicks(event) {
   if (!isLocked) return;
 
   if (isYouTubeAdControl(event.target)) {
+    markBenignStudyControl();
     setTimeout(() => trySkipYouTubeAd({ quiet: false }), 0);
+    return;
+  }
+
+  if (isYouTubePlaybackControl(event.target)) {
+    markBenignStudyControl();
     return;
   }
 
@@ -862,7 +882,6 @@ function blockYTClicks(event) {
     event.preventDefault();
     event.stopPropagation();
     showToast("That recommendation can wait.");
-    notifyViolation("video-change");
   }
 }
 
