@@ -5,6 +5,8 @@ let toastTimeout = null;
 let centerNoticeEl = null;
 let fullscreenWarningCount = 0;
 let ytNavigationObserver = null;
+let ytAdObserver = null;
+let ytAdSkipInterval = null;
 let lockedVideoId = null;
 let blurViolationCooldown = 0;
 let videoPauseTimeout = null;
@@ -12,6 +14,7 @@ let pauseAlertInterval = null;
 let pauseReminderShown = false;
 let dashboardConnected = false;
 let lastKeyboardWarningAt = 0;
+let lastAdSkipAt = 0;
 const focusLockIconUrl = chrome.runtime.getURL("assets/icon128.png");
 
 const platformLabel = (() => {
@@ -375,6 +378,10 @@ function notifyViolation(reason = "tab-switch") {
   chrome.runtime.sendMessage({ type: "TAB_VIOLATION", reason, url: location.href }, ignoreRuntimeError);
 }
 
+function isYouTubeHost() {
+  return location.hostname === "youtube.com" || location.hostname.endsWith(".youtube.com");
+}
+
 function getActiveVideo() {
   return document.querySelector("video");
 }
@@ -448,6 +455,16 @@ function isTypingTarget(target) {
   return tagName === "input" || tagName === "textarea" || tagName === "select" || target.isContentEditable;
 }
 
+function isYouTubeMiniPlayerShortcut(event) {
+  return isYouTubeHost()
+    && !event.ctrlKey
+    && !event.metaKey
+    && !event.altKey
+    && !event.shiftKey
+    && (event.key || "").toLowerCase() === "i"
+    && !isTypingTarget(event.target);
+}
+
 function shouldBlockShortcut(event) {
   const key = event.key || "";
   const lowerKey = key.toLowerCase();
@@ -460,8 +477,9 @@ function shouldBlockShortcut(event) {
   if (event.ctrlKey && ["tab", "t", "w", "q", "n", "l", "r", "pageup", "pagedown", "escape"].includes(lowerKey)) return true;
   if (commandOrControl && event.shiftKey && ["t", "w", "q", "i", "j", "c", "tab"].includes(lowerKey)) return true;
   if (commandOrControl && /^[1-9]$/.test(key)) return true;
+  if (isYouTubeMiniPlayerShortcut(event)) return true;
 
-  const youtubeFullscreenToggle = location.hostname.includes("youtube.com")
+  const youtubeFullscreenToggle = isYouTubeHost()
     && !event.ctrlKey
     && !event.metaKey
     && !event.altKey
@@ -477,6 +495,7 @@ function getShortcutReason(event) {
   const commandOrControl = event.ctrlKey || event.metaKey;
 
   if (event.key === "Escape" || event.key === "F11" || lowerKey === "f") return "fullscreen-exit";
+  if (isYouTubeMiniPlayerShortcut(event)) return "video-change";
   if (commandOrControl && lowerKey === "t") return "new-tab";
   if (commandOrControl && lowerKey === "w") return "tab-close";
   if (event.altKey && (event.key === "Tab" || event.key === "F4")) return "window-switch";
@@ -498,7 +517,12 @@ function handleBlockedShortcut(event) {
     return;
   }
 
-  if (location.hostname.includes("youtube.com") && event.key?.toLowerCase() === "f") {
+  if (isYouTubeMiniPlayerShortcut(event)) {
+    blockMiniPlayer("keyboard");
+    return;
+  }
+
+  if (isYouTubeHost() && event.key?.toLowerCase() === "f") {
     showToast("Fullscreen stays on while the session is active.");
     goFullscreen();
     notifyViolation("fullscreen-exit");
@@ -610,12 +634,112 @@ function blockMiniPlayer(reason = "keyboard") {
   showCenterNotice("Stay with the lecture", message);
   notifyViolation("video-change");
 
-  const closeButton = document.querySelector(".ytp-miniplayer-close-button, button[title*='Close mini player'], button[aria-label*='Close mini player']");
+  const closeButton = document.querySelector(".ytp-miniplayer-close-button, button[title*='Close mini player'], button[aria-label*='Close mini player'], button[aria-label*='Close miniplayer'], button[title*='Close miniplayer']");
   if (closeButton) setTimeout(() => closeButton.click(), 120);
 }
 
+function isVisibleElement(element) {
+  if (!element) return false;
+  const rect = element.getBoundingClientRect();
+  const styles = window.getComputedStyle(element);
+  return rect.width > 0
+    && rect.height > 0
+    && styles.visibility !== "hidden"
+    && styles.display !== "none"
+    && Number(styles.opacity || 1) > 0;
+}
+
+function getYouTubeAdSkipButton() {
+  const selectors = [
+    "#movie_player .ytp-ad-skip-button",
+    "#movie_player .ytp-ad-skip-button-modern",
+    "#movie_player .ytp-skip-ad-button",
+    "#movie_player button[class*='ytp-ad-skip']",
+    "#movie_player button[class*='skip-ad']",
+    "#movie_player button[aria-label*='Skip']",
+    "#movie_player button[title*='Skip']"
+  ];
+
+  return selectors
+    .map((selector) => document.querySelector(selector))
+    .find((button) => {
+      if (!button || !isVisibleElement(button)) return false;
+      const label = `${button.getAttribute("aria-label") || ""} ${button.getAttribute("title") || ""} ${button.textContent || ""}`.toLowerCase();
+      return label.includes("skip");
+    });
+}
+
+function getYouTubeAdCloseButton() {
+  const selectors = [
+    "#movie_player .ytp-ad-overlay-close-button",
+    "#movie_player button[aria-label*='Close ad']",
+    "#movie_player button[title*='Close ad']"
+  ];
+
+  return selectors
+    .map((selector) => document.querySelector(selector))
+    .find((button) => button && isVisibleElement(button));
+}
+
+function isYouTubeAdControl(target) {
+  return Boolean(target?.closest?.(
+    ".ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-overlay-close-button, button[class*='ytp-ad-skip'], button[class*='skip-ad'], button[aria-label*='Skip'], button[title*='Skip'], button[aria-label*='Close ad'], button[title*='Close ad']"
+  ));
+}
+
+function trySkipYouTubeAd({ quiet = true } = {}) {
+  if (!isLocked || !isYouTubeHost()) return false;
+
+  const button = getYouTubeAdSkipButton() || getYouTubeAdCloseButton();
+  if (!button) return false;
+
+  const now = Date.now();
+  if (now - lastAdSkipAt < 1400) return true;
+
+  lastAdSkipAt = now;
+  button.click();
+  if (!quiet) showToast("Ad skipped. Back to the lesson.");
+  return true;
+}
+
+function startYouTubeAdGuard() {
+  if (!isYouTubeHost()) return;
+  stopYouTubeAdGuard();
+
+  whenBodyReady(() => {
+    trySkipYouTubeAd({ quiet: true });
+
+    const target = document.querySelector("#movie_player") || document.body;
+    ytAdObserver = new MutationObserver(() => {
+      trySkipYouTubeAd({ quiet: true });
+    });
+    ytAdObserver.observe(target, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "aria-label", "title"]
+    });
+
+    ytAdSkipInterval = setInterval(() => {
+      trySkipYouTubeAd({ quiet: true });
+    }, 1200);
+  });
+}
+
+function stopYouTubeAdGuard() {
+  if (ytAdObserver) {
+    ytAdObserver.disconnect();
+    ytAdObserver = null;
+  }
+
+  if (ytAdSkipInterval) {
+    clearInterval(ytAdSkipInterval);
+    ytAdSkipInterval = null;
+  }
+}
+
 function blockYouTubeNavigation() {
-  if (!location.hostname.includes("youtube.com")) return;
+  if (!isYouTubeHost()) return;
   lockedVideoId = getYTVideoId();
   if (!lockedVideoId) return;
 
@@ -644,12 +768,18 @@ function blockYouTubeNavigation() {
   });
 
   attachVideoPauseWatcher();
+  startYouTubeAdGuard();
 }
 
 function blockYTClicks(event) {
   if (!isLocked) return;
 
-  const miniPlayerButton = event.target.closest(".ytp-miniplayer-button, button[title*='Miniplayer'], button[aria-label*='Miniplayer']");
+  if (isYouTubeAdControl(event.target)) {
+    setTimeout(() => trySkipYouTubeAd({ quiet: false }), 0);
+    return;
+  }
+
+  const miniPlayerButton = event.target.closest(".ytp-miniplayer-button, button[title*='Miniplayer'], button[aria-label*='Miniplayer'], button[title*='mini player'], button[aria-label*='mini player'], button[title*='miniplayer'], button[aria-label*='miniplayer']");
   if (miniPlayerButton) {
     event.preventDefault();
     event.stopPropagation();
@@ -678,6 +808,7 @@ function activateSessionUi(session = currentSession) {
   showLockedBadge();
   startFullscreenGuard();
   blockYouTubeNavigation();
+  startYouTubeAdGuard();
   attachVideoPauseWatcher();
 }
 
@@ -694,6 +825,7 @@ function deactivateSessionUi() {
   }
 
   document.removeEventListener("click", blockYTClicks, true);
+  stopYouTubeAdGuard();
   clearPauseReminder();
 
   if (document.fullscreenElement && document.exitFullscreen) {
