@@ -15,7 +15,33 @@ let pauseReminderShown = false;
 let dashboardConnected = false;
 let lastKeyboardWarningAt = 0;
 let lastAdSkipAt = 0;
-const focusLockIconUrl = chrome.runtime.getURL("assets/icon128.png");
+let extensionContextAlive = true;
+
+function hasRuntime() {
+  try {
+    return (
+      extensionContextAlive &&
+      typeof chrome !== "undefined" &&
+      Boolean(chrome.runtime?.id)
+    );
+  } catch (_) {
+    extensionContextAlive = false;
+    return false;
+  }
+}
+
+function safeRuntimeGetURL(path) {
+  if (!hasRuntime()) return "";
+
+  try {
+    return chrome.runtime.getURL(path);
+  } catch (_) {
+    extensionContextAlive = false;
+    return "";
+  }
+}
+
+const focusLockIconUrl = safeRuntimeGetURL("assets/icon128.png");
 
 const platformLabel = (() => {
   const platform = navigator.userAgentData?.platform || navigator.platform || "";
@@ -56,7 +82,41 @@ const reasonMessages = {
 };
 
 function ignoreRuntimeError() {
-  void chrome.runtime.lastError;
+  try {
+    const message = chrome.runtime.lastError?.message || "";
+    if (message.toLowerCase().includes("context invalidated")) {
+      extensionContextAlive = false;
+    }
+  } catch (_) {
+    extensionContextAlive = false;
+  }
+}
+
+function safeRuntimeSendMessage(message, callback = ignoreRuntimeError) {
+  if (!hasRuntime()) return false;
+
+  try {
+    chrome.runtime.sendMessage(message, (response) => {
+      try {
+        const runtimeError = chrome.runtime.lastError;
+        if (runtimeError) {
+          if ((runtimeError.message || "").toLowerCase().includes("context invalidated")) {
+            extensionContextAlive = false;
+          }
+          return;
+        }
+      } catch (_) {
+        extensionContextAlive = false;
+        return;
+      }
+
+      if (callback) callback(response);
+    });
+    return true;
+  } catch (_) {
+    extensionContextAlive = false;
+    return false;
+  }
 }
 
 function escapeHtml(value = "") {
@@ -297,11 +357,15 @@ function showCenterNotice(title, message, duration = 2600) {
     const layer = ensureLayer();
     if (centerNoticeEl) centerNoticeEl.remove();
 
+    const markHtml = focusLockIconUrl
+      ? `<img src="${focusLockIconUrl}" alt="" />`
+      : "<span>F</span>";
+
     centerNoticeEl = document.createElement("div");
     centerNoticeEl.className = "synapse-focus-notice-backdrop";
     centerNoticeEl.innerHTML = `
       <div class="synapse-focus-notice">
-        <div class="synapse-focus-mark"><img src="${focusLockIconUrl}" alt="" /></div>
+        <div class="synapse-focus-mark">${markHtml}</div>
         <h2>${escapeHtml(title)}</h2>
         <p>${escapeHtml(message)}</p>
       </div>
@@ -375,7 +439,7 @@ function playAlertSound(type = "violation") {
 }
 
 function notifyViolation(reason = "tab-switch") {
-  chrome.runtime.sendMessage({ type: "TAB_VIOLATION", reason, url: location.href }, ignoreRuntimeError);
+  safeRuntimeSendMessage({ type: "TAB_VIOLATION", reason, url: location.href });
 }
 
 function isYouTubeHost() {
@@ -864,7 +928,7 @@ window.addEventListener("message", (event) => {
 
   if (data.type === "DASHBOARD_READY") {
     dashboardConnected = true;
-    chrome.runtime.sendMessage(
+    safeRuntimeSendMessage(
       {
         type: "DASHBOARD_CONNECTED",
         uid: data.uid,
@@ -872,14 +936,13 @@ window.addEventListener("message", (event) => {
         url: location.href
       },
       (response) => {
-        if (chrome.runtime.lastError) return;
         if (response?.payload) postSyncPayload(response.payload);
       }
     );
   }
 
   if (data.type === "SYNAPSE_FOCUS_ACK") {
-    chrome.runtime.sendMessage(
+    safeRuntimeSendMessage(
       {
         type: "DASHBOARD_SYNC_ACK",
         uid: data.uid,
@@ -890,91 +953,96 @@ window.addEventListener("message", (event) => {
   }
 });
 
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === "VIOLATION_DETECTED") {
-    activateSessionUi(message.session);
-    const warning = reasonMessages[message.reason] || interruptionMessages[Math.floor(Math.random() * interruptionMessages.length)];
-    showToast(warning);
-    playAlertSound("violation");
-  }
-
-  if (message.type === "SHOW_IMMEDIATE_WARNING" || message.type === "NEW_TAB_BLOCKED") {
-    const reason = message.reason || "new-tab";
-    showCenterNotice("Distraction paused", reasonMessages[reason] || "Come back to your session.");
-    playAlertSound("violation");
-  }
-
-  if (message.type === "SESSION_STARTED" || message.type === "SESSION_RESYNC") {
-    activateSessionUi(message.session);
-    fullscreenWarningCount = 0;
-
-    const tryFullscreen = () => {
-      const youtubeButton = document.querySelector(".ytp-fullscreen-button");
-      if (youtubeButton && !document.fullscreenElement) {
-        youtubeButton.click();
-        return true;
+if (hasRuntime()) {
+  try {
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === "VIOLATION_DETECTED") {
+        activateSessionUi(message.session);
+        const warning = reasonMessages[message.reason] || interruptionMessages[Math.floor(Math.random() * interruptionMessages.length)];
+        showToast(warning);
+        playAlertSound("violation");
       }
 
-      const video = document.querySelector("video");
-      if (video?.requestFullscreen && !document.fullscreenElement) {
-        video.requestFullscreen().catch(() => {});
-        return true;
+      if (message.type === "SHOW_IMMEDIATE_WARNING" || message.type === "NEW_TAB_BLOCKED") {
+        const reason = message.reason || "new-tab";
+        showCenterNotice("Distraction paused", reasonMessages[reason] || "Come back to your session.");
+        playAlertSound("violation");
       }
 
-      return false;
-    };
+      if (message.type === "SESSION_STARTED" || message.type === "SESSION_RESYNC") {
+        activateSessionUi(message.session);
+        fullscreenWarningCount = 0;
 
-    if (!tryFullscreen()) {
-      setTimeout(tryFullscreen, 700);
-      setTimeout(tryFullscreen, 1800);
-      setTimeout(tryFullscreen, 3200);
-    }
+        const tryFullscreen = () => {
+          const youtubeButton = document.querySelector(".ytp-fullscreen-button");
+          if (youtubeButton && !document.fullscreenElement) {
+            youtubeButton.click();
+            return true;
+          }
 
-    showToast("Focus Lock is active.");
+          const video = document.querySelector("video");
+          if (video?.requestFullscreen && !document.fullscreenElement) {
+            video.requestFullscreen().catch(() => {});
+            return true;
+          }
+
+          return false;
+        };
+
+        if (!tryFullscreen()) {
+          setTimeout(tryFullscreen, 700);
+          setTimeout(tryFullscreen, 1800);
+          setTimeout(tryFullscreen, 3200);
+        }
+
+        showToast("Focus Lock is active.");
+      }
+
+      if (message.type === "MOTIVATION_MILESTONE") {
+        activateSessionUi(message.session);
+        const baseMessage = message.message || milestoneMessages[(message.milestoneCount - 1) % milestoneMessages.length];
+        showCenterNotice(baseMessage, `${message.totalMinutes} focused minutes completed.`, 4200);
+      }
+
+      if (message.type === "STOP_WARNING") {
+        activateSessionUi(message.session);
+        showCenterNotice(
+          `Stop check ${message.warningCount}/${message.warningsRequired}`,
+          message.message || "Take one breath before ending the session.",
+          3800
+        );
+      }
+
+      if (message.type === "SESSION_ENDED") {
+        deactivateSessionUi();
+        showToast("Focus session saved.");
+      }
+
+      if (message.type === "SESSION_COMPLETED") {
+        deactivateSessionUi();
+        showCompletionCelebration(message.session || {}, message.focusSeconds || 0);
+      }
+
+      if (message.type === "BREAK_STARTED") {
+        deactivateSessionUi();
+        showCenterNotice("Break started", "You have six minutes. Focus Lock will bring you back.", 3600);
+      }
+
+      if (message.type === "BREAK_ENDED") {
+        activateSessionUi(message.session);
+        showCenterNotice("Break complete", "Time to return to the session.", 3600);
+      }
+
+      if (message.type === "DASHBOARD_SYNC_PUSH") {
+        postSyncPayload(message.payload);
+      }
+    });
+  } catch (_) {
+    extensionContextAlive = false;
   }
+}
 
-  if (message.type === "MOTIVATION_MILESTONE") {
-    activateSessionUi(message.session);
-    const baseMessage = message.message || milestoneMessages[(message.milestoneCount - 1) % milestoneMessages.length];
-    showCenterNotice(baseMessage, `${message.totalMinutes} focused minutes completed.`, 4200);
-  }
-
-  if (message.type === "STOP_WARNING") {
-    activateSessionUi(message.session);
-    showCenterNotice(
-      `Stop check ${message.warningCount}/${message.warningsRequired}`,
-      message.message || "Take one breath before ending the session.",
-      3800
-    );
-  }
-
-  if (message.type === "SESSION_ENDED") {
-    deactivateSessionUi();
-    showToast("Focus session saved.");
-  }
-
-  if (message.type === "SESSION_COMPLETED") {
-    deactivateSessionUi();
-    showCompletionCelebration(message.session || {}, message.focusSeconds || 0);
-  }
-
-  if (message.type === "BREAK_STARTED") {
-    deactivateSessionUi();
-    showCenterNotice("Break started", "You have six minutes. Focus Lock will bring you back.", 3600);
-  }
-
-  if (message.type === "BREAK_ENDED") {
-    activateSessionUi(message.session);
-    showCenterNotice("Break complete", "Time to return to the session.", 3600);
-  }
-
-  if (message.type === "DASHBOARD_SYNC_PUSH") {
-    postSyncPayload(message.payload);
-  }
-});
-
-chrome.runtime.sendMessage({ type: "GET_SESSION" }, (response) => {
-  if (chrome.runtime.lastError) return;
+safeRuntimeSendMessage({ type: "GET_SESSION" }, (response) => {
   if (response?.session?.active) {
     activateSessionUi(response.session);
   }

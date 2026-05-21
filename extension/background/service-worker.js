@@ -136,7 +136,64 @@ let lastNotificationAt = 0;
 const blockedTabIds = new Map();
 
 function ignoreRuntimeError() {
-  void chrome.runtime.lastError;
+  try {
+    void chrome.runtime.lastError;
+  } catch (_) {
+    // Chrome can invalidate callbacks while an unpacked extension is reloading.
+  }
+}
+
+function toChromeId(value) {
+  const id = Number(value);
+  return Number.isInteger(id) && id >= 0 ? id : null;
+}
+
+function safeTabsSendMessage(tabId, message, callback = ignoreRuntimeError) {
+  const id = toChromeId(tabId);
+  if (id == null) return false;
+
+  try {
+    chrome.tabs.sendMessage(id, message, callback);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function safeTabsUpdate(tabId, updateInfo, callback = ignoreRuntimeError) {
+  const id = toChromeId(tabId);
+  if (id == null) return false;
+
+  try {
+    chrome.tabs.update(id, updateInfo, callback);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function safeWindowsUpdate(windowId, updateInfo, callback = ignoreRuntimeError) {
+  const id = toChromeId(windowId);
+  if (id == null) return false;
+
+  try {
+    chrome.windows.update(id, updateInfo, callback);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function safeTabsGet(tabId, callback) {
+  const id = toChromeId(tabId);
+  if (id == null) return false;
+
+  try {
+    chrome.tabs.get(id, callback);
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 function randomId(prefix = "sf") {
@@ -418,8 +475,7 @@ function clearBreakEndAlarm() {
 }
 
 function notifyTab(tabId, message) {
-  if (tabId == null) return;
-  chrome.tabs.sendMessage(tabId, message, ignoreRuntimeError);
+  safeTabsSendMessage(tabId, message);
 }
 
 function notifyBrowser(message, force = false) {
@@ -441,14 +497,18 @@ function notifyBrowser(message, force = false) {
 }
 
 function focusLockedWindowAndTab(forceWindowState = false) {
-  if (!sessionData.active || sessionData.lockedTabId == null || sessionData.lockedWindowId == null) return;
+  const lockedTabId = toChromeId(sessionData.lockedTabId);
+  const lockedWindowId = toChromeId(sessionData.lockedWindowId);
+  if (!sessionData.active || lockedTabId == null || lockedWindowId == null) return;
 
   const windowUpdate = forceWindowState && focusSettings.fullscreenProtection
     ? { focused: true, state: "fullscreen" }
     : { focused: true };
 
-  chrome.windows.update(sessionData.lockedWindowId, windowUpdate, ignoreRuntimeError);
-  chrome.tabs.update(sessionData.lockedTabId, { active: true }, ignoreRuntimeError);
+  if (!safeWindowsUpdate(lockedWindowId, windowUpdate)) {
+    safeWindowsUpdate(lockedWindowId, { focused: true });
+  }
+  safeTabsUpdate(lockedTabId, { active: true });
 }
 
 function enforceLock(forceWindowState = false) {
@@ -523,10 +583,11 @@ function getBlockedPageUrl(reason, targetUrl = "") {
 }
 
 function showBlockedPage(tabId, reason, targetUrl = "") {
-  if (tabId == null) return;
-  blockedTabIds.set(tabId, Date.now());
+  const safeTabId = toChromeId(tabId);
+  if (safeTabId == null) return;
+  blockedTabIds.set(safeTabId, Date.now());
   cleanupBlockedTabs();
-  chrome.tabs.update(tabId, { url: getBlockedPageUrl(reason, targetUrl), active: false }, ignoreRuntimeError);
+  safeTabsUpdate(safeTabId, { url: getBlockedPageUrl(reason, targetUrl), active: false });
   setTimeout(() => enforceLock(false), 180);
 }
 
@@ -825,8 +886,9 @@ function restoreLockedTab(reason = "tab-close") {
       url: sessionData.lockedUrl,
       active: true
     };
-    if (withWindow && sessionData.lockedWindowId != null) {
-      createProperties.windowId = sessionData.lockedWindowId;
+    const lockedWindowId = toChromeId(sessionData.lockedWindowId);
+    if (withWindow && lockedWindowId != null) {
+      createProperties.windowId = lockedWindowId;
     }
 
     chrome.tabs.create(createProperties, (tab) => {
@@ -854,18 +916,24 @@ function restoreLockedTab(reason = "tab-close") {
 }
 
 function restoreSessionIfValid() {
-  if (!sessionData.active || sessionData.lockedTabId == null || sessionData.lockedWindowId == null) {
+  const lockedTabId = toChromeId(sessionData.lockedTabId);
+  const lockedWindowId = toChromeId(sessionData.lockedWindowId);
+
+  if (!sessionData.active || lockedTabId == null || lockedWindowId == null) {
     resetSessionSilently();
     return;
   }
+
+  sessionData.lockedTabId = lockedTabId;
+  sessionData.lockedWindowId = lockedWindowId;
 
   if (sessionData.endTime && Date.now() >= sessionData.endTime) {
     endSession("completed");
     return;
   }
 
-  chrome.tabs.get(sessionData.lockedTabId, (tab) => {
-    if (chrome.runtime.lastError || !tab || tab.windowId !== sessionData.lockedWindowId) {
+  if (!safeTabsGet(lockedTabId, (tab) => {
+    if (chrome.runtime.lastError || !tab || toChromeId(tab.windowId) !== lockedWindowId) {
       restoreLockedTab("restore");
       return;
     }
@@ -876,7 +944,9 @@ function restoreSessionIfValid() {
     startGuardLoop();
     enforceLock(false);
     syncLockedTab();
-  });
+  })) {
+    restoreLockedTab("restore");
+  }
 }
 
 function buildSyncPayload() {
@@ -1084,7 +1154,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
     return;
   }
 
-  chrome.tabs.get(activeInfo.tabId, (tab) => {
+  safeTabsGet(activeInfo.tabId, (tab) => {
     registerViolation("tab-switch", activeInfo.tabId, tab?.url || "");
   });
 });
@@ -1121,7 +1191,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (shouldBlockLockedNavigation(changeInfo.url)) {
       registerViolation("blocked-site", tabId, changeInfo.url);
       if (sessionData.lockedUrl && sessionData.lockedUrl !== changeInfo.url) {
-        chrome.tabs.update(tabId, { url: sessionData.lockedUrl }, ignoreRuntimeError);
+        safeTabsUpdate(tabId, { url: sessionData.lockedUrl });
       } else {
         showBlockedPage(tabId, "blocked-site", changeInfo.url);
       }
@@ -1149,7 +1219,7 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
     registerViolation("window-switch");
     return;
   }
-  if (windowId === sessionData.lockedWindowId) return;
+  if (toChromeId(windowId) === toChromeId(sessionData.lockedWindowId)) return;
 
   registerViolation("window-switch");
 });
