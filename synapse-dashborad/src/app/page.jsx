@@ -7,12 +7,10 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   Bell,
-  Bot,
   BrainCircuit,
   Check,
   CheckSquare,
   ChevronDown,
-  ChevronUp,
   Command,
   Flame,
   FolderOpen,
@@ -25,7 +23,6 @@ import {
   MoreHorizontal,
   Plus,
   Search,
-  Send,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -148,19 +145,6 @@ const goals = [
   { label: "Finish Calculus Syllabus", progress: 72, accent: "var(--chart-pink)" },
   { label: "Study 120 Hours", progress: 58, accent: "var(--chart-blue)" },
   { label: "Complete 15 Mock Tests", progress: 40, accent: "var(--chart-gold)" }
-];
-
-const messages = [
-  { side: "user", text: "Hi SYNAPSE, add today's todo list", time: "7:30 PM" },
-  {
-    side: "ai",
-    text: "Sure, I'll help you create today's todo list. Tell me your tasks one by one and I'll add them for you.",
-    time: "7:31 PM"
-  },
-  { side: "user", text: "1. Complete Physics Numericals", time: "7:31 PM" },
-  { side: "ai", text: "Added: Complete Physics Numericals", time: "7:31 PM", checked: true },
-  { side: "user", text: "2. Watch Calculus Lecture", time: "7:32 PM" },
-  { side: "ai", text: "Added: Watch Calculus Lecture", time: "7:32 PM", checked: true }
 ];
 
 const cardMotion = {
@@ -677,130 +661,79 @@ export default function Home() {
                 </motion.article>
               </section>
 
-              <section className="bottom-row">
-                <motion.article
-                  className="panel todo-panel"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, delay: 0.28 }}
-                >
-                  <div className="panel-header">
-                    <h2>Pending Tasks</h2>
-                    <Link className="add-button add-task-link" href={todoAppUrl}>
-                      <Plus size={14} />
-                      Open Todo
-                    </Link>
-                  </div>
-                  <div className="todo-list">
-                    {dashboardTodoLoading ? (
-                      <div className="todo-empty-row">Syncing pending tasks...</div>
-                    ) : dashboardTodoError ? (
-                      <div className="todo-empty-row">{dashboardTodoError}</div>
-                    ) : dashboardPendingTodos.length ? (
-                      dashboardPendingTodos.map((item) => (
-                        <Link className="todo-item dashboard-pending-item" key={item.id} href={todoAppUrl}>
-                          <span className="check-box" />
-                          <p>{item.task}</p>
-                          <em className={`priority priority-${String(item.priority).toLowerCase()}`}>
-                            {item.priority || "Medium"}
-                          </em>
-                          <small>{item.selectedDate === formatDateKey() ? "Today" : item.selectedDate}</small>
-                        </Link>
-                      ))
-                    ) : (
-                      <Link className="todo-empty-row todo-empty-link" href={todoAppUrl}>
-                        No pending tasks. Add a clean plan for today.
-                      </Link>
-                    )}
-                  </div>
-                </motion.article>
-
-                <motion.article
-                  className="panel goals-panel"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, delay: 0.34 }}
-                >
-                  <div className="panel-header">
-                    <h2>Monthly Goal Progress</h2>
-                    <Link href={goalsAppUrl}>View All</Link>
-                  </div>
-                  <div className="goal-list">
-                    {goals.map((goal) => (
-                      <div className="goal-item" key={goal.label}>
-                        <span className="goal-icon" style={{ "--goal-tone": goal.accent }}>
-                          <Trophy size={17} />
-                        </span>
-                        <div>
-                          <p>{goal.label}</p>
-                          <div className="meter goal-meter">
-                            <i style={{ width: `${goal.progress}%`, "--meter": goal.accent }} />
-                          </div>
-                          <small>14 days left</small>
-                        </div>
-                        <strong>{goal.progress}%</strong>
-                      </div>
-                    ))}
-                  </div>
-                </motion.article>
-              </section>
             </div>
 
             <motion.aside
-              className="ai-panel"
+              className="dashboard-side-column"
               initial={{ opacity: 0, x: 24 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.55, delay: 0.1 }}
             >
-              <div className="ai-header">
-                <div>
-                  <Sparkles size={24} />
-                  <h2>SYNAPSE AI</h2>
+              <motion.article
+                className="panel todo-panel dashboard-side-panel"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.28 }}
+              >
+                <div className="panel-header">
+                  <h2>Pending Tasks</h2>
+                  <Link className="add-button add-task-link" href={todoAppUrl}>
+                    <Plus size={14} />
+                    Open Todo
+                  </Link>
                 </div>
-                <ChevronUp size={18} />
-              </div>
+                <div className="todo-list">
+                  {dashboardTodoLoading ? (
+                    <div className="todo-empty-row">Syncing pending tasks...</div>
+                  ) : dashboardTodoError ? (
+                    <div className="todo-empty-row">{dashboardTodoError}</div>
+                  ) : dashboardPendingTodos.length ? (
+                    dashboardPendingTodos.map((item) => (
+                      <Link className="todo-item dashboard-pending-item" key={item.id} href={todoAppUrl}>
+                        <span className="check-box" />
+                        <p>{item.task}</p>
+                        <em className={`priority priority-${String(item.priority).toLowerCase()}`}>
+                          {item.priority || "Medium"}
+                        </em>
+                        <small>{item.selectedDate === formatDateKey() ? "Today" : item.selectedDate}</small>
+                      </Link>
+                    ))
+                  ) : (
+                    <Link className="todo-empty-row todo-empty-link" href={todoAppUrl}>
+                      No pending tasks. Add a clean plan for today.
+                    </Link>
+                  )}
+                </div>
+              </motion.article>
 
-              <div className="chat-stream">
-                {messages.map((message, index) => (
-                  <motion.div
-                    key={`${message.text}-${index}`}
-                    className={`message ${message.side === "user" ? "from-user" : "from-ai"}`}
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.22 + index * 0.06 }}
-                  >
-                    <p>
-                      {message.checked ? (
-                        <span className="inline-check">
-                          <Check size={13} />
-                        </span>
-                      ) : null}
-                      {message.text}
-                    </p>
-                    <small>{message.time}</small>
-                  </motion.div>
-                ))}
-              </div>
-
-              <div className="quick-actions">
-                <button>
-                  <CheckSquare size={15} />
-                  Show today's tasks
-                </button>
-                <button>
-                  <BarChart3 size={15} />
-                  My progress
-                </button>
-              </div>
-
-              <label className="composer">
-                <Bot size={18} />
-                <input aria-label="Ask SYNAPSE AI" placeholder="Ask me anything..." />
-                <button aria-label="Send message">
-                  <Send size={20} />
-                </button>
-              </label>
-              <small className="ai-note">SYNAPSE AI can make mistakes. Verify important info.</small>
+              <motion.article
+                className="panel goals-panel dashboard-side-panel"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.34 }}
+              >
+                <div className="panel-header">
+                  <h2>Monthly Goal Progress</h2>
+                  <Link href={goalsAppUrl}>View All</Link>
+                </div>
+                <div className="goal-list">
+                  {goals.map((goal) => (
+                    <div className="goal-item" key={goal.label}>
+                      <span className="goal-icon" style={{ "--goal-tone": goal.accent }}>
+                        <Trophy size={17} />
+                      </span>
+                      <div>
+                        <p>{goal.label}</p>
+                        <div className="meter goal-meter">
+                          <i style={{ width: `${goal.progress}%`, "--meter": goal.accent }} />
+                        </div>
+                        <small>14 days left</small>
+                      </div>
+                      <strong>{goal.progress}%</strong>
+                    </div>
+                  ))}
+                </div>
+              </motion.article>
             </motion.aside>
           </div>
         </section>
