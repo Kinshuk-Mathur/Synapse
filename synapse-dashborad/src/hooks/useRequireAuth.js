@@ -4,8 +4,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
-export function useRequireAuth() {
-  const { user, loading } = useAuth();
+export function useRequireAuth(options = {}) {
+  const { requireOnboarding = true } = options;
+  const { user, loading, profile, profileLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -13,11 +14,26 @@ export function useRequireAuth() {
     if (!loading && !user) {
       router.replace(`/login?next=${encodeURIComponent(pathname || "/")}`);
     }
-  }, [loading, pathname, router, user]);
+
+    if (
+      requireOnboarding &&
+      !loading &&
+      !profileLoading &&
+      user &&
+      !profile?.onboardingCompleted &&
+      pathname !== "/onboarding"
+    ) {
+      router.replace(`/onboarding?next=${encodeURIComponent(pathname || "/")}`);
+    }
+  }, [loading, pathname, profile, profileLoading, requireOnboarding, router, user]);
+
+  const onboardingReady =
+    !requireOnboarding || Boolean(profile?.onboardingCompleted) || pathname === "/onboarding";
 
   return {
     user,
-    loading,
-    isAllowed: Boolean(user) && !loading
+    profile,
+    loading: loading || profileLoading,
+    isAllowed: Boolean(user) && !loading && !profileLoading && onboardingReady
   };
 }

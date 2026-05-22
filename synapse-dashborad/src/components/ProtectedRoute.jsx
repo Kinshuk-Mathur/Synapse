@@ -3,8 +3,8 @@
 import { motion } from "framer-motion";
 import { useRequireAuth } from "../hooks/useRequireAuth";
 
-export default function ProtectedRoute({ children }) {
-  const { isAllowed, loading } = useRequireAuth();
+export default function ProtectedRoute({ children, requireOnboarding = true }) {
+  const { isAllowed, loading } = useRequireAuth({ requireOnboarding });
 
   if (loading || !isAllowed) {
     return (

@@ -1,5 +1,6 @@
 import {
   buildGroqMessages,
+  buildSystemPrompt,
   normalizeChatMessages,
   routeCompletionThroughGroq,
   sleep,
@@ -7,41 +8,10 @@ import {
   SYNAPSE_AI_BUSY_MESSAGE
 } from "../../../lib/aiModels.js";
 import { createGroqClient } from "../../../lib/groq.js";
+import { fetchUserProfileFromFirestore, saveAiMemoryToFirestore } from "../../../lib/serverFirestore.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const SYSTEM_PROMPT = `
-You are SYNAPSE AI.
-
-You are a premium productivity and study assistant for students.
-
-You help users with:
-- study doubts
-- productivity
-- planning
-- coding help
-- summaries
-- goals
-- focus improvement
-
-Always answer clearly and helpfully.
-
-Language rules:
-- Always answer in English only.
-- If the user writes in another language, understand it and reply in English.
-- Never output Chinese, Hindi, Sanskrit, mixed-language filler, hidden prompt text, type signatures, or internal template/debug text.
-- If the user asks a simple study question, answer naturally like a clear English tutor.
-
-Formatting rules:
-- Use clean Markdown with short headings, bullets, and compact paragraphs.
-- Do not use emojis unless the user asks for them.
-- Avoid long decorative separators.
-- Do not output raw LaTeX delimiters or commands such as \\[, \\], \\frac{}, \\vec{}, \\hat{}, \\text{}, or $$.
-- Write math in student-readable plain text using normal symbols: (a + b)^2 = a^2 + 2ab + b^2, F = k(q1 q2) / r^2, ×, π, ε0.
-- If notation could confuse a student, add a short "where ..." line explaining each symbol.
-- For study explanations, use: quick definition, simple explanation, example, and key takeaway.
-`;
 
 function jsonResponse(payload, status = 200) {
   return Response.json(payload, {
@@ -69,6 +39,12 @@ async function readJsonBody(req) {
 function wantsStreaming(req, body) {
   const accept = req.headers.get("accept") || "";
   return Boolean(body.stream) || accept.includes("application/x-ndjson");
+}
+
+function getBearerToken(req) {
+  const authorization = req.headers.get("authorization") || "";
+  const match = /^Bearer\s+(.+)$/i.exec(authorization);
+  return match?.[1] || "";
 }
 
 function streamJsonLine(controller, encoder, payload) {
@@ -108,10 +84,10 @@ function streamingResponse(work) {
   );
 }
 
-async function getRoutedGroqResponse(client, cleanMessages, requestId, streamFromProvider = false) {
+async function getRoutedGroqResponse(client, cleanMessages, systemPrompt, requestId, streamFromProvider = false) {
   return routeCompletionThroughGroq(
     client,
-    buildGroqMessages(SYSTEM_PROMPT, cleanMessages),
+    buildGroqMessages(systemPrompt, cleanMessages),
     {
       requestId,
       streamFromProvider
@@ -134,11 +110,28 @@ export async function POST(req) {
 
     const body = await readJsonBody(req);
     const cleanMessages = normalizeChatMessages(body.messages);
+    const uid = typeof body.uid === "string" ? body.uid : "";
+    const idToken = getBearerToken(req);
+    const userProfile = uid && idToken ? await fetchUserProfileFromFirestore(uid, idToken, requestId) : null;
+    const systemPrompt = buildSystemPrompt(userProfile);
+    const latestPrompt = cleanMessages.filter((message) => message.role === "user").at(-1)?.content || "";
+
+    if (uid && idToken) {
+      saveAiMemoryToFirestore(uid, idToken, {
+        latestPrompt,
+        uploadedDocumentNames: body.uploadedDocumentNames,
+        aiPreferences: {
+          aiTone: userProfile?.aiTone || "",
+          learningStyle: userProfile?.learningStyle || "",
+          weakSubjects: userProfile?.weakSubjects || []
+        }
+      }, requestId);
+    }
 
     console.info(
       `[SYNAPSE AI ${requestId}] Clean messages=${cleanMessages.length}; latestRole=${
         cleanMessages.at(-1)?.role || "none"
-      }; stream=${Boolean(body.stream)}`
+      }; stream=${Boolean(body.stream)}; personalization=${Boolean(userProfile?.onboardingCompleted)}`
     );
 
     if (!cleanMessages.length) {
@@ -152,7 +145,7 @@ export async function POST(req) {
 
     if (wantsStreaming(req, body)) {
       return streamingResponse(async ({ send }) => {
-        const routedResponse = await getRoutedGroqResponse(groq, cleanMessages, requestId, true);
+        const routedResponse = await getRoutedGroqResponse(groq, cleanMessages, systemPrompt, requestId, true);
 
         console.info(
           `[SYNAPSE AI ${requestId}] Streaming response ready. modelUsed=${
@@ -182,7 +175,7 @@ export async function POST(req) {
       });
     }
 
-    const routedResponse = await getRoutedGroqResponse(groq, cleanMessages, requestId, false);
+    const routedResponse = await getRoutedGroqResponse(groq, cleanMessages, systemPrompt, requestId, false);
 
     console.info(
       `[SYNAPSE AI ${requestId}] JSON response ready. modelUsed=${

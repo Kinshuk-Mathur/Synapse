@@ -8,7 +8,7 @@ import { ArrowRight, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 function LoginContent() {
-  const { user, loading, error, loginWithGoogle } = useAuth();
+  const { user, profile, profileLoading, loading, error, loginWithGoogle } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -16,16 +16,18 @@ function LoginContent() {
   const nextPath = requestedPath.startsWith("/") && !requestedPath.startsWith("//") ? requestedPath : "/";
 
   useEffect(() => {
-    if (!loading && user) {
-      router.replace(nextPath);
+    if (!loading && !profileLoading && user) {
+      router.replace(profile?.onboardingCompleted ? nextPath : `/onboarding?next=${encodeURIComponent(nextPath)}`);
     }
-  }, [loading, nextPath, router, user]);
+  }, [loading, nextPath, profile, profileLoading, router, user]);
 
   const handleGoogleSignIn = async () => {
     try {
       setIsSigningIn(true);
-      await loginWithGoogle();
-      router.replace(nextPath);
+      const result = await loginWithGoogle();
+      router.replace(
+        result.profile?.onboardingCompleted ? nextPath : `/onboarding?next=${encodeURIComponent(nextPath)}`
+      );
     } catch {
       // AuthContext owns the user-facing error state.
     } finally {

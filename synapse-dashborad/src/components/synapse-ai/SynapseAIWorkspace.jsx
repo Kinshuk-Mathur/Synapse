@@ -26,6 +26,7 @@ import {
   Plus,
   Send,
   Sparkles,
+  Settings,
   StickyNote,
   Target,
   ThumbsDown,
@@ -78,7 +79,8 @@ const dockNavItems = [
   { label: "Todo List", icon: ListTodo, href: "/todo" },
   { label: "Goals", icon: Target, href: "/goals" },
   { label: "Focus Lock", icon: LockKeyhole, href: "/focus" },
-  { label: "Saved Notes", icon: StickyNote, href: "/" }
+  { label: "Saved Notes", icon: StickyNote, href: "/" },
+  { label: "Settings", icon: Settings, href: "/settings" }
 ];
 
 function createWelcomeMessage() {
@@ -756,9 +758,9 @@ export default function SynapseAIWorkspace() {
   const fileRef = useRef(null);
   const attachmentMenuRef = useRef(null);
   const { theme, applyTheme } = useSynapseTheme();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
-  const studentName = user?.displayName?.split(" ")[0] || "Kinshuk";
+  const studentName = profile?.name || user?.displayName?.split(" ")[0] || "Student";
   const activeConversation = conversations.find((conversation) => conversation.id === activeId);
   const SelectedFileIcon = getAttachmentIcon(
     selectedFile
@@ -971,15 +973,31 @@ export default function SynapseAIWorkspace() {
     let streamedContent = "";
 
     try {
+      let idToken = "";
+
+      try {
+        idToken = user?.getIdToken ? await user.getIdToken() : "";
+      } catch (tokenError) {
+        console.warn("SYNAPSE AI personalization token unavailable:", tokenError?.message || tokenError);
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+        Accept: "application/x-ndjson"
+      };
+
+      if (idToken) {
+        headers.Authorization = `Bearer ${idToken}`;
+      }
+
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/x-ndjson"
-        },
+        headers,
         body: JSON.stringify({
           messages: nextMessages,
-          stream: true
+          stream: true,
+          uid: user?.uid || "",
+          uploadedDocumentNames: uploadedFiles.map((file) => file.name).slice(0, 12)
         })
       });
       const responseType = response.headers.get("content-type") || "";

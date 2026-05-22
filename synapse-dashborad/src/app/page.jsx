@@ -69,7 +69,7 @@ const navItems = [
   { label: "Analytics", icon: BarChart3, href: "#" },
   { label: "SYNAPSE AI", icon: Sparkles, href: synapseAiUrl },
   { label: "Resources", icon: FolderOpen, href: "#" },
-  { label: "Settings", icon: Settings, href: "#" }
+  { label: "Settings", icon: Settings, href: "/settings" }
 ];
 
 const sparkData = [
@@ -256,7 +256,7 @@ export default function Home() {
   const [dashboardTodos, setDashboardTodos] = useState([]);
   const [dashboardTodoLoading, setDashboardTodoLoading] = useState(true);
   const [dashboardTodoError, setDashboardTodoError] = useState("");
-  const { user, logout } = useAuth();
+  const { user, logout, profile } = useAuth();
   const {
     summary: focusSummary,
     loading: focusLoading,
@@ -284,7 +284,20 @@ export default function Home() {
     return "Good Evening";
   }, []);
 
-  const studentName = user?.displayName?.split(" ")[0] || "STUDENT";
+  const studentName = profile?.name || user?.displayName?.split(" ")[0] || "STUDENT";
+  const personalizationSignals = useMemo(() => {
+    const weakSubject = profile?.weakSubjects?.[0];
+    const productiveTime = profile?.productiveTime;
+    const biggestProblem = profile?.biggestProblem;
+    const mainGoal = profile?.mainGoal;
+
+    return [
+      weakSubject ? `${weakSubject} needs attention today.` : null,
+      productiveTime ? `Your peak focus window is ${productiveTime.toLowerCase()}.` : null,
+      biggestProblem ? `Watch for ${biggestProblem.toLowerCase()} and keep the next session small.` : null,
+      mainGoal ? `Today's system is tuned for ${mainGoal}.` : null
+    ].filter(Boolean);
+  }, [profile]);
 
   useEffect(() => {
     if (!user?.uid) {
@@ -535,8 +548,12 @@ export default function Home() {
                   <Zap size={34} />
                 </div>
                 <div className="hero-copy">
-                  <h1>{greeting}!</h1>
-                  <p>Focus. Learn. Achieve. Repeat.</p>
+                  <h1>{greeting}, {studentName}!</h1>
+                  <p>
+                    {profile?.mainGoal
+                      ? `Your workspace is tuned for ${profile.mainGoal}.`
+                      : "Focus. Learn. Achieve. Repeat."}
+                  </p>
                 </div>
                 <div className="brain-system" aria-hidden="true">
                   <div className="signal-ring" />
@@ -669,6 +686,25 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.55, delay: 0.1 }}
             >
+              {personalizationSignals.length ? (
+                <motion.article
+                  className="panel dashboard-side-panel personalization-panel"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: 0.18 }}
+                >
+                  <div className="panel-header">
+                    <h2>Personal Focus</h2>
+                    <Sparkles size={17} />
+                  </div>
+                  <div className="personalization-list">
+                    {personalizationSignals.slice(0, 3).map((signal) => (
+                      <p key={signal}>{signal}</p>
+                    ))}
+                  </div>
+                </motion.article>
+              ) : null}
+
               <motion.article
                 className="panel todo-panel dashboard-side-panel"
                 initial={{ opacity: 0, y: 20 }}

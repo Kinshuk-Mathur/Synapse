@@ -30,7 +30,7 @@ const navItems = [
   { label: "Analytics", icon: BarChart3, href: "/focus" },
   { label: "SYNAPSE AI", icon: Sparkles, href: "/synapse-ai" },
   { label: "Resources", icon: FolderOpen, href: "#" },
-  { label: "Settings", icon: Settings, href: "#" }
+  { label: "Settings", icon: Settings, href: "/settings" }
 ];
 
 function formatDuration(totalSeconds = 0) {

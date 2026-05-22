@@ -13,18 +13,21 @@ import {
   hasFirebaseConfig,
   missingFirebaseConfigKeys
 } from "../lib/firebase";
-import { createUserProfile } from "../services/firestore";
+import { createUserProfile, getUserProfile } from "../services/firestore";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!hasFirebaseConfig) {
       setError(`Missing Firebase environment variables: ${missingFirebaseConfigKeys.join(", ")}`);
+      setProfileLoading(false);
       setLoading(false);
       return undefined;
     }
@@ -36,7 +39,11 @@ export function AuthProvider({ children }) {
       async (currentUser) => {
         try {
           if (currentUser) {
-            await createUserProfile(currentUser);
+            setProfileLoading(true);
+            const syncedProfile = await createUserProfile(currentUser);
+            setProfile(syncedProfile);
+          } else {
+            setProfile(null);
           }
 
           setUser(currentUser);
@@ -44,6 +51,7 @@ export function AuthProvider({ children }) {
         } catch (authError) {
           setError(authError.message || "Unable to sync your SYNAPSE profile.");
         } finally {
+          setProfileLoading(false);
           setLoading(false);
         }
       },
@@ -62,9 +70,13 @@ export function AuthProvider({ children }) {
       setLoading(true);
       await enableAuthPersistence();
       const result = await signInWithPopup(getFirebaseAuth(), getGoogleProvider());
-      await createUserProfile(result.user);
+      const syncedProfile = await createUserProfile(result.user);
       setUser(result.user);
-      return result.user;
+      setProfile(syncedProfile);
+      return {
+        user: result.user,
+        profile: syncedProfile
+      };
     } catch (authError) {
       setError(authError.message || "Google sign in failed.");
       throw authError;
@@ -78,22 +90,44 @@ export function AuthProvider({ children }) {
       setError(null);
       await signOut(getFirebaseAuth());
       setUser(null);
+      setProfile(null);
     } catch (authError) {
       setError(authError.message || "Logout failed.");
       throw authError;
     }
   };
 
+  const refreshProfile = async () => {
+    if (!user?.uid) {
+      setProfile(null);
+      return null;
+    }
+
+    setProfileLoading(true);
+
+    try {
+      const nextProfile = await getUserProfile(user.uid);
+      setProfile(nextProfile);
+      return nextProfile;
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
   const value = useMemo(
     () => ({
       user,
+      profile,
       loading,
+      profileLoading,
       error,
       isAuthenticated: Boolean(user),
       loginWithGoogle,
-      logout
+      logout,
+      refreshProfile,
+      setProfile
     }),
-    [user, loading, error]
+    [user, profile, loading, profileLoading, error]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
