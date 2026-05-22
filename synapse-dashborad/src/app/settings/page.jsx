@@ -19,23 +19,58 @@ const toneOptions = ["Friendly", "Motivational", "Strict mentor", "Professional"
 
 const defaultForm = {
   name: "",
-  educationLevel: "",
-  mainGoal: "",
+  educationLevel: [],
+  mainGoal: [],
   strongSubjects: [],
   weakSubjects: [],
-  learningStyle: "",
-  productiveTime: "",
-  biggestProblem: "",
-  aiTone: ""
+  learningStyle: [],
+  productiveTime: [],
+  biggestProblem: [],
+  aiTone: []
 };
 
-function ChipGroup({ label, value, options, multi = false, onChange }) {
-  const selectedValues = Array.isArray(value) ? value : [value].filter(Boolean);
+function toSelectionArray(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return value ? [value] : [];
+}
+
+function normalizeOtherValue(value) {
+  return String(value || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(" ");
+}
+
+function ChipGroup({ label, value, options, onChange }) {
+  const selectedValues = toSelectionArray(value);
+  const [otherValue, setOtherValue] = useState("");
+
+  const toggleValue = (option) => {
+    const next = new Set(selectedValues);
+    if (next.has(option)) {
+      next.delete(option);
+    } else {
+      next.add(option);
+    }
+
+    onChange(Array.from(next));
+  };
+
+  const addOther = () => {
+    const nextValue = normalizeOtherValue(otherValue);
+
+    if (!nextValue) return;
+
+    onChange(Array.from(new Set([...selectedValues, nextValue])));
+    setOtherValue("");
+  };
 
   return (
     <section className="settings-field">
       <h2>{label}</h2>
-      <div className={`settings-chip-grid ${multi ? "is-multi" : ""}`}>
+      <div className="settings-chip-grid is-multi">
         {options.map((option) => {
           const selected = selectedValues.includes(option);
 
@@ -46,27 +81,45 @@ function ChipGroup({ label, value, options, multi = false, onChange }) {
               className={selected ? "is-selected" : ""}
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                if (!multi) {
-                  onChange(option);
-                  return;
-                }
-
-                const next = new Set(selectedValues);
-                if (next.has(option)) {
-                  next.delete(option);
-                } else {
-                  next.add(option);
-                }
-
-                onChange(Array.from(next));
-              }}
+              onClick={() => toggleValue(option)}
             >
               <span>{option}</span>
               {selected ? <Check size={15} /> : null}
             </motion.button>
           );
         })}
+        {selectedValues
+          .filter((option) => !options.includes(option))
+          .map((option) => (
+            <motion.button
+              key={option}
+              type="button"
+              className="is-selected is-custom"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => onChange(selectedValues.filter((item) => item !== option))}
+            >
+              <span>{option}</span>
+              <Check size={15} />
+            </motion.button>
+          ))}
+        <label className="settings-other-input">
+          <input
+            value={otherValue}
+            onChange={(event) => setOtherValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                addOther();
+              }
+            }}
+            maxLength={24}
+            placeholder="Other (1-2 words)"
+          />
+          <button type="button" onClick={addOther}>
+            Add
+          </button>
+        </label>
       </div>
     </section>
   );
@@ -84,14 +137,14 @@ function SettingsContent() {
 
     setForm({
       name: profile.name || profile.displayName?.split(" ")[0] || "",
-      educationLevel: profile.educationLevel || "",
-      mainGoal: profile.mainGoal || "",
-      strongSubjects: Array.isArray(profile.strongSubjects) ? profile.strongSubjects : [],
-      weakSubjects: Array.isArray(profile.weakSubjects) ? profile.weakSubjects : [],
-      learningStyle: profile.learningStyle || "",
-      productiveTime: profile.productiveTime || "",
-      biggestProblem: profile.biggestProblem || "",
-      aiTone: profile.aiTone || ""
+      educationLevel: toSelectionArray(profile.educationLevel),
+      mainGoal: toSelectionArray(profile.mainGoal),
+      strongSubjects: toSelectionArray(profile.strongSubjects),
+      weakSubjects: toSelectionArray(profile.weakSubjects),
+      learningStyle: toSelectionArray(profile.learningStyle),
+      productiveTime: toSelectionArray(profile.productiveTime),
+      biggestProblem: toSelectionArray(profile.biggestProblem),
+      aiTone: toSelectionArray(profile.aiTone)
     });
   }, [profile]);
 
@@ -111,14 +164,14 @@ function SettingsContent() {
       setError("");
       const nextProfile = await updateUserPersonalization(user.uid, {
         name: form.name.trim() || profile?.displayName?.split(" ")[0] || "Student",
-        educationLevel: form.educationLevel,
-        mainGoal: form.mainGoal,
-        strongSubjects: form.strongSubjects,
-        weakSubjects: form.weakSubjects,
-        learningStyle: form.learningStyle,
-        productiveTime: form.productiveTime,
-        biggestProblem: form.biggestProblem,
-        aiTone: form.aiTone
+        educationLevel: toSelectionArray(form.educationLevel),
+        mainGoal: toSelectionArray(form.mainGoal),
+        strongSubjects: toSelectionArray(form.strongSubjects),
+        weakSubjects: toSelectionArray(form.weakSubjects),
+        learningStyle: toSelectionArray(form.learningStyle),
+        productiveTime: toSelectionArray(form.productiveTime),
+        biggestProblem: toSelectionArray(form.biggestProblem),
+        aiTone: toSelectionArray(form.aiTone)
       });
 
       setProfile(nextProfile);
@@ -200,14 +253,12 @@ function SettingsContent() {
               label="Strong subjects"
               value={form.strongSubjects}
               options={subjectOptions}
-              multi
               onChange={(value) => updateField("strongSubjects", value)}
             />
             <ChipGroup
               label="Weak subjects"
               value={form.weakSubjects}
               options={subjectOptions}
-              multi
               onChange={(value) => updateField("weakSubjects", value)}
             />
             <ChipGroup

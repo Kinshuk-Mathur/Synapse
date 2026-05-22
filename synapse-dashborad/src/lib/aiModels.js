@@ -49,6 +49,11 @@ function formatList(value) {
   return Array.isArray(value) && value.length ? value.join(", ") : "Not set";
 }
 
+function formatPreference(value) {
+  if (Array.isArray(value)) return formatList(value);
+  return value || "Not set";
+}
+
 export function buildSystemPrompt(userData = {}) {
   const hasProfile = Boolean(userData?.onboardingCompleted);
 
@@ -63,14 +68,14 @@ ${
     ? `User profile:
 
 - Name: ${userData.name || userData.displayName || "Student"}
-- Education Level: ${userData.educationLevel || "Not set"}
-- Main Goal: ${userData.mainGoal || "Not set"}
+- Education Level: ${formatPreference(userData.educationLevel)}
+- Main Goal: ${formatPreference(userData.mainGoal)}
 - Weak Subjects: ${formatList(userData.weakSubjects)}
 - Strong Subjects: ${formatList(userData.strongSubjects)}
-- Preferred Learning Style: ${userData.learningStyle || "Not set"}
-- Most Productive Time: ${userData.productiveTime || "Not set"}
-- Biggest Problem: ${userData.biggestProblem || "Not set"}
-- Preferred AI Tone: ${userData.aiTone || "Not set"}`
+- Preferred Learning Style: ${formatPreference(userData.learningStyle)}
+- Most Productive Time: ${formatPreference(userData.productiveTime)}
+- Biggest Problem: ${formatPreference(userData.biggestProblem)}
+- Preferred AI Tone: ${formatPreference(userData.aiTone)}`
     : `User profile:
 
 - Personalization is not completed yet. Ask concise clarifying questions only when needed.`

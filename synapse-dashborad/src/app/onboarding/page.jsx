@@ -10,6 +10,16 @@ import { useAuth } from "../../context/AuthContext";
 import { saveUserOnboarding } from "../../services/firestore";
 
 const subjectOptions = ["Physics", "Chemistry", "Maths", "Biology", "Computer Science", "English"];
+const multiChoiceKeys = new Set([
+  "educationLevel",
+  "mainGoal",
+  "strongSubjects",
+  "weakSubjects",
+  "learningStyle",
+  "productiveTime",
+  "biggestProblem",
+  "aiTone"
+]);
 
 const steps = [
   {
@@ -23,14 +33,14 @@ const steps = [
     key: "educationLevel",
     eyebrow: "Study stage",
     question: "What are you currently studying?",
-    type: "single",
+    type: "multi",
     options: ["Class 9", "Class 10", "Class 11 PCM", "Class 12 PCM", "JEE", "NEET", "College", "Coding", "Self Learning"]
   },
   {
     key: "mainGoal",
     eyebrow: "Direction",
     question: "What are you preparing for?",
-    type: "single",
+    type: "multi",
     options: ["Boards", "JEE", "NEET", "Coding", "Productivity", "Skill Learning", "Startup Building"]
   },
   {
@@ -51,43 +61,61 @@ const steps = [
     key: "learningStyle",
     eyebrow: "Learning mode",
     question: "How do you learn best?",
-    type: "single",
+    type: "multi",
     options: ["Step-by-step", "Visual explanations", "Deep concepts", "Short summaries", "Analogies", "Practice questions"]
   },
   {
     key: "productiveTime",
     eyebrow: "Focus rhythm",
     question: "When are you most productive?",
-    type: "single",
+    type: "multi",
     options: ["Morning", "Afternoon", "Night"]
   },
   {
     key: "biggestProblem",
     eyebrow: "Friction",
     question: "What usually stops you from studying?",
-    type: "single",
+    type: "multi",
     options: ["Phone distractions", "Procrastination", "Burnout", "Confusion", "Lack of consistency"]
   },
   {
     key: "aiTone",
     eyebrow: "Assistant style",
     question: "How should SYNAPSE talk to you?",
-    type: "single",
+    type: "multi",
     options: ["Friendly", "Motivational", "Strict mentor", "Professional", "Simple teacher"]
   }
 ];
 
 const initialAnswers = {
   name: "",
-  educationLevel: "",
-  mainGoal: "",
+  educationLevel: [],
+  mainGoal: [],
   strongSubjects: [],
   weakSubjects: [],
-  learningStyle: "",
-  productiveTime: "",
-  biggestProblem: "",
-  aiTone: ""
+  learningStyle: [],
+  productiveTime: [],
+  biggestProblem: [],
+  aiTone: []
 };
+
+function toSelectionArray(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return value ? [value] : [];
+}
+
+function normalizeOtherValue(value) {
+  return String(value || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(" ");
+}
+
+function removeOption(values, value) {
+  return toSelectionArray(values).filter((item) => item !== value);
+}
 
 function wait(ms) {
   return new Promise((resolve) => {
@@ -103,6 +131,7 @@ function OnboardingContent() {
   const nextPath = requestedPath.startsWith("/") && !requestedPath.startsWith("//") ? requestedPath : "/";
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState(initialAnswers);
+  const [otherDrafts, setOtherDrafts] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const step = steps[stepIndex];
@@ -114,14 +143,14 @@ function OnboardingContent() {
     setAnswers((current) => ({
       ...current,
       name: profile.name || profile.displayName?.split(" ")[0] || current.name,
-      educationLevel: profile.educationLevel || current.educationLevel,
-      mainGoal: profile.mainGoal || current.mainGoal,
-      strongSubjects: Array.isArray(profile.strongSubjects) ? profile.strongSubjects : current.strongSubjects,
-      weakSubjects: Array.isArray(profile.weakSubjects) ? profile.weakSubjects : current.weakSubjects,
-      learningStyle: profile.learningStyle || current.learningStyle,
-      productiveTime: profile.productiveTime || current.productiveTime,
-      biggestProblem: profile.biggestProblem || current.biggestProblem,
-      aiTone: profile.aiTone || current.aiTone
+      educationLevel: toSelectionArray(profile.educationLevel || current.educationLevel),
+      mainGoal: toSelectionArray(profile.mainGoal || current.mainGoal),
+      strongSubjects: toSelectionArray(profile.strongSubjects || current.strongSubjects),
+      weakSubjects: toSelectionArray(profile.weakSubjects || current.weakSubjects),
+      learningStyle: toSelectionArray(profile.learningStyle || current.learningStyle),
+      productiveTime: toSelectionArray(profile.productiveTime || current.productiveTime),
+      biggestProblem: toSelectionArray(profile.biggestProblem || current.biggestProblem),
+      aiTone: toSelectionArray(profile.aiTone || current.aiTone)
     }));
   }, [profile]);
 
@@ -135,13 +164,6 @@ function OnboardingContent() {
     const value = answers[step.key];
     return Array.isArray(value) ? value.length > 0 : Boolean(String(value || "").trim());
   }, [answers, step.key]);
-
-  const updateSingle = (value) => {
-    setAnswers((current) => ({
-      ...current,
-      [step.key]: value
-    }));
-  };
 
   const toggleMulti = (value) => {
     setAnswers((current) => {
@@ -160,6 +182,21 @@ function OnboardingContent() {
     });
   };
 
+  const addOtherValue = () => {
+    const value = normalizeOtherValue(otherDrafts[step.key]);
+
+    if (!value) return;
+
+    setAnswers((current) => ({
+      ...current,
+      [step.key]: Array.from(new Set([...(current[step.key] || []), value]))
+    }));
+    setOtherDrafts((current) => ({
+      ...current,
+      [step.key]: ""
+    }));
+  };
+
   const completeOnboarding = async () => {
     if (!user?.uid) return;
 
@@ -169,14 +206,14 @@ function OnboardingContent() {
       const [nextProfile] = await Promise.all([
         saveUserOnboarding(user.uid, {
           name: answers.name.trim(),
-          educationLevel: answers.educationLevel,
-          mainGoal: answers.mainGoal,
-          strongSubjects: answers.strongSubjects,
-          weakSubjects: answers.weakSubjects,
-          learningStyle: answers.learningStyle,
-          productiveTime: answers.productiveTime,
-          biggestProblem: answers.biggestProblem,
-          aiTone: answers.aiTone
+          educationLevel: toSelectionArray(answers.educationLevel),
+          mainGoal: toSelectionArray(answers.mainGoal),
+          strongSubjects: toSelectionArray(answers.strongSubjects),
+          weakSubjects: toSelectionArray(answers.weakSubjects),
+          learningStyle: toSelectionArray(answers.learningStyle),
+          productiveTime: toSelectionArray(answers.productiveTime),
+          biggestProblem: toSelectionArray(answers.biggestProblem),
+          aiTone: toSelectionArray(answers.aiTone)
         }),
         wait(1200)
       ]);
@@ -273,12 +310,9 @@ function OnboardingContent() {
                     />
                   </label>
                 ) : (
-                  <div className={`onboarding-options ${step.type === "multi" ? "is-multi" : ""}`}>
+                  <div className={`onboarding-options ${multiChoiceKeys.has(step.key) ? "is-multi" : ""}`}>
                     {step.options.map((option) => {
-                      const selected =
-                        step.type === "multi"
-                          ? answers[step.key].includes(option)
-                          : answers[step.key] === option;
+                      const selected = toSelectionArray(answers[step.key]).includes(option);
 
                       return (
                         <motion.button
@@ -287,18 +321,62 @@ function OnboardingContent() {
                           className={selected ? "is-selected" : ""}
                           whileHover={{ y: -2 }}
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => (step.type === "multi" ? toggleMulti(option) : updateSingle(option))}
+                          onClick={() => toggleMulti(option)}
                         >
                           <span>{option}</span>
                           {selected ? <Check size={16} /> : null}
                         </motion.button>
                       );
                     })}
+                    {toSelectionArray(answers[step.key])
+                      .filter((value) => !step.options.includes(value))
+                      .map((value) => (
+                        <motion.button
+                          key={value}
+                          type="button"
+                          className="is-selected is-custom"
+                          whileHover={{ y: -2 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() =>
+                            setAnswers((current) => ({
+                              ...current,
+                              [step.key]: removeOption(current[step.key], value)
+                            }))
+                          }
+                        >
+                          <span>{value}</span>
+                          <Check size={16} />
+                        </motion.button>
+                      ))}
+                    <label className="onboarding-other-input">
+                      <input
+                        value={otherDrafts[step.key] || ""}
+                        onChange={(event) =>
+                          setOtherDrafts((current) => ({
+                            ...current,
+                            [step.key]: event.target.value
+                          }))
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            addOtherValue();
+                          }
+                        }}
+                        maxLength={24}
+                        placeholder="Other (1-2 words)"
+                      />
+                      <button type="button" onClick={addOtherValue}>
+                        Add
+                      </button>
+                    </label>
                   </div>
                 )}
 
-                {step.type === "multi" ? (
-                  <p className="onboarding-hint">Choose one or more. You can edit this later in Settings.</p>
+                {multiChoiceKeys.has(step.key) ? (
+                  <p className="onboarding-hint">
+                    Choose one or more. Use Other for a short custom answer.
+                  </p>
                 ) : null}
 
                 {error ? <p className="onboarding-error">{error}</p> : null}

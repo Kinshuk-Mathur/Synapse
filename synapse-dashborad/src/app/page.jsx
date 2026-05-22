@@ -285,19 +285,9 @@ export default function Home() {
   }, []);
 
   const studentName = profile?.name || user?.displayName?.split(" ")[0] || "STUDENT";
-  const personalizationSignals = useMemo(() => {
-    const weakSubject = profile?.weakSubjects?.[0];
-    const productiveTime = profile?.productiveTime;
-    const biggestProblem = profile?.biggestProblem;
-    const mainGoal = profile?.mainGoal;
-
-    return [
-      weakSubject ? `${weakSubject} needs attention today.` : null,
-      productiveTime ? `Your peak focus window is ${productiveTime.toLowerCase()}.` : null,
-      biggestProblem ? `Watch for ${biggestProblem.toLowerCase()} and keep the next session small.` : null,
-      mainGoal ? `Today's system is tuned for ${mainGoal}.` : null
-    ].filter(Boolean);
-  }, [profile]);
+  const mainGoalText = Array.isArray(profile?.mainGoal)
+    ? profile.mainGoal.slice(0, 2).join(" + ")
+    : profile?.mainGoal;
 
   useEffect(() => {
     if (!user?.uid) {
@@ -550,8 +540,8 @@ export default function Home() {
                 <div className="hero-copy">
                   <h1>{greeting}, {studentName}!</h1>
                   <p>
-                    {profile?.mainGoal
-                      ? `Your workspace is tuned for ${profile.mainGoal}.`
+                    {mainGoalText
+                      ? `Your workspace is tuned for ${mainGoalText}.`
                       : "Focus. Learn. Achieve. Repeat."}
                   </p>
                 </div>
@@ -686,25 +676,6 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.55, delay: 0.1 }}
             >
-              {personalizationSignals.length ? (
-                <motion.article
-                  className="panel dashboard-side-panel personalization-panel"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, delay: 0.18 }}
-                >
-                  <div className="panel-header">
-                    <h2>Personal Focus</h2>
-                    <Sparkles size={17} />
-                  </div>
-                  <div className="personalization-list">
-                    {personalizationSignals.slice(0, 3).map((signal) => (
-                      <p key={signal}>{signal}</p>
-                    ))}
-                  </div>
-                </motion.article>
-              ) : null}
-
               <motion.article
                 className="panel todo-panel dashboard-side-panel"
                 initial={{ opacity: 0, y: 20 }}

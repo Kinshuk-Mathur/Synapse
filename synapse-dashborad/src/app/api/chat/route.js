@@ -121,8 +121,8 @@ export async function POST(req) {
         latestPrompt,
         uploadedDocumentNames: body.uploadedDocumentNames,
         aiPreferences: {
-          aiTone: userProfile?.aiTone || "",
-          learningStyle: userProfile?.learningStyle || "",
+          aiTone: userProfile?.aiTone || [],
+          learningStyle: userProfile?.learningStyle || [],
           weakSubjects: userProfile?.weakSubjects || []
         }
       }, requestId);
