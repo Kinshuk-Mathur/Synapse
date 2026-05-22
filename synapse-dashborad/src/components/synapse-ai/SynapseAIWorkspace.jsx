@@ -132,6 +132,68 @@ async function safelyReadChatJson(response) {
   }
 }
 
+async function readSynapseAiStream(response, handlers = {}) {
+  const reader = response.body?.getReader();
+
+  if (!reader) {
+    throw new Error(SAFE_AI_ERROR);
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  const handleLine = (line) => {
+    const trimmed = line.trim();
+
+    if (!trimmed) return;
+
+    let payload = null;
+
+    try {
+      payload = JSON.parse(trimmed);
+    } catch {
+      throw new Error(SAFE_AI_ERROR);
+    }
+
+    if (payload.type === "token") {
+      handlers.onToken?.(String(payload.content || ""));
+      return;
+    }
+
+    if (payload.type === "meta") {
+      handlers.onMeta?.(payload);
+      return;
+    }
+
+    if (payload.type === "done") {
+      handlers.onDone?.(payload);
+      return;
+    }
+
+    if (payload.type === "error") {
+      throw new Error(payload.message || SAFE_AI_ERROR);
+    }
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      handleLine(line);
+    }
+  }
+
+  if (buffer.trim()) {
+    handleLine(buffer);
+  }
+}
+
 function makeTitle(text) {
   const clean = text.replace(/\s+/g, " ").trim();
   if (!clean) return "New Chat";
@@ -904,16 +966,76 @@ export default function SynapseAIWorkspace() {
     setSelectedFile(null);
     setLoading(true);
 
+    let assistantMessageId = "";
+    let hasAssistantMessage = false;
+    let streamedContent = "";
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          Accept: "application/x-ndjson"
         },
         body: JSON.stringify({
-          messages: nextMessages
+          messages: nextMessages,
+          stream: true
         })
       });
+      const responseType = response.headers.get("content-type") || "";
+
+      if (response.ok && response.body && responseType.includes("application/x-ndjson")) {
+        assistantMessageId = `assistant-${Date.now()}`;
+        const assistantCreatedAt = new Date().toISOString();
+
+        const ensureAssistantMessage = () => {
+          if (hasAssistantMessage) return;
+
+          hasAssistantMessage = true;
+          setLoading(false);
+          updateConversation(targetId, (current) => ({
+            ...current,
+            updatedAt: assistantCreatedAt,
+            messages: [
+              ...current.messages,
+              {
+                id: assistantMessageId,
+                role: "assistant",
+                content: "",
+                createdAt: assistantCreatedAt
+              }
+            ]
+          }));
+        };
+
+        await readSynapseAiStream(response, {
+          onToken(token) {
+            if (!token) return;
+
+            ensureAssistantMessage();
+            streamedContent += token;
+            updateConversation(targetId, (current) => ({
+              ...current,
+              updatedAt: assistantCreatedAt,
+              messages: current.messages.map((message) =>
+                message.id === assistantMessageId
+                  ? {
+                      ...message,
+                      content: streamedContent
+                    }
+                  : message
+              )
+            }));
+          }
+        });
+
+        if (!streamedContent.trim()) {
+          throw new Error(SAFE_AI_ERROR);
+        }
+
+        return;
+      }
+
       const data = await safelyReadChatJson(response);
 
       if (!response.ok) {
@@ -937,6 +1059,24 @@ export default function SynapseAIWorkspace() {
         messages: [...current.messages, assistantMessage]
       }));
     } catch (error) {
+      if (hasAssistantMessage && assistantMessageId) {
+        const safeError = error.message || SAFE_AI_ERROR;
+
+        updateConversation(targetId, (current) => ({
+          ...current,
+          updatedAt: new Date().toISOString(),
+          messages: current.messages.map((message) =>
+            message.id === assistantMessageId
+              ? {
+                  ...message,
+                  content: message.content?.trim() ? `${message.content}\n\n${safeError}` : safeError
+                }
+              : message
+          )
+        }));
+        return;
+      }
+
       const errorMessage = {
         id: `assistant-error-${Date.now()}`,
         role: "assistant",

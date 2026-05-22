@@ -1,36 +1,19 @@
+import { GROQ_MODEL_KEYS, orderGroqModels } from "./groq";
+
 export const SYNAPSE_AI_BUSY_MESSAGE =
   "SYNAPSE AI is currently busy. Please try again shortly.";
 
-export const AI_MODELS = [
-  {
-    name: "DeepSeek",
-    id: "deepseek/deepseek-v4-flash:free"
-  },
-  {
-    name: "Llama",
-    id: "meta-llama/llama-3.3-70b-instruct:free"
-  },
-  {
-    name: "Gemma",
-    id: "google/gemma-4-26b-a4b-it:free"
-  },
-  {
-    name: "Mistral",
-    id: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free"
-  }
-];
-
 export const AI_ROUTER_CONFIG = {
-  timeoutMs: 20_000,
+  timeoutMs: 18_000,
   retriesPerModel: 1,
   maxMessages: 12,
   maxContentLength: 12_000,
   temperature: 0.25,
-  maxTokens: 1_200,
-  retryDelayMs: 750,
-  maxRateLimitWaitMs: 2_500,
-  defaultCooldownMs: 45_000,
-  cooldownBufferMs: 1_250
+  maxCompletionTokens: 1_200,
+  retryDelayMs: 550,
+  maxRateLimitWaitMs: 2_000,
+  defaultCooldownMs: 40_000,
+  cooldownBufferMs: 1_000
 };
 
 const modelCooldowns = new Map();
@@ -52,7 +35,7 @@ export function normalizeChatMessages(messages = []) {
     .slice(-AI_ROUTER_CONFIG.maxMessages);
 }
 
-export function buildOpenRouterMessages(systemPrompt, messages) {
+export function buildGroqMessages(systemPrompt, messages) {
   return [
     {
       role: "system",
@@ -60,6 +43,35 @@ export function buildOpenRouterMessages(systemPrompt, messages) {
     },
     ...normalizeChatMessages(messages)
   ];
+}
+
+function latestUserMessage(messages = []) {
+  return [...messages].reverse().find((message) => message.role === "user")?.content || "";
+}
+
+export function chooseGroqModelKey(messages = []) {
+  const latest = latestUserMessage(messages).toLowerCase();
+
+  if (
+    /\b(code|coding|debug|bug|error|stack trace|algorithm|function|component|api|firebase|firestore|next\.?js|react|tailwind)\b/.test(
+      latest
+    ) ||
+    /\b(solve|derive|proof|calculate|equation|formula|physics|math|reason|step by step|why)\b/.test(
+      latest
+    )
+  ) {
+    return GROQ_MODEL_KEYS.REASONING;
+  }
+
+  if (
+    /\b(short|quick|summarize|summary|rewrite|title|caption|bullet|todo|checklist|list|plan my)\b/.test(
+      latest
+    )
+  ) {
+    return GROQ_MODEL_KEYS.LIGHTWEIGHT;
+  }
+
+  return GROQ_MODEL_KEYS.GENERAL;
 }
 
 function isHtmlErrorResponse(value) {
@@ -130,30 +142,23 @@ function parseRetryAfterMs(value) {
   return 0;
 }
 
-function getOpenRouterErrorDetails(error) {
+export function getGroqErrorDetails(error) {
   const status = getErrorStatus(error);
-  const metadata =
-    error?.error?.metadata ||
-    error?.response?.data?.error?.metadata ||
-    error?.cause?.error?.metadata ||
-    {};
   const headers = error?.headers || error?.response?.headers || error?.cause?.headers || null;
   const retryAfterMs =
     parseRetryAfterMs(getHeader(headers, "retry-after")) ||
-    parseRetryAfterMs(metadata.retry_after_seconds || metadata.retry_after_seconds_raw);
+    parseRetryAfterMs(getHeader(headers, "retry-after-ms"));
   const message =
     error?.error?.message ||
     error?.response?.data?.error?.message ||
     error?.message ||
-    "Unknown AI provider error";
+    "Unknown Groq API error";
 
   return {
-    name: error?.name || "OpenRouterError",
+    name: error?.name || "GroqError",
     status,
     code: error?.error?.code || error?.response?.data?.error?.code || null,
     message,
-    provider: metadata.provider_name || null,
-    raw: metadata.raw || null,
     retryAfterSeconds: retryAfterMs ? Math.ceil(retryAfterMs / 1000) : null,
     retryAfterMs,
     type: error?.type || error?.error?.type || null
@@ -161,7 +166,7 @@ function getOpenRouterErrorDetails(error) {
 }
 
 function describeFailure(error) {
-  const details = getOpenRouterErrorDetails(error);
+  const details = getGroqErrorDetails(error);
   return details.status ? `${details.status} ${details.message}` : details.message;
 }
 
@@ -191,7 +196,9 @@ function setModelCooldown(model, details, logger, requestId) {
 
   modelCooldowns.set(model.id, expiresAt);
   logger.warn(
-    `[SYNAPSE AI ${requestId}] Cooldown set for ${model.name}: ${Math.ceil(cooldownMs / 1000)}s`
+    `[SYNAPSE AI ${requestId}] Groq cooldown set for ${model.name}: ${Math.ceil(
+      cooldownMs / 1000
+    )}s`
   );
 }
 
@@ -204,7 +211,7 @@ function sleep(ms) {
 function shouldRetrySameModel(details, attempt, retriesPerModel) {
   if (attempt >= retriesPerModel) return false;
 
-  if (details.status === 404 || details.status === 401 || details.status === 403) {
+  if (details.status === 400 || details.status === 401 || details.status === 403 || details.status === 404) {
     return false;
   }
 
@@ -212,82 +219,140 @@ function shouldRetrySameModel(details, attempt, retriesPerModel) {
     return details.retryAfterMs > 0 && details.retryAfterMs <= AI_ROUTER_CONFIG.maxRateLimitWaitMs;
   }
 
-  return !details.status || details.status >= 500 || details.status === 408;
+  return !details.status || details.status >= 500 || details.status === 408 || details.status === 409;
 }
 
 function extractAssistantMessage(completion) {
   const content = completion?.choices?.[0]?.message?.content;
 
   if (typeof content !== "string") {
-    throw new Error("Invalid response: missing assistant message.");
+    throw new Error("Invalid Groq response: missing assistant message.");
   }
 
   const trimmed = content.trim();
 
   if (!trimmed || isHtmlErrorResponse(trimmed)) {
-    throw new Error("Invalid response: provider returned unusable content.");
+    throw new Error("Invalid Groq response: unusable content.");
   }
 
   const qualityIssue = getResponseQualityIssue(trimmed);
 
   if (qualityIssue) {
-    throw new Error(`Invalid response: ${qualityIssue}.`);
+    throw new Error(`Invalid Groq response: ${qualityIssue}.`);
   }
 
   return trimmed;
 }
 
-async function requestWithTimeout(openai, model, messages, timeoutMs, logger, requestId, attempt) {
-  const controller = new AbortController();
-  let timeout = null;
+function extractStreamedMessage(text) {
+  const trimmed = String(text || "").trim();
 
-  try {
-    logger.info(
-      `[SYNAPSE AI ${requestId}] Request -> ${model.name} (${model.id}) attempt ${attempt + 1}; messages=${messages.length}; chars=${getPromptCharCount(messages)}`
-    );
-
-    const apiPromise = openai.chat.completions.create(
-      {
-        model: model.id,
-        messages,
-        temperature: AI_ROUTER_CONFIG.temperature,
-        max_tokens: AI_ROUTER_CONFIG.maxTokens
-      },
-      {
-        signal: controller.signal
-      }
-    );
-    const request =
-      typeof apiPromise.withResponse === "function"
-        ? apiPromise.withResponse()
-        : apiPromise.then((data) => ({ data, response: null }));
-    const completion = await Promise.race([
-      request,
-      new Promise((_, reject) => {
-        timeout = setTimeout(() => {
-          controller.abort();
-          reject(new Error(`${model.name} timed out.`));
-        }, timeoutMs);
-      })
-    ]);
-
-    return completion;
-  } finally {
-    clearTimeout(timeout);
+  if (!trimmed || isHtmlErrorResponse(trimmed)) {
+    throw new Error("Invalid Groq stream: unusable content.");
   }
+
+  const qualityIssue = getResponseQualityIssue(trimmed);
+
+  if (qualityIssue) {
+    throw new Error(`Invalid Groq stream: ${qualityIssue}.`);
+  }
+
+  return trimmed;
 }
 
-export async function routeCompletionThroughModels(openai, messages, options = {}) {
-  const models = options.models || AI_MODELS;
+function createCompletionPayload(model, messages, stream = false) {
+  return {
+    model: model.id,
+    messages,
+    temperature: AI_ROUTER_CONFIG.temperature,
+    max_completion_tokens: AI_ROUTER_CONFIG.maxCompletionTokens,
+    stream
+  };
+}
+
+async function requestGroqCompletion(client, model, messages, timeoutMs, logger, requestId, attempt) {
+  logger.info(
+    `[SYNAPSE AI ${requestId}] Groq request -> ${model.name} (${model.id}) attempt ${
+      attempt + 1
+    }; messages=${messages.length}; chars=${getPromptCharCount(messages)}`
+  );
+
+  const completion = await client.chat.completions.create(
+    createCompletionPayload(model, messages, false),
+    {
+      timeout: timeoutMs,
+      maxRetries: 0
+    }
+  );
+
+  logger.info(
+    `[SYNAPSE AI ${requestId}] Groq usage <- ${model.name}; prompt=${
+      completion?.usage?.prompt_tokens ?? "n/a"
+    }; completion=${completion?.usage?.completion_tokens ?? "n/a"}; total=${
+      completion?.usage?.total_tokens ?? "n/a"
+    }`
+  );
+
+  return extractAssistantMessage(completion);
+}
+
+async function requestGroqStreamCompletion(client, model, messages, timeoutMs, logger, requestId, attempt) {
+  logger.info(
+    `[SYNAPSE AI ${requestId}] Groq stream request -> ${model.name} (${model.id}) attempt ${
+      attempt + 1
+    }; messages=${messages.length}; chars=${getPromptCharCount(messages)}`
+  );
+
+  const stream = await client.chat.completions.create(createCompletionPayload(model, messages, true), {
+    timeout: timeoutMs,
+    maxRetries: 0
+  });
+  let content = "";
+  let finishReason = "unknown";
+  let usage = null;
+
+  for await (const chunk of stream) {
+    const token = chunk?.choices?.[0]?.delta?.content || "";
+
+    if (token) {
+      content += token;
+    }
+
+    if (chunk?.x_groq?.usage) {
+      usage = chunk.x_groq.usage;
+    }
+
+    if (chunk?.choices?.[0]?.finish_reason) {
+      finishReason = chunk.choices[0].finish_reason;
+    }
+  }
+
+  const message = extractStreamedMessage(content);
+
+  logger.info(
+    `[SYNAPSE AI ${requestId}] Groq stream complete <- ${
+      model.name
+    }; chars=${message.length}; finish=${finishReason}; prompt=${
+      usage?.prompt_tokens ?? "n/a"
+    }; completion=${usage?.completion_tokens ?? "n/a"}; total=${usage?.total_tokens ?? "n/a"}`
+  );
+
+  return message;
+}
+
+export async function routeCompletionThroughGroq(client, messages, options = {}) {
+  const primaryKey = options.primaryKey || chooseGroqModelKey(messages);
+  const models = options.models || orderGroqModels(primaryKey);
   const retriesPerModel = options.retriesPerModel ?? AI_ROUTER_CONFIG.retriesPerModel;
   const timeoutMs = options.timeoutMs ?? AI_ROUTER_CONFIG.timeoutMs;
   const logger = options.logger || console;
   const requestId = options.requestId || `local-${Date.now()}`;
+  const streamFromProvider = Boolean(options.streamFromProvider);
   const failures = [];
   let lastError = null;
 
   logger.info(
-    `[SYNAPSE AI ${requestId}] Router start. Models=${models
+    `[SYNAPSE AI ${requestId}] Groq router start. primary=${primaryKey}; Models=${models
       .map((model) => `${model.name}:${model.id}`)
       .join(" -> ")}`
   );
@@ -312,40 +377,28 @@ export async function routeCompletionThroughModels(openai, messages, options = {
     }
 
     if (modelIndex > 0) {
-      logger.info(`[SYNAPSE AI ${requestId}] Switching to ${model.name}`);
+      logger.info(`[SYNAPSE AI ${requestId}] Switching to Groq model: ${model.name}`);
     }
 
     for (let attempt = 0; attempt <= retriesPerModel; attempt += 1) {
       try {
-        logger.info(`[SYNAPSE AI ${requestId}] Using model: ${model.name}`);
-        const completion = await requestWithTimeout(
-          openai,
-          model,
-          messages,
-          timeoutMs,
-          logger,
-          requestId,
-          attempt
-        );
-        const data = completion.data || completion;
-        const message = extractAssistantMessage(data);
+        logger.info(`[SYNAPSE AI ${requestId}] Using Groq model: ${model.name}`);
+        const message = streamFromProvider
+          ? await requestGroqStreamCompletion(client, model, messages, timeoutMs, logger, requestId, attempt)
+          : await requestGroqCompletion(client, model, messages, timeoutMs, logger, requestId, attempt);
 
-        logger.info(
-          `[SYNAPSE AI ${requestId}] Response <- ${model.name}; status=${
-            completion.response?.status || "parsed"
-          }; returnedModel=${data?.model || model.id}; finish=${
-            data?.choices?.[0]?.finish_reason || "unknown"
-          }`
-        );
+        logger.info(`[SYNAPSE AI ${requestId}] Groq response ready <- ${model.name}`);
 
         return {
           message,
           modelUsed: model.name,
-          modelId: model.id
+          modelId: model.id,
+          route: model.key,
+          failures
         };
       } catch (error) {
         lastError = error;
-        const details = getOpenRouterErrorDetails(error);
+        const details = getGroqErrorDetails(error);
         failures.push({
           model: model.name,
           modelId: model.id,
@@ -353,11 +406,9 @@ export async function routeCompletionThroughModels(openai, messages, options = {
           ...details
         });
 
+        logger.warn(`[SYNAPSE AI ${requestId}] ${model.name} failed: ${describeFailure(error)}`);
         logger.warn(
-          `[SYNAPSE AI ${requestId}] ${model.name} failed: ${describeFailure(error)}`
-        );
-        logger.warn(
-          `[SYNAPSE AI ${requestId}] OpenRouter error detail: ${safeStringify({
+          `[SYNAPSE AI ${requestId}] Groq error detail: ${safeStringify({
             model: model.id,
             attempt: attempt + 1,
             ...details
@@ -374,9 +425,7 @@ export async function routeCompletionThroughModels(openai, messages, options = {
               ? Math.min(details.retryAfterMs, AI_ROUTER_CONFIG.maxRateLimitWaitMs)
               : AI_ROUTER_CONFIG.retryDelayMs;
 
-          logger.info(
-            `[SYNAPSE AI ${requestId}] Retrying ${model.name} after ${delayMs}ms`
-          );
+          logger.info(`[SYNAPSE AI ${requestId}] Retrying ${model.name} after ${delayMs}ms`);
           await sleep(delayMs);
           continue;
         }
@@ -387,8 +436,8 @@ export async function routeCompletionThroughModels(openai, messages, options = {
   }
 
   logger.error(
-    `[SYNAPSE AI ${requestId}] All model attempts failed. Emergency fallback engaged. Last failure: ${safeStringify(
-      getOpenRouterErrorDetails(lastError)
+    `[SYNAPSE AI ${requestId}] All Groq model attempts failed. Emergency fallback engaged. Last failure: ${safeStringify(
+      getGroqErrorDetails(lastError)
     )}`
   );
 
@@ -400,3 +449,27 @@ export async function routeCompletionThroughModels(openai, messages, options = {
     failures
   };
 }
+
+export function splitResponseForStreaming(text) {
+  const pieces = String(text || "").match(/(\s+|[^\s]+)/g) || [];
+  const chunks = [];
+  let current = "";
+
+  for (const piece of pieces) {
+    if (current && current.length + piece.length > 34) {
+      chunks.push(current);
+      current = piece;
+      continue;
+    }
+
+    current += piece;
+  }
+
+  if (current) {
+    chunks.push(current);
+  }
+
+  return chunks.length ? chunks : [String(text || "")];
+}
+
+export { sleep };

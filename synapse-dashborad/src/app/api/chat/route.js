@@ -1,19 +1,20 @@
-import OpenAI from "openai";
 import {
-  buildOpenRouterMessages,
+  buildGroqMessages,
   normalizeChatMessages,
-  routeCompletionThroughModels,
+  routeCompletionThroughGroq,
+  sleep,
+  splitResponseForStreaming,
   SYNAPSE_AI_BUSY_MESSAGE
 } from "../../../lib/aiModels.js";
+import { createGroqClient } from "../../../lib/groq.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 const SYSTEM_PROMPT = `
 You are SYNAPSE AI.
 
-You are a futuristic productivity and study assistant for students.
+You are a premium productivity and study assistant for students.
 
 You help users with:
 - study doubts
@@ -51,25 +52,6 @@ function jsonResponse(payload, status = 200) {
   });
 }
 
-function createOpenRouterClient() {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-
-  if (!apiKey) {
-    return null;
-  }
-
-  return new OpenAI({
-    baseURL: OPENROUTER_BASE_URL,
-    apiKey,
-    maxRetries: 0,
-    timeout: 22_000,
-    defaultHeaders: {
-      "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-      "X-Title": "SYNAPSE AI"
-    }
-  });
-}
-
 async function readJsonBody(req) {
   const rawBody = await req.text();
 
@@ -84,25 +66,79 @@ async function readJsonBody(req) {
   }
 }
 
+function wantsStreaming(req, body) {
+  const accept = req.headers.get("accept") || "";
+  return Boolean(body.stream) || accept.includes("application/x-ndjson");
+}
+
+function streamJsonLine(controller, encoder, payload) {
+  controller.enqueue(encoder.encode(`${JSON.stringify(payload)}\n`));
+}
+
+function streamingResponse(work) {
+  const encoder = new TextEncoder();
+
+  return new Response(
+    new ReadableStream({
+      async start(controller) {
+        try {
+          await work({
+            send(payload) {
+              streamJsonLine(controller, encoder, payload);
+            }
+          });
+        } catch (error) {
+          console.error("[SYNAPSE AI] Stream failed:", error?.message || error);
+          streamJsonLine(controller, encoder, {
+            type: "error",
+            message: SYNAPSE_AI_BUSY_MESSAGE
+          });
+        } finally {
+          controller.close();
+        }
+      }
+    }),
+    {
+      headers: {
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "Cache-Control": "no-store, no-transform",
+        "X-Accel-Buffering": "no"
+      }
+    }
+  );
+}
+
+async function getRoutedGroqResponse(client, cleanMessages, requestId, streamFromProvider = false) {
+  return routeCompletionThroughGroq(
+    client,
+    buildGroqMessages(SYSTEM_PROMPT, cleanMessages),
+    {
+      requestId,
+      streamFromProvider
+    }
+  );
+}
+
 export async function POST(req) {
   const requestId =
     globalThis.crypto?.randomUUID?.() || `chat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   try {
-    console.info(`[SYNAPSE AI ${requestId}] API request received.`);
-    const openai = createOpenRouterClient();
+    console.info(`[SYNAPSE AI ${requestId}] Groq API request received.`);
+    const groq = createGroqClient();
 
-    if (!openai) {
-      console.error(`[SYNAPSE AI ${requestId}] OPENROUTER_API_KEY is missing.`);
+    if (!groq) {
+      console.error(`[SYNAPSE AI ${requestId}] GROQ_API_KEY is missing.`);
       return jsonResponse({ message: SYNAPSE_AI_BUSY_MESSAGE }, 503);
     }
 
     const body = await readJsonBody(req);
     const cleanMessages = normalizeChatMessages(body.messages);
+
     console.info(
       `[SYNAPSE AI ${requestId}] Clean messages=${cleanMessages.length}; latestRole=${
         cleanMessages.at(-1)?.role || "none"
-      }`
+      }; stream=${Boolean(body.stream)}`
     );
 
     if (!cleanMessages.length) {
@@ -114,16 +150,44 @@ export async function POST(req) {
       );
     }
 
-    const routedResponse = await routeCompletionThroughModels(
-      openai,
-      buildOpenRouterMessages(SYSTEM_PROMPT, cleanMessages),
-      { requestId }
-    );
+    if (wantsStreaming(req, body)) {
+      return streamingResponse(async ({ send }) => {
+        const routedResponse = await getRoutedGroqResponse(groq, cleanMessages, requestId, true);
+
+        console.info(
+          `[SYNAPSE AI ${requestId}] Streaming response ready. modelUsed=${
+            routedResponse.modelUsed
+          }; emergency=${Boolean(routedResponse.emergency)}`
+        );
+
+        send({
+          type: "meta",
+          modelUsed: routedResponse.modelUsed,
+          emergency: Boolean(routedResponse.emergency)
+        });
+
+        for (const chunk of splitResponseForStreaming(routedResponse.message)) {
+          send({
+            type: "token",
+            content: chunk
+          });
+          await sleep(8);
+        }
+
+        send({
+          type: "done",
+          modelUsed: routedResponse.modelUsed,
+          emergency: Boolean(routedResponse.emergency)
+        });
+      });
+    }
+
+    const routedResponse = await getRoutedGroqResponse(groq, cleanMessages, requestId, false);
 
     console.info(
-      `[SYNAPSE AI ${requestId}] API response ready. modelUsed=${routedResponse.modelUsed}; emergency=${Boolean(
-        routedResponse.emergency
-      )}`
+      `[SYNAPSE AI ${requestId}] JSON response ready. modelUsed=${
+        routedResponse.modelUsed
+      }; emergency=${Boolean(routedResponse.emergency)}`
     );
 
     return jsonResponse({
@@ -132,7 +196,7 @@ export async function POST(req) {
       emergency: Boolean(routedResponse.emergency)
     });
   } catch (error) {
-    console.error(`[SYNAPSE AI ${requestId}] API route failed:`, error?.message || error);
+    console.error(`[SYNAPSE AI ${requestId}] Groq API route failed:`, error?.message || error);
 
     return jsonResponse(
       {
