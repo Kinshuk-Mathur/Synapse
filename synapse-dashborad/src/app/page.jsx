@@ -48,7 +48,7 @@ import {
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
 import { useSynapseFocus } from "../hooks/useSynapseFocus";
-import { formatDateKey, listenToUserTodos } from "../services/todos";
+import { carryForwardPastTodos, formatDateKey, listenToUserTodos, lockPastTodos } from "../services/todos";
 
 const todoAppUrl = "/todo";
 const goalsAppUrl = "/goals";
@@ -300,10 +300,17 @@ export default function Home() {
 
     return listenToUserTodos(
       user.uid,
-      (nextTodos) => {
+      async (nextTodos) => {
         setDashboardTodos(nextTodos);
         setDashboardTodoError("");
         setDashboardTodoLoading(false);
+
+        try {
+          await lockPastTodos(nextTodos);
+          await carryForwardPastTodos(user.uid, nextTodos);
+        } catch (todoSyncError) {
+          setDashboardTodoError(todoSyncError.message || "Unable to sync pending tasks.");
+        }
       },
       (todoError) => {
         setDashboardTodoError(todoError.message || "Unable to load pending tasks.");
@@ -315,11 +322,15 @@ export default function Home() {
   const dashboardPendingTodos = useMemo(
     () =>
       dashboardTodos
-        .filter((item) => !item.completed && item.selectedDate <= formatDateKey())
-        .sort((a, b) => String(a.selectedDate).localeCompare(String(b.selectedDate)))
-        .slice(0, 4),
+        .filter((item) => !item.completed && item.status !== "carried" && item.selectedDate <= formatDateKey())
+        .sort((a, b) => String(a.selectedDate).localeCompare(String(b.selectedDate))),
     [dashboardTodos]
   );
+
+  const dashboardTodayComplete = useMemo(() => {
+    const todayTodos = dashboardTodos.filter((item) => item.selectedDate === formatDateKey());
+    return todayTodos.length > 0 && todayTodos.every((item) => item.completed);
+  }, [dashboardTodos]);
 
   const statCards = useMemo(() => {
     const todayKey = formatDateKey();
@@ -707,7 +718,9 @@ export default function Home() {
                     ))
                   ) : (
                     <Link className="todo-empty-row todo-empty-link" href={todoAppUrl}>
-                      No pending tasks. Add a clean plan for today.
+                      {dashboardTodayComplete
+                        ? "Hooray, you completed all your tasks today."
+                        : "No pending tasks. Add a clean plan for today."}
                     </Link>
                   )}
                 </div>

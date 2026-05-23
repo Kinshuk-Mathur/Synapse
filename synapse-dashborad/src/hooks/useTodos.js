@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   addTodo,
+  carryForwardPastTodos,
   deleteTodo,
   formatDateKey,
   isDateLocked,
@@ -37,8 +38,9 @@ export function useTodos(selectedDate) {
 
         try {
           await lockPastTodos(nextTodos);
+          await carryForwardPastTodos(user.uid, nextTodos);
         } catch (lockError) {
-          setError(lockError.message || "Unable to lock previous day tasks.");
+          setError(lockError.message || "Unable to sync previous day tasks.");
         }
       },
       (snapshotError) => {
@@ -56,7 +58,7 @@ export function useTodos(selectedDate) {
   const pendingCarryovers = useMemo(
     () =>
       todos
-        .filter((todo) => todo.selectedDate < formatDateKey() && !todo.completed)
+        .filter((todo) => todo.selectedDate < formatDateKey() && !todo.completed && todo.status !== "carried")
         .sort((a, b) => String(b.selectedDate).localeCompare(String(a.selectedDate)))
         .slice(0, 5),
     [todos]

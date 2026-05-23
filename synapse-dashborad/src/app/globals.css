@@ -793,6 +793,12 @@ textarea {
   align-items: flex-start;
 }
 
+.dashboard-side-column .todo-list {
+  max-height: 46vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .panel:hover {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-glow), var(--shadow-card);
@@ -1366,8 +1372,7 @@ textarea {
   gap: 8px;
 }
 
-.todo-calendar-controls button,
-.quick-add-orb {
+.todo-calendar-controls button {
   display: grid;
   width: 38px;
   height: 38px;
@@ -1386,11 +1391,6 @@ textarea {
   border-color: var(--border-strong);
   box-shadow: 0 0 22px color-mix(in oklab, var(--color-pulse) 24%, var(--transparent));
   transform: translateY(-2px);
-}
-
-.quick-add-orb {
-  color: var(--color-pulse);
-  box-shadow: 0 0 18px color-mix(in oklab, var(--color-pulse) 32%, var(--transparent));
 }
 
 .todo-weekdays,
@@ -1795,7 +1795,8 @@ textarea {
 .empty-task-state {
   display: grid;
   min-height: 250px;
-  place-items: center;
+  align-content: center;
+  justify-items: center;
   border: 1px dashed var(--border);
   border-radius: 8px;
   background: color-mix(in oklab, var(--color-text) 3%, var(--transparent));
@@ -1803,19 +1804,8 @@ textarea {
   text-align: center;
 }
 
-.empty-task-state span {
-  display: grid;
-  width: 58px;
-  height: 58px;
-  place-items: center;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--color-pulse), var(--color-accent));
-  font-size: 32px;
-  box-shadow: var(--shadow-glow);
-}
-
 .empty-task-state h2 {
-  margin: 18px 0 8px;
+  margin: 0 0 8px;
 }
 
 .empty-task-state p {

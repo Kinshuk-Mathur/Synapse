@@ -121,7 +121,6 @@ export default function TodoTaskList({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
             >
-              <span>+</span>
               <h2>No tasks on this date</h2>
               <p>Use Quick Add to build a focused plan for this day.</p>
             </motion.div>

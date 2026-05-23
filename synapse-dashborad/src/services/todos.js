@@ -123,6 +123,67 @@ export async function lockPastTodos(todos) {
   await batch.commit();
 }
 
+export async function carryForwardPastTodos(uid, todos) {
+  if (!uid) {
+    return;
+  }
+
+  const todayKey = formatDateKey();
+  const existingCarrySourceIds = new Set(
+    todos
+      .filter((todo) => todo.selectedDate === todayKey && todo.sourceTodoId)
+      .map((todo) => todo.sourceTodoId)
+  );
+  const carryoverCandidates = todos.filter(
+    (todo) =>
+      todo.id &&
+      todo.uid === uid &&
+      todo.selectedDate &&
+      todo.selectedDate < todayKey &&
+      !todo.completed &&
+      todo.status !== "carried" &&
+      todo.carriedTo !== todayKey &&
+      !existingCarrySourceIds.has(todo.id)
+  );
+
+  if (!carryoverCandidates.length) {
+    return;
+  }
+
+  const db = getFirebaseDb();
+  const batch = writeBatch(db);
+
+  carryoverCandidates.forEach((todo) => {
+    const carryoverRef = doc(db, COLLECTIONS.todos, `${uid}_${todayKey}_${todo.id}_carryover`);
+
+    batch.set(carryoverRef, {
+      uid,
+      task: todo.task || "Untitled task",
+      note: todo.note || "",
+      time: todo.time || "09:00",
+      priority: TODO_PRIORITIES.includes(todo.priority) ? todo.priority : "Medium",
+      selectedDate: todayKey,
+      completed: false,
+      locked: false,
+      status: "active",
+      sourceTodoId: todo.id,
+      carriedFromDate: todo.selectedDate,
+      createdLocal: new Date().toISOString(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    batch.update(doc(db, COLLECTIONS.todos, todo.id), {
+      locked: true,
+      status: "carried",
+      carriedTo: todayKey,
+      updatedAt: serverTimestamp()
+    });
+  });
+
+  await batch.commit();
+}
+
 export async function upsertTodoDaySummary(uid, selectedDate, todosForDate) {
   if (!uid || !selectedDate) {
     return;

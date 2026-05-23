@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Clock3, Flag, Plus } from "lucide-react";
+import { Clock3, Flag } from "lucide-react";
 import { useState } from "react";
 import { TODO_PRIORITIES } from "../../services/todos";
 
@@ -46,9 +46,6 @@ export default function QuickAddTask({ locked, onAdd }) {
     >
       <div className="todo-panel-heading">
         <h2>Quick Add</h2>
-        <span className="quick-add-orb">
-          <Plus size={18} />
-        </span>
       </div>
 
       <label className="todo-input-shell">
