@@ -8,6 +8,7 @@ import {
 import { COLLECTIONS, userScopedQuery } from "./firestore";
 import { formatDateKey, parseDateKey } from "./todos";
 import { getFirebaseDb } from "../lib/firebase";
+import { recordUserActivity } from "./userStats";
 
 const EMPTY_SUMMARY = {
   focusSecondsToday: 0,
@@ -390,6 +391,10 @@ export async function recordExtensionFocusPayload(uid, payload) {
     },
     { merge: true }
   );
+
+  if (history.some((record) => record.completed) || Number(stats.sessionsCompleted || 0) > 0) {
+    await recordUserActivity(uid, "focusSession");
+  }
 }
 
 export { EMPTY_SUMMARY as emptyFocusSummary };

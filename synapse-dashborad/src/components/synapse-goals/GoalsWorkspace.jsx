@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import {
   Bell,
-  CalendarDays,
   ChevronDown,
   LogOut,
   Menu,
@@ -15,6 +14,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useMonthlyGoals } from "../../hooks/useMonthlyGoals";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
+import { useUserStats } from "../../hooks/useUserStats";
 import {
   GOAL_FILTERS,
   getCurrentGoalMonth,
@@ -48,6 +48,7 @@ export default function GoalsWorkspace() {
   const { user, logout } = useAuth();
   const {
     selectedGoals,
+    selectedTrend,
     monthStats,
     loading,
     error,
@@ -56,6 +57,7 @@ export default function GoalsWorkspace() {
     editGoal,
     removeGoal
   } = useMonthlyGoals(selectedMonth, selectedYear);
+  const { stats: userStats } = useUserStats();
 
   const selectedStats = normalizeStats(monthStats.get(`${selectedYear}-${selectedMonth}`));
   const filteredGoals = useMemo(() => {
@@ -80,7 +82,7 @@ export default function GoalsWorkspace() {
       <div className="ambient-grid" aria-hidden="true" />
 
       <div className="dashboard-frame goals-dashboard-frame">
-        <GoalsSidebar />
+        <GoalsSidebar currentStreak={userStats.streak} />
 
         <section className="workspace goals-workspace">
           <header className="goals-topbar">
@@ -103,28 +105,20 @@ export default function GoalsWorkspace() {
             </div>
 
             <div className="goals-header-actions">
-              <button type="button" onClick={() => setSelectedMonth(current.month)}>
-                <CalendarDays size={16} />
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedYear(current.year);
+                  setSelectedMonth(current.month);
+                }}
+              >
                 Today
               </button>
-              <label>
-                <CalendarDays size={16} />
-                <input
-                  type="month"
-                  value={`${selectedYear}-${String(selectedMonth).padStart(2, "0")}`}
-                  onChange={(event) => {
-                    const [year, month] = event.target.value.split("-").map(Number);
-                    setSelectedYear(year);
-                    setSelectedMonth(month);
-                  }}
-                  aria-label="Select goal month"
-                />
-                <ChevronDown size={14} />
-              </label>
+              <span className="goals-current-month">{monthTitle}</span>
               <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
               <button className="icon-button notification" aria-label="Notifications" type="button">
                 <Bell size={20} />
-                <span>{selectedStats.inProgress || 1}</span>
+                <span>{selectedStats.inProgress}</span>
               </button>
               <div className="profile-chip">
                 <Image
@@ -268,7 +262,7 @@ export default function GoalsWorkspace() {
               </motion.section>
             </div>
 
-            <GoalsOverviewPanel stats={selectedStats} />
+            <GoalsOverviewPanel stats={selectedStats} trend={selectedTrend} />
           </div>
         </section>
       </div>

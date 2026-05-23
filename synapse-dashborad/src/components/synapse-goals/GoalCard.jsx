@@ -13,6 +13,7 @@ import {
   Trash2
 } from "lucide-react";
 import { useState } from "react";
+import { formatDeadlineStatus } from "../../services/monthlyGoals";
 import GoalForm from "./GoalForm";
 
 const categoryIcons = {
@@ -26,9 +27,10 @@ const categoryIcons = {
 export default function GoalCard({ goal, month, year, onEdit, onDelete }) {
   const [editing, setEditing] = useState(false);
   const Icon = categoryIcons[goal.category] || Sparkles;
-  const progress = Number(goal.progressPercentage) || 0;
+  const progress = Number(goal.progress) || 0;
   const remaining = Math.max(0, 100 - progress);
-  const completed = progress >= 100 || goal.status === "Completed";
+  const completed = Boolean(goal.completed) || progress >= 100 || goal.status === "Completed";
+  const deadlineText = formatDeadlineStatus(goal.deadlineDate || goal.deadline);
 
   return (
     <motion.article
@@ -91,13 +93,13 @@ export default function GoalCard({ goal, month, year, onEdit, onDelete }) {
               {goal.status}
             </span>
             <span>{goal.category}</span>
-            <span>{goal.deadline ? `Deadline ${goal.deadline}` : "No deadline"}</span>
+            <span>{deadlineText}</span>
           </div>
 
           <div className="goal-progress-row">
             <div>
               <strong>
-                {goal.currentProgress}/{goal.target}
+                {goal.current}/{goal.target}
               </strong>
               <span>{progress}% complete</span>
             </div>

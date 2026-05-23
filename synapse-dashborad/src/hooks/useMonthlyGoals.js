@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   addMonthlyGoal,
+  buildGoalProgressTrend,
   deleteMonthlyGoal,
   listenToMonthlyGoals,
   updateMonthlyGoal
@@ -60,11 +61,11 @@ export function useMonthlyGoals(selectedMonth, selectedYear) {
       };
 
       current.total += 1;
-      current.progressTotal += Number(goal.progressPercentage) || 0;
+      current.progressTotal += Number(goal.progress) || 0;
 
-      if (goal.status === "Completed") current.completed += 1;
-      if (goal.status === "In Progress") current.inProgress += 1;
-      if (goal.status === "Not Started") current.notStarted += 1;
+      if (goal.completed || goal.status === "Completed") current.completed += 1;
+      if (!goal.completed && goal.status === "In Progress") current.inProgress += 1;
+      if (!goal.completed && goal.status === "Not Started") current.notStarted += 1;
 
       stats.set(key, current);
     });
@@ -76,6 +77,11 @@ export function useMonthlyGoals(selectedMonth, selectedYear) {
     return stats;
   }, [goals]);
 
+  const selectedTrend = useMemo(
+    () => buildGoalProgressTrend(selectedGoals, Number(selectedMonth), Number(selectedYear)),
+    [selectedGoals, selectedMonth, selectedYear]
+  );
+
   const createGoal = useCallback(
     async (payload) => {
       await addMonthlyGoal(user.uid, payload);
@@ -83,17 +89,24 @@ export function useMonthlyGoals(selectedMonth, selectedYear) {
     [user?.uid]
   );
 
-  const editGoal = useCallback(async (goal, payload) => {
-    await updateMonthlyGoal(goal.id, payload);
-  }, []);
+  const editGoal = useCallback(
+    async (goal, payload) => {
+      await updateMonthlyGoal(user.uid, goal.id, payload);
+    },
+    [user?.uid]
+  );
 
-  const removeGoal = useCallback(async (goal) => {
-    await deleteMonthlyGoal(goal.id);
-  }, []);
+  const removeGoal = useCallback(
+    async (goal) => {
+      await deleteMonthlyGoal(user.uid, goal.id);
+    },
+    [user?.uid]
+  );
 
   return {
     goals,
     selectedGoals,
+    selectedTrend,
     monthStats,
     loading,
     error,

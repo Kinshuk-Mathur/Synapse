@@ -27,7 +27,7 @@ const navItems = [
   { label: "Settings", icon: Settings, href: "/settings" }
 ];
 
-export default function GoalsSidebar() {
+export default function GoalsSidebar({ currentStreak = 0 }) {
   return (
     <motion.aside
       className="sidebar"
@@ -66,7 +66,7 @@ export default function GoalsSidebar() {
           <span>Goal Streak</span>
           <strong>
             <Flame size={34} />
-            12 <small>days</small>
+            {currentStreak || 0} <small>days</small>
           </strong>
           <p>Consistency wins.</p>
         </motion.div>

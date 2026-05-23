@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
@@ -47,7 +48,13 @@ import {
 } from "recharts";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
+import { useMonthlyGoals } from "../hooks/useMonthlyGoals";
 import { useSynapseFocus } from "../hooks/useSynapseFocus";
+import { useUserStats } from "../hooks/useUserStats";
+import {
+  formatDeadlineStatus,
+  getCurrentGoalMonth
+} from "../services/monthlyGoals";
 import { carryForwardPastTodos, formatDateKey, listenToUserTodos, lockPastTodos } from "../services/todos";
 
 const todoAppUrl = "/todo";
@@ -141,11 +148,7 @@ const fallbackDistractions = [
   { name: "Other", time: "12m", value: 14, icon: MoreHorizontal, tone: "var(--color-muted)" }
 ];
 
-const goals = [
-  { label: "Finish Calculus Syllabus", progress: 72, accent: "var(--chart-pink)" },
-  { label: "Study 120 Hours", progress: 58, accent: "var(--chart-blue)" },
-  { label: "Complete 15 Mock Tests", progress: 40, accent: "var(--chart-gold)" }
-];
+const goalAccents = ["var(--chart-pink)", "var(--chart-blue)", "var(--chart-gold)"];
 
 const cardMotion = {
   hidden: { opacity: 0, y: 22 },
@@ -250,6 +253,7 @@ function ThemeSwitcher({ theme, onChange }) {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [theme, setTheme] = useState("obsidian");
   const [mounted, setMounted] = useState(false);
   const [logoutError, setLogoutError] = useState("");
@@ -257,6 +261,18 @@ export default function Home() {
   const [dashboardTodoLoading, setDashboardTodoLoading] = useState(true);
   const [dashboardTodoError, setDashboardTodoError] = useState("");
   const { user, logout, profile } = useAuth();
+  const currentGoalMonth = useMemo(() => getCurrentGoalMonth(), []);
+  const {
+    selectedGoals: dashboardGoals,
+    monthStats: dashboardGoalStats,
+    loading: dashboardGoalLoading,
+    error: dashboardGoalError
+  } = useMonthlyGoals(currentGoalMonth.month, currentGoalMonth.year);
+  const {
+    stats: userStats,
+    loading: userStatsLoading,
+    error: userStatsError
+  } = useUserStats();
   const {
     summary: focusSummary,
     loading: focusLoading,
@@ -331,6 +347,39 @@ export default function Home() {
     const todayTodos = dashboardTodos.filter((item) => item.selectedDate === formatDateKey());
     return todayTodos.length > 0 && todayTodos.every((item) => item.completed);
   }, [dashboardTodos]);
+
+  const dashboardGoalItems = useMemo(
+    () =>
+      dashboardGoals
+        .slice()
+        .sort((a, b) => Number(b.progress || 0) - Number(a.progress || 0))
+        .slice(0, 3)
+        .map((goal, index) => ({
+          id: goal.id,
+          label: goal.title,
+          progress: Number(goal.progress) || 0,
+          deadlineText: formatDeadlineStatus(goal.deadlineDate || goal.deadline),
+          accent: goalAccents[index] || "var(--chart-purple)"
+        })),
+    [dashboardGoals]
+  );
+
+  const currentGoalStats = dashboardGoalStats.get(`${currentGoalMonth.year}-${currentGoalMonth.month}`) || {
+    total: 0,
+    completed: 0,
+    averageProgress: 0
+  };
+
+  const openGoalsPage = () => {
+    router.push(goalsAppUrl);
+  };
+
+  const handleGoalsCardKeyDown = (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openGoalsPage();
+    }
+  };
 
   const statCards = useMemo(() => {
     const todayKey = formatDateKey();
@@ -480,9 +529,9 @@ export default function Home() {
               <span>Current Streak</span>
               <strong>
                 <Flame size={34} />
-                {focusSummary.currentStreak || 0} <small>days</small>
+                {userStatsLoading ? "--" : userStats.streak || 0} <small>days</small>
               </strong>
-              <p>Keep it up!</p>
+              <p>{userStatsError ? "Streak sync unavailable" : "Daily consistency"}</p>
             </motion.div>
 
             <button className="support-button">
@@ -727,31 +776,45 @@ export default function Home() {
               </motion.article>
 
               <motion.article
-                className="panel goals-panel dashboard-side-panel"
+                className="panel goals-panel dashboard-side-panel is-clickable"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.45, delay: 0.34 }}
+                whileHover={{ y: -6, scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                role="link"
+                tabIndex={0}
+                onClick={openGoalsPage}
+                onKeyDown={handleGoalsCardKeyDown}
               >
                 <div className="panel-header">
                   <h2>Monthly Goal Progress</h2>
-                  <Link href={goalsAppUrl}>View All</Link>
+                  <span className="panel-action-text">{currentGoalStats.averageProgress}% synced</span>
                 </div>
                 <div className="goal-list">
-                  {goals.map((goal) => (
-                    <div className="goal-item" key={goal.label}>
-                      <span className="goal-icon" style={{ "--goal-tone": goal.accent }}>
-                        <Trophy size={17} />
-                      </span>
-                      <div>
-                        <p>{goal.label}</p>
-                        <div className="meter goal-meter">
-                          <i style={{ width: `${goal.progress}%`, "--meter": goal.accent }} />
+                  {dashboardGoalLoading ? (
+                    <div className="dashboard-goals-empty">Syncing monthly goals...</div>
+                  ) : dashboardGoalError ? (
+                    <div className="dashboard-goals-empty">{dashboardGoalError}</div>
+                  ) : dashboardGoalItems.length ? (
+                    dashboardGoalItems.map((goal) => (
+                      <div className="goal-item" key={goal.id}>
+                        <span className="goal-icon" style={{ "--goal-tone": goal.accent }}>
+                          <Trophy size={17} />
+                        </span>
+                        <div>
+                          <p>{goal.label}</p>
+                          <div className="meter goal-meter">
+                            <i style={{ width: `${goal.progress}%`, "--meter": goal.accent }} />
+                          </div>
+                          <small>{goal.deadlineText}</small>
                         </div>
-                        <small>14 days left</small>
+                        <strong>{goal.progress}%</strong>
                       </div>
-                      <strong>{goal.progress}%</strong>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="dashboard-goals-empty">No goals for this month yet.</div>
+                  )}
                 </div>
               </motion.article>
             </motion.aside>

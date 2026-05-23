@@ -20,7 +20,8 @@ export default function GoalForm({ mode = "create", goal, month, year, onCancel,
     ...emptyGoal,
     ...goal,
     target: goal?.target ?? 100,
-    currentProgress: goal?.currentProgress ?? 0
+    currentProgress: goal?.current ?? goal?.currentProgress ?? 0,
+    deadline: goal?.deadlineDateKey || goal?.deadline || ""
   }));
   const [busy, setBusy] = useState(false);
 

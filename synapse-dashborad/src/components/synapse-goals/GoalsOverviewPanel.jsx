@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Flame, Quote, Sparkles, TrendingUp } from "lucide-react";
+import { Sparkles, TrendingUp } from "lucide-react";
 
 function Ring({ value }) {
   const radius = 46;
@@ -24,8 +24,11 @@ function Ring({ value }) {
   );
 }
 
-export default function GoalsOverviewPanel({ stats }) {
-  const trend = [12, 38, 49, 63, 82];
+export default function GoalsOverviewPanel({ stats, trend = [] }) {
+  const trendPoints = trend.length
+    ? trend
+    : ["Week 1", "Week 2", "Week 3", "Week 4"].map((label) => ({ label, value: 0 }));
+  const hasTrendData = trendPoints.some((point) => Number(point.value) > 0);
 
   return (
     <aside className="goals-right-rail">
@@ -78,56 +81,22 @@ export default function GoalsOverviewPanel({ stats }) {
           <h3>Goal Progress Trend</h3>
         </div>
         <div className="mini-trend-chart">
-          {trend.map((point, index) => (
+          {trendPoints.map((point, index) => (
             <motion.span
-              key={point}
+              key={point.label}
+              title={`${point.label}: ${point.value}%`}
               initial={{ height: 8 }}
-              animate={{ height: `${point}%` }}
+              animate={{ height: `${point.value}%` }}
               transition={{ duration: 0.45, delay: index * 0.05 }}
             />
           ))}
         </div>
         <div className="trend-labels">
-          <span>Week 1</span>
-          <span>Week 2</span>
-          <span>Week 3</span>
-          <span>Week 4</span>
-        </div>
-      </motion.section>
-
-      <motion.section
-        className="goal-side-card streak-goals-card"
-        initial={{ opacity: 0, x: 18 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.42, delay: 0.12 }}
-      >
-        <div className="goal-side-title">
-          <Flame size={18} />
-          <h3>Consistency Streak</h3>
-        </div>
-        <strong>12 <span>Days</span></strong>
-        <p>You are on fire. Keep the momentum.</p>
-        <div className="week-dots">
-          {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => (
-            <span key={`${day}-${index}`} className={index < 6 ? "is-lit" : ""}>
-              {day}
-            </span>
+          {trendPoints.map((point) => (
+            <span key={point.label}>{point.label}</span>
           ))}
         </div>
-      </motion.section>
-
-      <motion.section
-        className="goal-side-card quote-card"
-        initial={{ opacity: 0, x: 18 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.42, delay: 0.18 }}
-      >
-        <div className="goal-side-title">
-          <Quote size={16} />
-          <h3>Motivation</h3>
-        </div>
-        <p>Discipline is the bridge between goals and accomplishment.</p>
-        <small>Stay consistent. Results will follow.</small>
+        <small>{hasTrendData ? "Live progress from goal updates." : "No progress updates recorded yet."}</small>
       </motion.section>
     </aside>
   );

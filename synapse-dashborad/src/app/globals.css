@@ -820,6 +820,7 @@ textarea {
 
 .panel-header button,
 .panel-header a,
+.panel-action-text,
 .quick-actions button {
   display: inline-flex;
   align-items: center;
@@ -844,6 +845,14 @@ textarea {
   border-color: var(--border-strong);
   box-shadow: 0 0 20px color-mix(in oklab, var(--color-pulse) 22%, var(--transparent));
   transform: translateY(-2px);
+}
+
+.panel-action-text {
+  color: var(--color-muted);
+}
+
+.panel.is-clickable {
+  cursor: pointer;
 }
 
 .chart-wrap {
@@ -1057,6 +1066,15 @@ textarea {
 
 .goal-item strong {
   font-weight: 500;
+}
+
+.dashboard-goals-empty {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  padding: 16px;
+  color: var(--color-muted);
+  text-align: center;
 }
 
 .ai-panel {
@@ -2980,7 +2998,8 @@ textarea {
 .goals-heading-block,
 .goals-header-actions,
 .goals-header-actions button,
-.goals-header-actions label {
+.goals-header-actions label,
+.goals-current-month {
   display: flex;
   align-items: center;
 }
@@ -3015,7 +3034,8 @@ textarea {
 }
 
 .goals-header-actions > button:not(.icon-button):not(.logout-button),
-.goals-header-actions label {
+.goals-header-actions label,
+.goals-current-month {
   min-height: 46px;
   gap: 9px;
   border: 1px solid var(--border);
@@ -3036,6 +3056,13 @@ textarea {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-glow);
   transform: translateY(-2px);
+}
+
+.goals-current-month {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .goals-header-actions input {
@@ -3572,9 +3599,7 @@ textarea {
 
 .overview-ring-wrap span,
 .overview-metrics,
-.goal-side-card small,
-.streak-goals-card p,
-.quote-card small {
+.goal-side-card small {
   color: var(--color-muted);
 }
 
@@ -3606,7 +3631,7 @@ textarea {
 
 .mini-trend-chart {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   align-items: end;
   gap: 12px;
   height: 112px;
@@ -3620,8 +3645,7 @@ textarea {
   box-shadow: 0 0 16px color-mix(in oklab, var(--color-pulse) 32%, var(--transparent));
 }
 
-.trend-labels,
-.week-dots {
+.trend-labels {
   display: flex;
   justify-content: space-between;
   gap: 6px;
@@ -3631,45 +3655,6 @@ textarea {
   margin-top: 10px;
   color: var(--color-muted);
   font-size: 11px;
-}
-
-.streak-goals-card strong {
-  display: block;
-  color: var(--color-gold);
-  font-size: 32px;
-}
-
-.streak-goals-card strong span {
-  color: var(--color-text);
-  font-size: 16px;
-}
-
-.week-dots {
-  margin-top: 16px;
-}
-
-.week-dots span {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--color-muted);
-  font-size: 11px;
-}
-
-.week-dots .is-lit {
-  border-color: var(--border-strong);
-  background: linear-gradient(135deg, var(--color-pulse), var(--color-accent));
-  color: var(--color-text);
-  box-shadow: 0 0 16px color-mix(in oklab, var(--color-pulse) 32%, var(--transparent));
-}
-
-.quote-card p {
-  margin: 0 0 12px;
-  color: var(--color-text);
-  line-height: 1.6;
 }
 
 .auth-screen,
@@ -4190,6 +4175,7 @@ textarea {
 
   .goals-header-actions > button:not(.icon-button):not(.logout-button),
   .goals-header-actions label,
+  .goals-current-month,
   .goals-header-actions .theme-switcher {
     width: 100%;
   }
