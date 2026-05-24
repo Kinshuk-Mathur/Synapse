@@ -413,20 +413,20 @@ textarea {
 .momentum-timeline {
   position: relative;
   display: grid;
-  flex: 1 1 auto;
-  grid-template-columns: 48px minmax(150px, 210px) minmax(260px, 1fr) auto;
-  max-width: none;
+  flex: 1 1 660px;
+  grid-template-columns: 36px minmax(128px, 178px) minmax(260px, 1fr);
+  max-width: 760px;
   min-width: 0;
-  min-height: 82px;
+  min-height: 60px;
   overflow: hidden;
-  gap: 14px;
+  gap: 11px;
   border: 1px solid color-mix(in oklab, var(--border-strong) 76%, var(--transparent));
   border-radius: 8px;
   background:
     radial-gradient(circle at 14% 48%, color-mix(in oklab, var(--color-pulse) 20%, var(--transparent)), var(--transparent) 32%),
     linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 10%, var(--transparent)), color-mix(in oklab, var(--color-surface) 78%, var(--transparent))),
     var(--panel);
-  padding: 13px 16px;
+  padding: 10px 12px;
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, var(--color-text) 8%, var(--transparent)),
     0 0 26px color-mix(in oklab, var(--color-pulse) 16%, var(--transparent)),
@@ -437,8 +437,8 @@ textarea {
 .momentum-timeline-brand {
   display: grid;
   align-self: center;
-  width: 46px;
-  height: 46px;
+  width: 34px;
+  height: 34px;
   place-items: center;
   border-radius: 999px;
   background:
@@ -451,23 +451,23 @@ textarea {
   display: grid;
   align-content: center;
   min-width: 0;
-  gap: 6px;
+  gap: 3px;
 }
 
 .momentum-timeline-copy strong {
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.1;
 }
 
 .momentum-timeline-copy span {
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 650;
 }
 
 .momentum-track {
   display: grid;
-  grid-template-columns: repeat(7, minmax(28px, 1fr));
+  grid-template-columns: repeat(7, minmax(22px, 1fr));
   align-items: center;
   align-self: center;
   min-width: 0;
@@ -477,7 +477,7 @@ textarea {
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 9px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -485,8 +485,8 @@ textarea {
   position: relative;
   z-index: 1;
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 26px;
+  height: 26px;
   place-items: center;
   border: 2px solid color-mix(in oklab, var(--color-text) 24%, var(--transparent));
   border-radius: 999px;
@@ -504,17 +504,17 @@ textarea {
 
 .momentum-day small {
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   line-height: 1;
 }
 
 .momentum-connector {
   position: absolute;
-  top: 16px;
-  left: calc(50% + 17px);
-  width: calc(100% - 34px);
-  height: 3px;
+  top: 12px;
+  left: calc(50% + 13px);
+  width: calc(100% - 26px);
+  height: 2px;
   border-radius: 999px;
   background: color-mix(in oklab, var(--color-text) 10%, var(--transparent));
   box-shadow: inset 0 0 8px color-mix(in oklab, var(--color-ink) 38%, var(--transparent));
@@ -545,9 +545,9 @@ textarea {
 }
 
 .momentum-day.is-current-day .momentum-node {
-  width: 40px;
-  height: 40px;
-  margin-top: -6px;
+  width: 30px;
+  height: 30px;
+  margin-top: -3px;
   border-color: color-mix(in oklab, var(--color-accent) 76%, var(--color-text));
   transform: scale(1.04);
 }
@@ -575,6 +575,7 @@ textarea {
 }
 
 .momentum-week-count {
+  display: none;
   align-self: start;
   justify-self: end;
   border: 1px solid var(--border);
@@ -4338,24 +4339,18 @@ textarea {
 }
 
 @media (max-width: 1500px) {
-  .topbar {
-    flex-wrap: wrap;
-    row-gap: 14px;
-  }
-
   .momentum-timeline {
-    order: 3;
-    flex-basis: 100%;
-    width: 100%;
-    grid-template-columns: 48px minmax(160px, 1fr) auto;
+    flex-basis: 540px;
+    max-width: 600px;
+    grid-template-columns: 34px minmax(112px, 142px) minmax(210px, 1fr);
   }
 
   .momentum-track {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 
   .momentum-week-count {
-    display: block;
+    display: none;
   }
 
   .top-actions {
@@ -4364,23 +4359,19 @@ textarea {
 }
 
 @media (max-width: 1240px) {
-  .topbar {
-    flex-wrap: wrap;
-  }
-
   .momentum-timeline {
-    order: 3;
-    flex-basis: 100%;
-    width: 100%;
-    grid-template-columns: 52px minmax(180px, 1fr) auto;
+    flex-basis: 430px;
+    max-width: 500px;
+    grid-template-columns: 30px minmax(92px, 120px) minmax(178px, 1fr);
+    min-height: 56px;
   }
 
   .momentum-track {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 
-  .momentum-week-count {
-    display: block;
+  .momentum-timeline-copy span {
+    display: none;
   }
 
   .content-grid {
@@ -4443,6 +4434,10 @@ textarea {
     padding: 18px;
   }
 
+  .topbar {
+    flex-wrap: wrap;
+  }
+
   .search-box,
   .momentum-timeline {
     order: 3;
@@ -4451,7 +4446,7 @@ textarea {
 
   .momentum-timeline {
     flex-basis: 100%;
-    grid-template-columns: 52px minmax(180px, 1fr) auto;
+    grid-template-columns: 38px minmax(160px, 1fr);
     max-width: none;
     min-width: 0;
   }
@@ -4461,7 +4456,7 @@ textarea {
   }
 
   .momentum-week-count {
-    display: block;
+    display: none;
   }
 
   .top-actions {
