@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
+import { updateMomentumProgress } from "../../services/userStats";
 import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 
 const STORAGE_KEY = "synapse-ai-conversations";
@@ -932,6 +933,8 @@ export default function SynapseAIWorkspace() {
     if (!conversation || loading || (!trimmed && !selectedFile)) return;
 
     const now = new Date().toISOString();
+    const interactionStartedAt = performance.now();
+    const hadAttachment = Boolean(selectedFile);
     const attachmentText = selectedFile
       ? `\n\nAttached file: ${selectedFile.name} (${selectedFile.type || "unknown type"}, ${fileSize(selectedFile.size)}).`
       : "";
@@ -971,6 +974,19 @@ export default function SynapseAIWorkspace() {
     let assistantMessageId = "";
     let hasAssistantMessage = false;
     let streamedContent = "";
+
+    const recordAiMomentum = async () => {
+      try {
+        await updateMomentumProgress(user?.uid, {
+          pillar: "ai",
+          prompt: trimmed,
+          hasAttachment: hadAttachment,
+          interactionDurationMs: performance.now() - interactionStartedAt
+        });
+      } catch (momentumError) {
+        console.warn("SYNAPSE Momentum AI usage sync failed:", momentumError?.message || momentumError);
+      }
+    };
 
     try {
       let idToken = "";
@@ -1051,6 +1067,7 @@ export default function SynapseAIWorkspace() {
           throw new Error(SAFE_AI_ERROR);
         }
 
+        await recordAiMomentum();
         return;
       }
 
@@ -1076,6 +1093,8 @@ export default function SynapseAIWorkspace() {
         updatedAt: assistantMessage.createdAt,
         messages: [...current.messages, assistantMessage]
       }));
+
+      await recordAiMomentum();
     } catch (error) {
       if (hasAssistantMessage && assistantMessageId) {
         const safeError = error.message || SAFE_AI_ERROR;

@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   BarChart3,
   CheckSquare,
-  Flame,
   FolderOpen,
   HelpCircle,
   LayoutDashboard,
@@ -105,15 +104,6 @@ export default function FocusPage() {
             </nav>
 
             <div className="side-footer">
-              <motion.div className="streak-card" whileHover={{ y: -4 }}>
-                <span>Focus Streak</span>
-                <strong>
-                  <Flame size={34} />
-                  {summary.currentStreak || 0} <small>days</small>
-                </strong>
-                <p>FOCUSLOCK - powered by Synapse</p>
-              </motion.div>
-
               <button className="support-button" type="button">
                 <HelpCircle size={18} />
                 Help & Support
@@ -126,7 +116,7 @@ export default function FocusPage() {
               <div>
                 <span>FOCUSLOCK - powered by Synapse</span>
                 <h1>Focus Lock</h1>
-                <p>Session history, blocked distractions, streaks, and productivity analytics from the browser extension.</p>
+                <p>Session history, blocked distractions, and productivity analytics from the browser extension.</p>
               </div>
               <button className="focus-extension-button" type="button">
                 <ShieldCheck size={18} />
@@ -153,8 +143,8 @@ export default function FocusPage() {
                 <strong>{loading ? "--" : summary.blockedDistractionsToday}</strong>
               </article>
               <article className="focus-kpi">
-                <Flame size={22} />
-                <span>Streak</span>
+                <Sparkles size={22} />
+                <span>Focus Days</span>
                 <strong>{loading ? "--" : `${summary.currentStreak}d`}</strong>
               </article>
             </section>

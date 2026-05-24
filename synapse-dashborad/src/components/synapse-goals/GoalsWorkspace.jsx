@@ -14,7 +14,6 @@ import { useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useMonthlyGoals } from "../../hooks/useMonthlyGoals";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
-import { useUserStats } from "../../hooks/useUserStats";
 import {
   GOAL_FILTERS,
   getCurrentGoalMonth,
@@ -57,7 +56,6 @@ export default function GoalsWorkspace() {
     editGoal,
     removeGoal
   } = useMonthlyGoals(selectedMonth, selectedYear);
-  const { stats: userStats } = useUserStats();
 
   const selectedStats = normalizeStats(monthStats.get(`${selectedYear}-${selectedMonth}`));
   const filteredGoals = useMemo(() => {
@@ -82,7 +80,7 @@ export default function GoalsWorkspace() {
       <div className="ambient-grid" aria-hidden="true" />
 
       <div className="dashboard-frame goals-dashboard-frame">
-        <GoalsSidebar currentStreak={userStats.streak} />
+        <GoalsSidebar />
 
         <section className="workspace goals-workspace">
           <header className="goals-topbar">

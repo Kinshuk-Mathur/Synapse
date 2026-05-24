@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { useSynapseFocus } from "../../hooks/useSynapseFocus";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
 import { useTodos } from "../../hooks/useTodos";
 import { formatDateKey, isDateLocked, parseDateKey } from "../../services/todos";
@@ -36,7 +35,6 @@ export default function TodoWorkspace() {
   const [actionError, setActionError] = useState("");
   const { theme, applyTheme } = useSynapseTheme();
   const { user, logout } = useAuth();
-  const { summary: focusSummary } = useSynapseFocus(user);
   const {
     tasksForSelectedDate,
     pendingCarryovers,
@@ -94,7 +92,7 @@ export default function TodoWorkspace() {
       <div className="ambient-grid" aria-hidden="true" />
 
       <div className="dashboard-frame todo-dashboard-frame">
-        <TodoSidebar currentStreak={focusSummary.currentStreak} />
+        <TodoSidebar />
 
         <section className="workspace todo-workspace">
           <header className="todo-topbar">

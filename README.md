@@ -39,7 +39,7 @@ Block YouTube, Instagram, and other distracting sites during a session. Student 
 Pomodoro-style timer built into the extension popup. Start, pause, stop. Every session auto-logs subject, duration, and date to the dashboard.
 
 ### 📊 Progress Dashboard *(Web App)*
-Visual weekly report of study hours per subject, focus streaks, and goals vs actual. Clean charts that turn raw study time into actionable insight.
+Visual weekly report of study hours per subject, SYNAPSE Momentum, and goals vs actual. Clean charts that turn raw study time into actionable insight.
 
 ### 🎯 Goal & Subject Tracker *(Web App)*
 Set weekly goals per subject — "4 hrs Maths this week." Dashboard shows live progress with a simple percentage bar. Stay on track, always.

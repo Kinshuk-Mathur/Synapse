@@ -17,7 +17,8 @@ export const COLLECTIONS = {
   monthlyGoals: "monthlyGoals",
   goals: "goals",
   focusSessions: "focusSessions",
-  analytics: "analytics"
+  analytics: "analytics",
+  dailyProgress: "dailyProgress"
 };
 
 export function getCollectionRefs() {

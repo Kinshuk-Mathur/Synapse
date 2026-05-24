@@ -8,7 +8,7 @@ import {
 import { COLLECTIONS, userScopedQuery } from "./firestore";
 import { formatDateKey, parseDateKey } from "./todos";
 import { getFirebaseDb } from "../lib/firebase";
-import { recordUserActivity } from "./userStats";
+import { updateMomentumProgress } from "./userStats";
 
 const EMPTY_SUMMARY = {
   focusSecondsToday: 0,
@@ -392,8 +392,25 @@ export async function recordExtensionFocusPayload(uid, payload) {
     { merge: true }
   );
 
-  if (history.some((record) => record.completed) || Number(stats.sessionsCompleted || 0) > 0) {
-    await recordUserActivity(uid, "focusSession");
+  const todayKey = formatDateKey();
+  const completedFocusSecondsToday = history
+    .filter((record) => record.completed && dateKeyFromSession(record) === todayKey)
+    .reduce((total, record) => total + Number(record.focusSeconds || 0), 0);
+  const todayFocusSummary = dailyEntries.find((day) => day?.dateKey === todayKey);
+  const syncedCompletedFocusSecondsToday =
+    Number(todayFocusSummary?.sessionsCompleted || 0) > 0
+      ? Number(todayFocusSummary?.focusSeconds || 0)
+      : 0;
+  const focusMinutes = Math.floor(
+    Math.max(completedFocusSecondsToday, syncedCompletedFocusSecondsToday) / 60
+  );
+
+  if (focusMinutes >= 15) {
+    await updateMomentumProgress(uid, {
+      pillar: "focus",
+      focusMinutes,
+      dateKey: todayKey
+    });
   }
 }
 

@@ -13,6 +13,7 @@ import {
   updateTodo,
   upsertTodoDaySummary
 } from "../services/todos";
+import { updateMomentumProgress } from "../services/userStats";
 
 export function useTodos(selectedDate) {
   const { user } = useAuth();
@@ -109,11 +110,20 @@ export function useTodos(selectedDate) {
       throw new Error("Locked tasks cannot be changed.");
     }
 
+    const completingToday = !todo.completed && todo.selectedDate === formatDateKey();
+
     await updateTodo(todo.id, {
       completed: !todo.completed,
       status: !todo.completed ? "completed" : "active"
     });
-  }, []);
+
+    if (completingToday) {
+      await updateMomentumProgress(user.uid, {
+        pillar: "task",
+        dateKey: todo.selectedDate
+      });
+    }
+  }, [user?.uid]);
 
   const editTodo = useCallback(async (todo, payload) => {
     if (todo.locked || isDateLocked(todo.selectedDate)) {

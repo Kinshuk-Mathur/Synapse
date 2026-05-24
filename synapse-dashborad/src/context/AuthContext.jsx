@@ -14,7 +14,6 @@ import {
   missingFirebaseConfigKeys
 } from "../lib/firebase";
 import { createUserProfile, getUserProfile } from "../services/firestore";
-import { recordUserActivity } from "../services/userStats";
 
 const AuthContext = createContext(null);
 
@@ -43,7 +42,6 @@ export function AuthProvider({ children }) {
             setProfileLoading(true);
             const syncedProfile = await createUserProfile(currentUser);
             setProfile(syncedProfile);
-            recordUserActivity(currentUser.uid, "login").catch(() => {});
           } else {
             setProfile(null);
           }
@@ -73,7 +71,6 @@ export function AuthProvider({ children }) {
       await enableAuthPersistence();
       const result = await signInWithPopup(getFirebaseAuth(), getGoogleProvider());
       const syncedProfile = await createUserProfile(result.user);
-      recordUserActivity(result.user.uid, "login").catch(() => {});
       setUser(result.user);
       setProfile(syncedProfile);
       return {

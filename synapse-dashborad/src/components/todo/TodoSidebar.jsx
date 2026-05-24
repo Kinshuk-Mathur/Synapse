@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   BarChart3,
   CheckSquare,
-  Flame,
   FolderOpen,
   HelpCircle,
   LayoutDashboard,
@@ -27,7 +26,7 @@ const navItems = [
   { label: "Settings", icon: Settings, href: "/settings" }
 ];
 
-export default function TodoSidebar({ currentStreak = 0 }) {
+export default function TodoSidebar() {
   return (
     <motion.aside
       className="sidebar"
@@ -62,15 +61,6 @@ export default function TodoSidebar({ currentStreak = 0 }) {
       </nav>
 
       <div className="side-footer">
-        <motion.div className="streak-card" whileHover={{ y: -4 }}>
-          <span>Current Streak</span>
-          <strong>
-            <Flame size={34} />
-            {currentStreak || 0} <small>days</small>
-          </strong>
-          <p>Keep it up!</p>
-        </motion.div>
-
         <button className="support-button" type="button">
           <HelpCircle size={18} />
           Help & Support

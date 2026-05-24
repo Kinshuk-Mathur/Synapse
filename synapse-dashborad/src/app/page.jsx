@@ -12,7 +12,6 @@ import {
   Check,
   CheckSquare,
   ChevronDown,
-  Command,
   Flame,
   FolderOpen,
   HelpCircle,
@@ -23,7 +22,6 @@ import {
   Menu,
   MoreHorizontal,
   Plus,
-  Search,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -32,6 +30,7 @@ import {
   Timer,
   Trophy,
   Twitter,
+  X,
   Youtube,
   Zap
 } from "lucide-react";
@@ -252,6 +251,98 @@ function ThemeSwitcher({ theme, onChange }) {
   );
 }
 
+function MomentumTimeline({ days = [] }) {
+  const completedCount = days.filter((day) => day.completed).length;
+
+  return (
+    <motion.section
+      className="momentum-timeline"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.38 }}
+      aria-label="Weekly SYNAPSE Momentum"
+    >
+      <div className="momentum-timeline-copy">
+        <strong>Your Daily Momentum</strong>
+        <span>({completedCount}/7 productive days)</span>
+      </div>
+      <div className="momentum-track" role="list">
+        {days.map((day, index) => {
+          const nextDay = days[index + 1];
+          const lineActive = Boolean(day.completed && nextDay?.completed);
+          const linePrimed = Boolean(day.completed && nextDay?.isCurrent);
+
+          return (
+            <div
+              className={`momentum-day is-${day.state} ${day.isCurrent ? "is-current-day" : ""}`}
+              key={day.dateKey}
+              role="listitem"
+              title={`${day.label}: ${day.completed ? "productive day complete" : day.isFuture ? "future day" : day.isCurrent ? "in progress" : "missed"}`}
+            >
+              <span className="momentum-node">
+                {day.completed ? <Check size={13} /> : null}
+              </span>
+              {index < days.length - 1 ? (
+                <span
+                  className={`momentum-connector ${lineActive ? "is-active" : ""} ${linePrimed ? "is-primed" : ""}`}
+                  aria-hidden="true"
+                />
+              ) : null}
+              <small>{day.label}</small>
+            </div>
+          );
+        })}
+      </div>
+    </motion.section>
+  );
+}
+
+function MomentumExplainerModal({ open, onClose }) {
+  return (
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          className="momentum-modal-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onMouseDown={onClose}
+        >
+          <motion.article
+            className="momentum-modal"
+            initial={{ opacity: 0, y: 18, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.96 }}
+            transition={{ duration: 0.2 }}
+            onMouseDown={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="momentum-modal-title"
+          >
+            <button className="momentum-modal-close" type="button" onClick={onClose} aria-label="Close Momentum details">
+              <X size={18} />
+            </button>
+            <div className="momentum-modal-icon">
+              <Flame size={22} />
+            </div>
+            <h2 id="momentum-modal-title">How SYNAPSE Momentum Works</h2>
+            <p>🔥 Momentum grows when you complete a full productive day.</p>
+            <span>To maintain Momentum daily:</span>
+            <ul>
+              <li>Complete a 15+ min focus session</li>
+              <li>Finish at least 1 task</li>
+              <li>Update a goal</li>
+              <li>Use SYNAPSE AI meaningfully</li>
+            </ul>
+            <p className="momentum-reset-line">Miss even one pillar: → Momentum resets.</p>
+            <strong>Consistency builds discipline.</strong>
+          </motion.article>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const [theme, setTheme] = useState("obsidian");
@@ -260,6 +351,7 @@ export default function Home() {
   const [dashboardTodos, setDashboardTodos] = useState([]);
   const [dashboardTodoLoading, setDashboardTodoLoading] = useState(true);
   const [dashboardTodoError, setDashboardTodoError] = useState("");
+  const [momentumModalOpen, setMomentumModalOpen] = useState(false);
   const { user, logout, profile } = useAuth();
   const currentGoalMonth = useMemo(() => getCurrentGoalMonth(), []);
   const {
@@ -270,6 +362,7 @@ export default function Home() {
   } = useMonthlyGoals(currentGoalMonth.month, currentGoalMonth.year);
   const {
     stats: userStats,
+    weeklyProgress,
     loading: userStatsLoading,
     error: userStatsError
   } = useUserStats();
@@ -292,6 +385,19 @@ export default function Home() {
     document.documentElement.dataset.theme = nextTheme;
     window.localStorage.setItem("synapse-theme", nextTheme);
   };
+
+  useEffect(() => {
+    if (!momentumModalOpen) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setMomentumModalOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [momentumModalOpen]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -433,7 +539,7 @@ export default function Home() {
         return {
           ...card,
           value: focusLoading ? "--" : `${focusSummary.productivityScore}%`,
-          meta: focusSummary.currentStreak > 0 ? `${focusSummary.currentStreak}-day focus streak` : "Build today's streak"
+          meta: focusSummary.currentStreak > 0 ? `${focusSummary.currentStreak}-day focus rhythm` : "Build today's momentum"
         };
       }
 
@@ -525,14 +631,21 @@ export default function Home() {
           </nav>
 
           <div className="side-footer">
-            <motion.div className="streak-card" whileHover={{ y: -4 }}>
-              <span>Current Streak</span>
+            <motion.button
+              className="momentum-card"
+              type="button"
+              whileHover={{ y: -4 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setMomentumModalOpen(true)}
+            >
+              <span>SYNAPSE Momentum</span>
               <strong>
                 <Flame size={34} />
-                {userStatsLoading ? "--" : userStats.streak || 0} <small>days</small>
+                {userStatsLoading ? "--" : userStats.currentMomentum || 0} <small>Day Momentum</small>
               </strong>
-              <p>{userStatsError ? "Streak sync unavailable" : "Daily consistency"}</p>
-            </motion.div>
+              <p>{userStatsError ? "Momentum sync unavailable" : "Consistency compounds."}</p>
+              <em>Longest: {userStatsLoading ? "--" : userStats.longestMomentum || 0} days</em>
+            </motion.button>
 
             <button className="support-button">
               <HelpCircle size={18} />
@@ -547,13 +660,7 @@ export default function Home() {
               <Menu size={22} />
             </button>
 
-            <label className="search-box">
-              <Search size={18} />
-              <input aria-label="Search dashboard" placeholder="Search anything..." />
-              <span>
-                <Command size={13} />K
-              </span>
-            </label>
+            <MomentumTimeline days={weeklyProgress} />
 
             <div className="top-actions">
               <ThemeSwitcher theme={theme} onChange={applyTheme} />
@@ -821,6 +928,7 @@ export default function Home() {
           </div>
         </section>
       </div>
+      <MomentumExplainerModal open={momentumModalOpen} onClose={() => setMomentumModalOpen(false)} />
       </main>
     </ProtectedRoute>
   );

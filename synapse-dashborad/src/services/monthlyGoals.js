@@ -12,7 +12,7 @@ import {
 } from "firebase/firestore";
 import { getFirebaseDb } from "../lib/firebase";
 import { COLLECTIONS } from "./firestore";
-import { recordUserActivity } from "./userStats";
+import { updateMomentumProgress } from "./userStats";
 
 export const GOAL_CATEGORIES = ["Study", "Coding", "Fitness", "Content", "Personal"];
 export const GOAL_FILTERS = ["All", "In Progress", "Completed", "Not Started"];
@@ -333,7 +333,9 @@ export async function addMonthlyGoal(uid, payload) {
     updatedAt: serverTimestamp()
   });
 
-  await recordUserActivity(uid, normalizedGoal.completed ? "goalCompletion" : "goalUpdate");
+  if (normalizedGoal.current > 0 || normalizedGoal.completed) {
+    await updateMomentumProgress(uid, { pillar: "goal" });
+  }
   return goalRef;
 }
 
@@ -362,8 +364,13 @@ export async function updateMonthlyGoal(uid, goalId, payload) {
     updatePayload.progressHistory = arrayUnion(createProgressEntry(normalizedGoal));
   }
 
+  const progressChanged = Boolean(updatePayload.progressHistory);
+
   await updateDoc(goalRef, updatePayload);
-  await recordUserActivity(uid, normalizedGoal.completed ? "goalCompletion" : "goalUpdate");
+
+  if (progressChanged) {
+    await updateMomentumProgress(uid, { pillar: "goal" });
+  }
 }
 
 export async function deleteMonthlyGoal(uid, goalId) {
@@ -372,5 +379,4 @@ export async function deleteMonthlyGoal(uid, goalId) {
   }
 
   await deleteDoc(goalDocument(uid, goalId));
-  await recordUserActivity(uid, "goalUpdate");
 }

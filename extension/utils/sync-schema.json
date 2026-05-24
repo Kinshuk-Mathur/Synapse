@@ -8,7 +8,7 @@
       "totalFocusSeconds": "All locally recorded focus seconds.",
       "sessionsCompleted": "Completed countdown sessions.",
       "blockedDistractions": "Total blocked attempts.",
-      "currentStreak": "Consecutive local focus days.",
+      "currentStreak": "Consecutive local focus days for extension analytics.",
       "daily": "Date-keyed focus summaries.",
       "attemptLog": "Recent privacy-light distraction attempts with timestamp, type, website, session id, elapsed seconds, and 5-minute interval key.",
       "intervalHeatmap": "Global 5-minute interval counts for trend and heatmap preparation.",
