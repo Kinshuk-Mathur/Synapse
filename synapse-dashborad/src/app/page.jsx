@@ -19,7 +19,6 @@ import {
   LayoutDashboard,
   LockKeyhole,
   LogOut,
-  Menu,
   MoreHorizontal,
   Plus,
   Settings,
@@ -262,9 +261,12 @@ function MomentumTimeline({ days = [] }) {
       transition={{ duration: 0.38 }}
       aria-label="Weekly SYNAPSE Momentum"
     >
+      <div className="momentum-timeline-brand" aria-hidden="true">
+        <BrainCircuit size={38} />
+      </div>
       <div className="momentum-timeline-copy">
         <strong>Your Daily Momentum</strong>
-        <span>({completedCount}/7 productive days)</span>
+        <span>Stay consistent. Build unstoppable.</span>
       </div>
       <div className="momentum-track" role="list">
         {days.map((day, index) => {
@@ -281,6 +283,7 @@ function MomentumTimeline({ days = [] }) {
             >
               <span className="momentum-node">
                 {day.completed ? <Check size={13} /> : null}
+                {!day.completed && index === 6 ? <Sparkles size={13} /> : null}
               </span>
               {index < days.length - 1 ? (
                 <span
@@ -293,6 +296,7 @@ function MomentumTimeline({ days = [] }) {
           );
         })}
       </div>
+      <span className="momentum-week-count">{completedCount}/7 productive days</span>
     </motion.section>
   );
 }
@@ -641,7 +645,7 @@ export default function Home() {
               <span>SYNAPSE Momentum</span>
               <strong>
                 <Flame size={34} />
-                {userStatsLoading ? "--" : userStats.currentMomentum || 0} <small>Day Momentum</small>
+                <b>{userStatsLoading ? "--" : userStats.currentMomentum || 0}</b>
               </strong>
               <p>{userStatsError ? "Momentum sync unavailable" : "Consistency compounds."}</p>
               <em>Longest: {userStatsLoading ? "--" : userStats.longestMomentum || 0} days</em>
@@ -656,10 +660,6 @@ export default function Home() {
 
         <section className="workspace">
           <header className="topbar">
-            <button className="icon-button menu-button" aria-label="Open navigation">
-              <Menu size={22} />
-            </button>
-
             <MomentumTimeline days={weeklyProgress} />
 
             <div className="top-actions">

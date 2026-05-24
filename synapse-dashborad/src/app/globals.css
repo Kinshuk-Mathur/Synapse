@@ -239,6 +239,8 @@ textarea {
 
 .side-footer {
   display: grid;
+  width: 100%;
+  min-width: 0;
   gap: 16px;
 }
 
@@ -253,7 +255,12 @@ textarea {
 }
 
 .momentum-card {
+  display: grid;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  gap: 8px;
   padding: 20px;
   text-align: left;
   transition:
@@ -277,19 +284,27 @@ textarea {
 .momentum-card strong {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 12px 0 8px;
-  font-size: 38px;
+  gap: 12px;
+  min-width: 0;
+  margin: 6px 0 2px;
+  font-size: 56px;
   line-height: 1;
 }
 
+.momentum-card strong b {
+  color: var(--color-text);
+  font: inherit;
+}
+
 .momentum-card svg {
+  flex: none;
   color: var(--color-gold);
   filter: drop-shadow(0 0 16px var(--color-pulse));
 }
 
 .momentum-card p {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .momentum-card em {
@@ -395,44 +410,64 @@ textarea {
 }
 
 .momentum-timeline {
-  flex: 1 1 560px;
-  max-width: 760px;
-  min-width: 430px;
-  min-height: 66px;
-  gap: 22px;
+  position: relative;
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 58px minmax(190px, 0.46fr) minmax(420px, 1fr) auto;
+  max-width: none;
+  min-width: 0;
+  min-height: 86px;
+  gap: 18px;
   border: 1px solid color-mix(in oklab, var(--border-strong) 76%, var(--transparent));
   border-radius: 8px;
   background:
-    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 12%, var(--transparent)), color-mix(in oklab, var(--color-surface) 76%, var(--transparent))),
+    radial-gradient(circle at 14% 48%, color-mix(in oklab, var(--color-pulse) 20%, var(--transparent)), var(--transparent) 32%),
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 10%, var(--transparent)), color-mix(in oklab, var(--color-surface) 78%, var(--transparent))),
     var(--panel);
-  padding: 10px 18px;
+  padding: 14px 18px;
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, var(--color-text) 8%, var(--transparent)),
+    0 0 26px color-mix(in oklab, var(--color-pulse) 16%, var(--transparent)),
     0 18px 42px color-mix(in oklab, var(--color-ink) 30%, var(--transparent));
   backdrop-filter: blur(20px);
 }
 
+.momentum-timeline-brand {
+  display: grid;
+  align-self: center;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, color-mix(in oklab, var(--color-pulse) 28%, var(--transparent)), var(--transparent) 68%);
+  color: color-mix(in oklab, var(--color-pulse) 84%, var(--color-text));
+  filter: drop-shadow(0 0 18px color-mix(in oklab, var(--color-pulse) 68%, var(--transparent)));
+}
+
 .momentum-timeline-copy {
   display: grid;
-  flex: none;
-  min-width: 198px;
-  gap: 3px;
+  align-content: center;
+  min-width: 0;
+  gap: 6px;
 }
 
 .momentum-timeline-copy strong {
-  font-size: 15px;
+  font-size: 19px;
+  line-height: 1.1;
 }
 
 .momentum-timeline-copy span {
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .momentum-track {
   display: grid;
-  flex: 1;
   grid-template-columns: repeat(7, minmax(34px, 1fr));
-  align-items: start;
+  align-items: center;
+  align-self: center;
   min-width: 0;
 }
 
@@ -440,7 +475,7 @@ textarea {
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 7px;
+  gap: 9px;
   min-width: 0;
 }
 
@@ -448,14 +483,16 @@ textarea {
   position: relative;
   z-index: 1;
   display: grid;
-  width: 24px;
-  height: 24px;
+  width: 38px;
+  height: 38px;
   place-items: center;
-  border: 1px solid color-mix(in oklab, var(--color-text) 16%, var(--transparent));
+  border: 2px solid color-mix(in oklab, var(--color-text) 24%, var(--transparent));
   border-radius: 999px;
   background: color-mix(in oklab, var(--color-text) 9%, var(--transparent));
   color: var(--color-muted);
-  box-shadow: inset 0 0 12px color-mix(in oklab, var(--color-ink) 28%, var(--transparent));
+  box-shadow:
+    inset 0 0 14px color-mix(in oklab, var(--color-ink) 42%, var(--transparent)),
+    0 0 14px color-mix(in oklab, var(--color-text) 8%, var(--transparent));
   transition:
     transform 220ms ease,
     background 220ms ease,
@@ -465,15 +502,16 @@ textarea {
 
 .momentum-day small {
   color: var(--color-muted);
-  font-size: 11px;
+  font-size: 13px;
+  font-weight: 800;
   line-height: 1;
 }
 
 .momentum-connector {
   position: absolute;
-  top: 11px;
-  left: calc(50% + 14px);
-  width: calc(100% - 28px);
+  top: 18px;
+  left: calc(50% + 19px);
+  width: calc(100% - 38px);
   height: 3px;
   border-radius: 999px;
   background: color-mix(in oklab, var(--color-text) 10%, var(--transparent));
@@ -482,8 +520,10 @@ textarea {
 
 .momentum-connector.is-active,
 .momentum-connector.is-primed {
-  background: linear-gradient(90deg, var(--color-pulse), var(--color-accent));
-  box-shadow: 0 0 18px color-mix(in oklab, var(--color-pulse) 52%, var(--transparent));
+  background: linear-gradient(90deg, var(--color-pulse), color-mix(in oklab, var(--color-accent) 55%, var(--color-pulse)));
+  box-shadow:
+    0 0 12px color-mix(in oklab, var(--color-pulse) 64%, var(--transparent)),
+    0 0 24px color-mix(in oklab, var(--color-pulse) 32%, var(--transparent));
 }
 
 .momentum-connector.is-primed {
@@ -503,9 +543,9 @@ textarea {
 }
 
 .momentum-day.is-current-day .momentum-node {
-  width: 30px;
-  height: 30px;
-  margin-top: -3px;
+  width: 44px;
+  height: 44px;
+  margin-top: -6px;
   border-color: color-mix(in oklab, var(--color-accent) 76%, var(--color-text));
   transform: scale(1.04);
 }
@@ -523,9 +563,26 @@ textarea {
   opacity: 0.52;
 }
 
+.momentum-day.is-future .momentum-node {
+  background: color-mix(in oklab, var(--color-bg) 44%, var(--transparent));
+}
+
 .momentum-day.is-current-day small,
 .momentum-day.is-completed small {
   color: var(--color-text);
+}
+
+.momentum-week-count {
+  align-self: start;
+  justify-self: end;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 6%, var(--transparent));
+  padding: 7px 10px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
 }
 
 .top-actions {
@@ -4143,6 +4200,14 @@ textarea {
 }
 
 @media (max-width: 1240px) {
+  .momentum-timeline {
+    grid-template-columns: 52px minmax(160px, 0.42fr) minmax(360px, 1fr);
+  }
+
+  .momentum-week-count {
+    display: none;
+  }
+
   .content-grid {
     grid-template-columns: 1fr;
   }
@@ -4215,8 +4280,17 @@ textarea {
 
   .momentum-timeline {
     flex-basis: 100%;
+    grid-template-columns: 52px minmax(180px, 1fr) auto;
     max-width: none;
     min-width: 0;
+  }
+
+  .momentum-track {
+    grid-column: 1 / -1;
+  }
+
+  .momentum-week-count {
+    display: block;
   }
 
   .top-actions {
@@ -4323,31 +4397,58 @@ textarea {
 
   .momentum-timeline {
     display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
     gap: 12px;
     min-height: auto;
     padding: 14px;
+  }
+
+  .momentum-timeline-brand {
+    width: 42px;
+    height: 42px;
   }
 
   .momentum-timeline-copy {
     min-width: 0;
   }
 
+  .momentum-timeline-copy strong {
+    font-size: 16px;
+  }
+
+  .momentum-timeline-copy span {
+    font-size: 12px;
+  }
+
   .momentum-track {
+    grid-column: 1 / -1;
     width: 100%;
   }
 
+  .momentum-week-count {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
   .momentum-node {
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
   }
 
   .momentum-day.is-current-day .momentum-node {
-    width: 26px;
-    height: 26px;
+    width: 32px;
+    height: 32px;
+    margin-top: -2px;
   }
 
   .momentum-day small {
-    font-size: 10px;
+    font-size: 11px;
+  }
+
+  .momentum-connector {
+    top: 13px;
+    left: calc(50% + 14px);
+    width: calc(100% - 28px);
   }
 
   .hero-card {
