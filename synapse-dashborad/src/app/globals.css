@@ -352,6 +352,7 @@ textarea {
   position: relative;
   z-index: 30;
   gap: 18px;
+  align-items: center;
   margin-bottom: 22px;
 }
 
@@ -413,18 +414,18 @@ textarea {
   position: relative;
   display: grid;
   flex: 1 1 auto;
-  grid-template-columns: 58px minmax(190px, 0.46fr) minmax(420px, 1fr) auto;
+  grid-template-columns: 48px minmax(150px, 210px) minmax(260px, 1fr) auto;
   max-width: none;
   min-width: 0;
-  min-height: 86px;
-  gap: 18px;
+  min-height: 82px;
+  gap: 14px;
   border: 1px solid color-mix(in oklab, var(--border-strong) 76%, var(--transparent));
   border-radius: 8px;
   background:
     radial-gradient(circle at 14% 48%, color-mix(in oklab, var(--color-pulse) 20%, var(--transparent)), var(--transparent) 32%),
     linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 10%, var(--transparent)), color-mix(in oklab, var(--color-surface) 78%, var(--transparent))),
     var(--panel);
-  padding: 14px 18px;
+  padding: 13px 16px;
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, var(--color-text) 8%, var(--transparent)),
     0 0 26px color-mix(in oklab, var(--color-pulse) 16%, var(--transparent)),
@@ -435,8 +436,8 @@ textarea {
 .momentum-timeline-brand {
   display: grid;
   align-self: center;
-  width: 56px;
-  height: 56px;
+  width: 46px;
+  height: 46px;
   place-items: center;
   border-radius: 999px;
   background:
@@ -453,19 +454,19 @@ textarea {
 }
 
 .momentum-timeline-copy strong {
-  font-size: 19px;
+  font-size: 18px;
   line-height: 1.1;
 }
 
 .momentum-timeline-copy span {
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 650;
 }
 
 .momentum-track {
   display: grid;
-  grid-template-columns: repeat(7, minmax(34px, 1fr));
+  grid-template-columns: repeat(7, minmax(28px, 1fr));
   align-items: center;
   align-self: center;
   min-width: 0;
@@ -483,8 +484,8 @@ textarea {
   position: relative;
   z-index: 1;
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   place-items: center;
   border: 2px solid color-mix(in oklab, var(--color-text) 24%, var(--transparent));
   border-radius: 999px;
@@ -502,16 +503,16 @@ textarea {
 
 .momentum-day small {
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
 }
 
 .momentum-connector {
   position: absolute;
-  top: 18px;
-  left: calc(50% + 19px);
-  width: calc(100% - 38px);
+  top: 16px;
+  left: calc(50% + 17px);
+  width: calc(100% - 34px);
   height: 3px;
   border-radius: 999px;
   background: color-mix(in oklab, var(--color-text) 10%, var(--transparent));
@@ -543,8 +544,8 @@ textarea {
 }
 
 .momentum-day.is-current-day .momentum-node {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   margin-top: -6px;
   border-color: color-mix(in oklab, var(--color-accent) 76%, var(--color-text));
   transform: scale(1.04);
@@ -732,6 +733,141 @@ textarea {
   background: var(--color-lime);
   box-shadow: 0 0 14px var(--color-lime);
   content: "";
+}
+
+.profile-avatar-menu {
+  position: relative;
+  flex: none;
+}
+
+.profile-avatar-trigger {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-pulse) 14%, var(--transparent)), color-mix(in oklab, var(--color-surface) 76%, var(--transparent))),
+    var(--panel);
+  box-shadow: 0 12px 36px color-mix(in oklab, var(--color-ink) 28%, var(--transparent));
+  backdrop-filter: blur(18px);
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.profile-avatar-trigger:hover,
+.profile-avatar-trigger[aria-expanded="true"] {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-glow);
+}
+
+.profile-avatar-trigger img,
+.profile-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.profile-avatar-card {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 45;
+  display: grid;
+  width: 236px;
+  gap: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 22% 0%, color-mix(in oklab, var(--color-pulse) 20%, var(--transparent)), var(--transparent) 42%),
+    linear-gradient(145deg, color-mix(in oklab, var(--color-surface) 90%, var(--transparent)), color-mix(in oklab, var(--color-bg) 90%, var(--transparent))),
+    var(--panel-strong);
+  padding: 14px;
+  box-shadow: var(--shadow-glow), var(--shadow-card);
+  backdrop-filter: blur(24px);
+  transform-origin: top right;
+}
+
+.profile-avatar-preview {
+  position: relative;
+  width: 74px;
+  height: 74px;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 48%, var(--transparent));
+  border-radius: 999px;
+  box-shadow: 0 0 24px color-mix(in oklab, var(--color-pulse) 24%, var(--transparent));
+}
+
+.profile-avatar-preview button {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-bg) 86%, var(--transparent));
+  color: var(--color-text);
+}
+
+.profile-avatar-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.profile-avatar-copy strong {
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.profile-avatar-copy span {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.profile-avatar-copy span::before {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 999px;
+  background: var(--color-lime);
+  box-shadow: 0 0 14px var(--color-lime);
+  content: "";
+}
+
+.profile-avatar-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 7%, var(--transparent));
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.profile-avatar-upload:disabled,
+.profile-avatar-preview button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.profile-avatar-card input {
+  display: none;
+}
+
+.profile-avatar-error {
+  margin: 0;
+  color: #ffd6dd;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .logout-button {
@@ -4200,12 +4336,23 @@ textarea {
 }
 
 @media (max-width: 1240px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+
   .momentum-timeline {
-    grid-template-columns: 52px minmax(160px, 0.42fr) minmax(360px, 1fr);
+    order: 3;
+    flex-basis: 100%;
+    width: 100%;
+    grid-template-columns: 52px minmax(180px, 1fr) auto;
+  }
+
+  .momentum-track {
+    grid-column: 1 / -1;
   }
 
   .momentum-week-count {
-    display: none;
+    display: block;
   }
 
   .content-grid {
@@ -4266,10 +4413,6 @@ textarea {
 
   .workspace {
     padding: 18px;
-  }
-
-  .topbar {
-    flex-wrap: wrap;
   }
 
   .search-box,
