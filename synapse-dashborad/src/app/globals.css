@@ -418,6 +418,7 @@ textarea {
   max-width: none;
   min-width: 0;
   min-height: 82px;
+  overflow: hidden;
   gap: 14px;
   border: 1px solid color-mix(in oklab, var(--border-strong) 76%, var(--transparent));
   border-radius: 8px;
@@ -587,6 +588,7 @@ textarea {
 }
 
 .top-actions {
+  flex: 0 0 auto;
   margin-left: auto;
   gap: 14px;
 }
@@ -4332,6 +4334,32 @@ textarea {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1500px) {
+  .topbar {
+    flex-wrap: wrap;
+    row-gap: 14px;
+  }
+
+  .momentum-timeline {
+    order: 3;
+    flex-basis: 100%;
+    width: 100%;
+    grid-template-columns: 48px minmax(160px, 1fr) auto;
+  }
+
+  .momentum-track {
+    grid-column: 1 / -1;
+  }
+
+  .momentum-week-count {
+    display: block;
+  }
+
+  .top-actions {
+    margin-left: auto;
   }
 }
 
