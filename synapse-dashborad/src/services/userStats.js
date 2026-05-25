@@ -1,7 +1,8 @@
 import {
   doc,
   onSnapshot,
-  runTransaction
+  runTransaction,
+  serverTimestamp
 } from "firebase/firestore";
 import { getFirebaseDb } from "../lib/firebase";
 import { COLLECTIONS } from "./firestore";
@@ -292,9 +293,7 @@ export async function updateMomentumProgress(uid, options = {}) {
 
     const productiveDayComplete =
       nextProgress.completedFocus &&
-      nextProgress.completedTask &&
-      nextProgress.completedGoalUpdate &&
-      nextProgress.completedAIUsage;
+      (nextProgress.completedTask || nextProgress.completedGoalUpdate);
 
     if (productiveDayComplete && !previousProgress.momentumCompleted) {
       const previousMomentum = nextStats.currentMomentum || 0;
@@ -354,5 +353,59 @@ export async function recordUserActivity(uid, source = "app", metadata = {}) {
   return updateMomentumProgress(uid, {
     ...metadata,
     pillar
+  });
+}
+
+export async function adjustMomentumManually(uid, adjustment = {}) {
+  if (!uid) {
+    throw new Error("A user id is required to adjust Momentum.");
+  }
+
+  const db = getFirebaseDb();
+  const userRef = getUserRef(db, uid);
+  const correctionRef = doc(db, COLLECTIONS.users, uid, "momentumCorrections", `${Date.now()}`);
+
+  return runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(userRef);
+    const previousStats = normalizeStats(snapshot.exists() ? snapshot.data()?.stats : {});
+    const hasCurrentMomentum = adjustment.currentMomentum !== undefined;
+    const hasLongestMomentum = adjustment.longestMomentum !== undefined;
+    const delta = Number(adjustment.delta) || 0;
+    const currentMomentum = hasCurrentMomentum
+      ? clampNumber(adjustment.currentMomentum)
+      : Math.max(0, previousStats.currentMomentum + delta);
+    const longestMomentum = hasLongestMomentum
+      ? clampNumber(adjustment.longestMomentum)
+      : Math.max(previousStats.longestMomentum, currentMomentum);
+    const lastCompletedDate =
+      typeof adjustment.lastCompletedDate === "string"
+        ? adjustment.lastCompletedDate.slice(0, 10)
+        : previousStats.lastCompletedDate || "";
+    const nextStats = {
+      ...previousStats,
+      currentMomentum,
+      longestMomentum,
+      lastCompletedDate
+    };
+
+    transaction.set(
+      userRef,
+      {
+        stats: nextStats
+      },
+      { merge: true }
+    );
+
+    transaction.set(correctionRef, {
+      uid,
+      previousStats,
+      nextStats,
+      delta,
+      reason: String(adjustment.reason || "Manual Momentum correction").slice(0, 240),
+      actorUid: adjustment.actorUid || "",
+      createdAt: serverTimestamp()
+    });
+
+    return nextStats;
   });
 }

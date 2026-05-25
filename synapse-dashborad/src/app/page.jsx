@@ -356,11 +356,9 @@ function MomentumExplainerModal({ open, onClose }) {
             <span>To maintain Momentum daily:</span>
             <ul>
               <li>Complete a 15+ min focus session</li>
-              <li>Finish at least 1 task</li>
-              <li>Update a goal</li>
-              <li>Use SYNAPSE AI meaningfully</li>
+              <li>Finish at least 1 task or update a goal</li>
             </ul>
-            <p className="momentum-reset-line">Miss even one pillar: → Momentum resets.</p>
+            <p className="momentum-reset-line">Miss Focus Lock or the task/goal win: → Momentum resets.</p>
             <strong>Consistency builds discipline.</strong>
           </motion.article>
         </motion.div>
@@ -795,7 +793,7 @@ export default function Home() {
                 <Flame size={34} />
                 <b>{userStatsLoading ? "--" : userStats.currentMomentum || 0}</b>
               </strong>
-              <p>{userStatsError ? "Momentum sync unavailable" : "Consistency compounds."}</p>
+              <p>{userStatsError ? "Momentum sync unavailable" : "15+ focus + task/goal win."}</p>
               <em>Longest: {userStatsLoading ? "--" : userStats.longestMomentum || 0} days</em>
             </motion.button>
 

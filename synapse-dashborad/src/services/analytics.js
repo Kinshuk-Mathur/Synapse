@@ -478,9 +478,7 @@ export function buildDailyAnalyticsFromSources(sources = {}, options = {}) {
     day.momentumCompleted = Boolean(progress.momentumCompleted);
     day.momentumPillarsCompleted = [
       progress.completedFocus,
-      progress.completedTask,
-      progress.completedGoalUpdate,
-      progress.completedAIUsage
+      progress.completedTask || progress.completedGoalUpdate
     ].filter(Boolean).length;
     day.focusMinutes = Math.max(day.focusMinutes, Math.round(safeNumber(progress.focusMinutes)));
   });
@@ -790,7 +788,7 @@ export function buildWeeklyReport({ week, days = [], userStats = {}, studentName
     strongestWindow && focusMinutes >= 30
       ? `Your strongest focus window was ${strongestWindow.label}; keep your hardest work close to that rhythm.`
       : momentumDays < 2
-        ? "Build one clean daily loop: focus, task, goal, and one meaningful AI assist."
+        ? "Build one clean daily loop: 15+ minutes of Focus Lock plus one task or goal update."
         : "Your consistency is starting to compound. Keep the week simple and repeatable.";
 
   return {
