@@ -11,24 +11,17 @@ import {
   Copy,
   FileCode2,
   FileText,
-  FolderOpen,
   GraduationCap,
   Home,
   History,
   ImageIcon,
-  ListTodo,
-  LockKeyhole,
   Menu,
   MessageSquareText,
   Mic,
-  MoreHorizontal,
   Paperclip,
   Plus,
   Send,
   Sparkles,
-  Settings,
-  StickyNote,
-  Target,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -40,6 +33,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
 import { recordMeaningfulAiUsage } from "../../services/analytics";
 import { updateMomentumProgress } from "../../services/userStats";
+import ProfileAvatarMenu from "../ProfileAvatarMenu";
 import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 
 const STORAGE_KEY = "synapse-ai-conversations";
@@ -47,6 +41,7 @@ const UPLOADED_FILES_KEY = "synapse-ai-uploaded-files";
 const DASHBOARD_HREF = "/";
 const SUPPORTED_FILE_COPY = "PDF, JPG, PNG, HTML, text, Markdown, code, or JSON files";
 const SAFE_AI_ERROR = "SYNAPSE AI is currently busy. Please try again shortly.";
+const THINKING_STAGES = ["Understanding...", "Thinking...", "Preparing answer..."];
 
 const quickActions = [
   {
@@ -74,15 +69,6 @@ const quickActions = [
     icon: Zap,
     prompt: "Help me plan a calm, productive day with priorities, breaks, and focus sessions."
   }
-];
-
-const dockNavItems = [
-  { label: "AI Chat", icon: MessageSquareText, href: "/synapse-ai", active: true },
-  { label: "Todo List", icon: ListTodo, href: "/todo" },
-  { label: "Goals", icon: Target, href: "/goals" },
-  { label: "Focus Lock", icon: LockKeyhole, href: "/focus" },
-  { label: "Saved Notes", icon: StickyNote, href: "/" },
-  { label: "Settings", icon: Settings, href: "/settings" }
 ];
 
 function createWelcomeMessage() {
@@ -468,6 +454,25 @@ function TypingDots() {
   );
 }
 
+function ThinkingIndicator() {
+  const [stageIndex, setStageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setStageIndex((current) => (current + 1) % THINKING_STAGES.length);
+    }, 1250);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="synapse-thinking">
+      <span>{THINKING_STAGES[stageIndex]}</span>
+      <TypingDots />
+    </div>
+  );
+}
+
 function getAttachmentIcon(attachment) {
   if (attachment?.type?.startsWith("image/")) return ImageIcon;
   if (attachment?.name?.match(/\.(html?|css|js|jsx|json|md|txt)$/i)) return FileCode2;
@@ -573,45 +578,40 @@ function ChatSidebar({
         <span>New Chat</span>
       </motion.button>
 
-      <nav className="ai-dock-nav" aria-label="SYNAPSE AI workspace">
-        <span className="dock-section-label">Main</span>
-        {dockNavItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link key={item.label} href={item.href} className={item.active ? "is-active" : ""}>
-              <Icon size={17} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
       <div className="chat-history-label">
         <History size={15} />
         <span>Recent Chats</span>
+        <b>{sorted.length}</b>
       </div>
 
       <div className="synapse-history-list">
-        {sorted.slice(0, 7).map((conversation) => (
-          <motion.div
-            key={conversation.id}
-            className={`history-row ${conversation.id === activeId ? "is-active" : ""}`}
-            whileHover={{ x: open ? 3 : 0 }}
-          >
-            <button type="button" onClick={() => onOpenChat(conversation.id)} title={conversation.title}>
-              <MessageSquareText size={16} />
-              <span>{conversation.title}</span>
-            </button>
-            <button
-              className="delete-history-button"
-              type="button"
-              aria-label={`Delete ${conversation.title}`}
-              onClick={() => onDeleteChat(conversation.id)}
+        {sorted.length ? (
+          sorted.map((conversation) => (
+            <motion.div
+              key={conversation.id}
+              className={`history-row ${conversation.id === activeId ? "is-active" : ""}`}
+              whileHover={{ x: open ? 3 : 0 }}
             >
-              <Trash2 size={15} />
-            </button>
-          </motion.div>
-        ))}
+              <button type="button" onClick={() => onOpenChat(conversation.id)} title={conversation.title}>
+                <MessageSquareText size={16} />
+                <span>{conversation.title}</span>
+              </button>
+              <button
+                className="delete-history-button"
+                type="button"
+                aria-label={`Delete ${conversation.title}`}
+                onClick={() => onDeleteChat(conversation.id)}
+              >
+                <Trash2 size={15} />
+              </button>
+            </motion.div>
+          ))
+        ) : (
+          <div className="synapse-history-empty">
+            <MessageSquareText size={18} />
+            <span>No chats yet</span>
+          </div>
+        )}
       </div>
 
       <div className="synapse-sidebar-footer-brand">
@@ -639,110 +639,6 @@ function getFileMeta(file) {
   };
 }
 
-function formatFileType(file) {
-  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) return "PDF";
-  if (file.type?.startsWith("image/") || /\.(png|jpe?g)$/i.test(file.name)) return "Image";
-  if (/\.(html?|css|js|jsx|json|md|txt)$/i.test(file.name)) return "File";
-  return "Material";
-}
-
-function ContextPanel({ uploadedFiles, onUpload, onDeleteFile }) {
-  const [openFileMenuId, setOpenFileMenuId] = useState("");
-
-  useEffect(() => {
-    if (!openFileMenuId) return undefined;
-
-    const closeMenu = () => setOpenFileMenuId("");
-
-    window.addEventListener("click", closeMenu);
-    return () => window.removeEventListener("click", closeMenu);
-  }, [openFileMenuId]);
-
-  return (
-    <aside className="synapse-context-panel">
-      <section className="context-card">
-        <div className="context-card-heading">
-          <div>
-            <span>Your documents</span>
-            <strong>Recent materials</strong>
-          </div>
-          <button type="button" onClick={onUpload}>
-            <Plus size={15} />
-            Upload
-          </button>
-        </div>
-        <div className="workspace-file-list">
-          {uploadedFiles.length ? (
-            uploadedFiles.map((file) => {
-              const Icon = getAttachmentIcon(file);
-              const fileType = formatFileType(file);
-
-              return (
-                <article key={file.id} className="workspace-file">
-                  <Icon size={18} />
-                  <div>
-                    <strong>{file.name}</strong>
-                    <span>{fileSize(file.size)} · {fileType}</span>
-                  </div>
-                  <div className="workspace-file-menu-wrap" onClick={(event) => event.stopPropagation()}>
-                    <button
-                      className="workspace-file-menu-button"
-                      type="button"
-                      aria-label={`Open actions for ${file.name}`}
-                      aria-expanded={openFileMenuId === file.id}
-                      onClick={() =>
-                        setOpenFileMenuId((current) => (current === file.id ? "" : file.id))
-                      }
-                    >
-                      <MoreHorizontal size={16} />
-                    </button>
-
-                    <AnimatePresence>
-                      {openFileMenuId === file.id ? (
-                        <motion.div
-                          className="workspace-file-menu"
-                          initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 6, scale: 0.96 }}
-                          transition={{ duration: 0.16 }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onDeleteFile(file.id);
-                              setOpenFileMenuId("");
-                            }}
-                          >
-                            <Trash2 size={14} />
-                            <span>Delete file</span>
-                          </button>
-                        </motion.div>
-                      ) : null}
-                    </AnimatePresence>
-                  </div>
-                </article>
-              );
-            })
-          ) : (
-            <div className="workspace-empty-state">
-              <FolderOpen size={20} />
-              <strong>No files yet</strong>
-              <span>Upload a PDF, image, note, or code file and it will appear here.</span>
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="context-card drop-mini-card" onClick={onUpload}>
-        <Upload size={22} />
-        <div>
-          <strong>Drop or upload files</strong>
-          <span>PDFs, images, notes, code</span>
-        </div>
-      </section>
-    </aside>
-  );
-}
 export default function SynapseAIWorkspace() {
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState("");
@@ -757,10 +653,11 @@ export default function SynapseAIWorkspace() {
   const [copied, setCopied] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const streamRef = useRef(null);
+  const textareaRef = useRef(null);
   const fileRef = useRef(null);
   const attachmentMenuRef = useRef(null);
   const { theme, applyTheme } = useSynapseTheme();
-  const { user, profile } = useAuth();
+  const { user, profile, setProfile } = useAuth();
 
   const studentName = profile?.name || user?.displayName?.split(" ")[0] || "Student";
   const activeConversation = conversations.find((conversation) => conversation.id === activeId);
@@ -807,6 +704,17 @@ export default function SynapseAIWorkspace() {
     if (!hydrated) return;
     window.localStorage.setItem(UPLOADED_FILES_KEY, JSON.stringify(uploadedFiles));
   }, [uploadedFiles, hydrated]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const maxHeight = Math.min(220, Math.max(132, window.innerHeight * 0.28));
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, [input, selectedFile, uploadError]);
 
   useEffect(() => {
     streamRef.current?.scrollTo({
@@ -897,14 +805,6 @@ export default function SynapseAIWorkspace() {
       return [nextFile, ...withoutDuplicate].slice(0, 12);
     });
     setAttachmentMenuOpen(false);
-  };
-
-  const handleDeleteUploadedFile = (fileId) => {
-    setUploadedFiles((current) => current.filter((file) => file.id !== fileId));
-
-    if (selectedFile && getFileMeta(selectedFile).id === fileId) {
-      setSelectedFile(null);
-    }
   };
 
   const openFilePicker = (accept) => {
@@ -1192,18 +1092,13 @@ export default function SynapseAIWorkspace() {
                 <ChevronRight size={14} />
               </div>
               <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
-              <div className="profile-chip">
-                <Image
-                  src="/assets/synapse-icon-cropped.png"
-                  alt="Student profile"
-                  width={36}
-                  height={36}
-                />
-                <div>
-                  <strong>{studentName}</strong>
-                  <small>Focus Mode</small>
-                </div>
-              </div>
+              <ProfileAvatarMenu
+                user={user}
+                profile={profile}
+                studentName={studentName}
+                modeLabel="Focus Mode"
+                onProfileUpdate={setProfile}
+              />
             </div>
           </header>
 
@@ -1265,7 +1160,7 @@ export default function SynapseAIWorkspace() {
                       />
                     </span>
                     <div className="message-shell">
-                      <TypingDots />
+                      <ThinkingIndicator />
                     </div>
                   </motion.div>
                 ) : null}
@@ -1300,6 +1195,7 @@ export default function SynapseAIWorkspace() {
 
                 <label className="composer-input-shell">
                   <textarea
+                    ref={textareaRef}
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     onKeyDown={handleKeyDown}
@@ -1388,11 +1284,6 @@ export default function SynapseAIWorkspace() {
               </p>
             </section>
 
-            <ContextPanel
-              uploadedFiles={uploadedFiles}
-              onUpload={() => openFilePicker(".pdf,image/png,image/jpeg,.html,.htm,.txt,.md,.js,.jsx,.css,.json")}
-              onDeleteFile={handleDeleteUploadedFile}
-            />
           </div>
         </section>
       </div>
