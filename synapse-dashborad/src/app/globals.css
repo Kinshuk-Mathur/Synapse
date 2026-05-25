@@ -7654,3 +7654,109 @@ textarea {
     font-size: 26px;
   }
 }
+
+.analytics-panel:nth-child(4) {
+  grid-column: span 4;
+  min-height: 204px;
+}
+
+.analytics-heatmap-panel {
+  grid-column: span 8;
+  min-height: 204px;
+}
+
+.analytics-panel:nth-child(4) .analytics-chart-body,
+.analytics-heatmap-panel .analytics-heatmap-wrap {
+  min-height: 112px;
+}
+
+.analytics-momentum-consistency {
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.analytics-momentum-consistency > div:first-child {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+}
+
+.analytics-momentum-consistency strong {
+  font-size: 28px;
+}
+
+.analytics-momentum-consistency span {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.analytics-heatmap-wrap {
+  align-content: center;
+  justify-items: center;
+  overflow: hidden;
+}
+
+.react-calendar-heatmap {
+  display: block;
+  width: auto;
+  max-width: min(100%, 180px);
+  min-width: 0;
+  height: auto;
+  max-height: 116px;
+}
+
+.react-calendar-heatmap rect {
+  rx: 1.5px;
+  ry: 1.5px;
+}
+
+.analytics-heatmap-legend {
+  margin-top: -6px;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.analytics-heatmap-legend i {
+  width: 10px;
+  height: 10px;
+}
+
+@media (max-width: 1320px) {
+  .analytics-panel:nth-child(4),
+  .analytics-heatmap-panel {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 900px) {
+  .analytics-momentum-consistency {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-panel:nth-child(4),
+  .analytics-heatmap-panel {
+    min-height: 196px;
+  }
+
+  .react-calendar-heatmap {
+    max-width: min(100%, 170px);
+  }
+}
+
+@media (max-width: 760px) {
+  .analytics-panel:nth-child(4),
+  .analytics-heatmap-panel {
+    grid-column: span 12;
+  }
+
+  .analytics-heatmap-wrap {
+    overflow-x: auto;
+    justify-items: start;
+  }
+
+  .react-calendar-heatmap {
+    width: auto;
+    max-width: 168px;
+  }
+}

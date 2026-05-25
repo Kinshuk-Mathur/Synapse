@@ -564,7 +564,7 @@ export default function AnalyticsWorkspace() {
                   <strong>{weeklySummary.momentumDays}/7</strong>
                   <span>Productive Days</span>
                 </div>
-                <RechartsResponsiveContainer width="100%" height={172}>
+                <RechartsResponsiveContainer width="100%" height={84}>
                   <RechartsLineChart data={chartData} margin={{ left: -20, right: 12, top: 22, bottom: 0 }}>
                     <CartesianGrid stroke="var(--grid-line)" vertical={false} />
                     <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "var(--color-muted)", fontSize: 12 }} />
@@ -607,8 +607,9 @@ export default function AnalyticsWorkspace() {
                   startDate={monthStart}
                   endDate={monthEnd}
                   values={heatmapValues}
-                  gutterSize={4}
-                  showWeekdayLabels
+                  gutterSize={2}
+                  showMonthLabels={false}
+                  showWeekdayLabels={false}
                   classForValue={(value) => {
                     if (!value || !value.count) return "heatmap-empty";
                     if (value.count >= 80) return "heatmap-level-4";
