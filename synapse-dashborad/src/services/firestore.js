@@ -17,8 +17,10 @@ export const COLLECTIONS = {
   monthlyGoals: "monthlyGoals",
   goals: "goals",
   focusSessions: "focusSessions",
+  aiUsage: "aiUsage",
   analytics: "analytics",
-  dailyProgress: "dailyProgress"
+  dailyProgress: "dailyProgress",
+  notifications: "notifications"
 };
 
 export function getCollectionRefs() {
@@ -31,6 +33,7 @@ export function getCollectionRefs() {
     monthlyGoals: collection(db, COLLECTIONS.monthlyGoals),
     goals: collection(db, COLLECTIONS.goals),
     focusSessions: collection(db, COLLECTIONS.focusSessions),
+    aiUsage: collection(db, COLLECTIONS.aiUsage),
     analytics: collection(db, COLLECTIONS.analytics)
   };
 }

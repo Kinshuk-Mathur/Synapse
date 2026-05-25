@@ -74,7 +74,7 @@ const navItems = [
   { label: "Focus Lock", icon: LockKeyhole, href: "/focus" },
   { label: "To-Do List", icon: CheckSquare, href: todoAppUrl },
   { label: "Goals", icon: Target, href: goalsAppUrl },
-  { label: "Analytics", icon: BarChart3, href: "#" },
+  { label: "Analytics", icon: BarChart3, href: "/analytics" },
   { label: "SYNAPSE AI", icon: Sparkles, href: synapseAiUrl },
   { label: "Resources", icon: FolderOpen, href: "#" },
   { label: "Settings", icon: Settings, href: "/settings" }

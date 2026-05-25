@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
 import {
   Bell,
   CalendarDays,
@@ -16,6 +15,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
 import { useTodos } from "../../hooks/useTodos";
 import { formatDateKey, isDateLocked, parseDateKey } from "../../services/todos";
+import ProfileAvatarMenu from "../ProfileAvatarMenu";
 import MotivationPanel from "./MotivationPanel";
 import QuickAddTask from "./QuickAddTask";
 import TodoCalendar from "./TodoCalendar";
@@ -34,7 +34,7 @@ export default function TodoWorkspace() {
   const [currentMonth, setCurrentMonth] = useState(() => parseDateKey(formatDateKey()));
   const [actionError, setActionError] = useState("");
   const { theme, applyTheme } = useSynapseTheme();
-  const { user, logout } = useAuth();
+  const { user, profile, setProfile, logout } = useAuth();
   const {
     tasksForSelectedDate,
     pendingCarryovers,
@@ -56,7 +56,7 @@ export default function TodoWorkspace() {
     year: "numeric"
   });
   const locked = isDateLocked(selectedDate);
-  const studentName = user?.displayName?.split(" ")[0] || "STUDENT";
+  const studentName = profile?.name || user?.displayName?.split(" ")[0] || "STUDENT";
 
   const completionSummary = useMemo(() => {
     const total = tasksForSelectedDate.length;
@@ -136,19 +136,13 @@ export default function TodoWorkspace() {
                 <Bell size={20} />
                 <span>{pendingCarryovers.length}</span>
               </button>
-              <div className="profile-chip">
-                <Image
-                  src="/assets/synapse-icon-cropped.png"
-                  alt="Student profile"
-                  width={36}
-                  height={36}
-                />
-                <div>
-                  <strong>{studentName}</strong>
-                  <small>Focus Mode</small>
-                </div>
-                <ChevronDown size={14} />
-              </div>
+              <ProfileAvatarMenu
+                user={user}
+                profile={profile}
+                studentName={studentName}
+                modeLabel="Focus Mode"
+                onProfileUpdate={setProfile}
+              />
               <button className="logout-button" type="button" onClick={handleLogout}>
                 <LogOut size={17} />
                 <span>Logout</span>

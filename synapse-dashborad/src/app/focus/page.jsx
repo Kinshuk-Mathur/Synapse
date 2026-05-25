@@ -33,7 +33,7 @@ const navItems = [
   { label: "Focus Lock", icon: LockKeyhole, href: "/focus", active: true },
   { label: "To-Do List", icon: CheckSquare, href: "/todo" },
   { label: "Goals", icon: Target, href: "/goals" },
-  { label: "Analytics", icon: BarChart3, href: "/focus" },
+  { label: "Analytics", icon: BarChart3, href: "/analytics" },
   { label: "SYNAPSE AI", icon: Sparkles, href: "/synapse-ai" },
   { label: "Resources", icon: FolderOpen, href: "#" },
   { label: "Settings", icon: Settings, href: "/settings" }

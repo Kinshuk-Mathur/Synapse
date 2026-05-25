@@ -70,12 +70,15 @@ export async function addTodo(uid, payload) {
 
   return addDoc(collection(db, COLLECTIONS.todos), {
     uid,
+    title: payload.task.trim(),
     task: payload.task.trim(),
     note: payload.note?.trim() || "",
     time: payload.time || "09:00",
     priority: TODO_PRIORITIES.includes(payload.priority) ? payload.priority : "Medium",
+    date: selectedDate,
     selectedDate,
     completed: false,
+    completedAt: null,
     locked: isDateLocked(selectedDate),
     status: "active",
     createdLocal: new Date().toISOString(),
@@ -158,12 +161,15 @@ export async function carryForwardPastTodos(uid, todos) {
 
     batch.set(carryoverRef, {
       uid,
+      title: todo.task || "Untitled task",
       task: todo.task || "Untitled task",
       note: todo.note || "",
       time: todo.time || "09:00",
       priority: TODO_PRIORITIES.includes(todo.priority) ? todo.priority : "Medium",
+      date: todayKey,
       selectedDate: todayKey,
       completed: false,
+      completedAt: null,
       locked: false,
       status: "active",
       sourceTodoId: todo.id,

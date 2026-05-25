@@ -114,7 +114,9 @@ export function useTodos(selectedDate) {
 
     await updateTodo(todo.id, {
       completed: !todo.completed,
-      status: !todo.completed ? "completed" : "active"
+      status: !todo.completed ? "completed" : "active",
+      completedAt: !todo.completed ? new Date() : null,
+      completedLocal: !todo.completed ? new Date().toISOString() : ""
     });
 
     if (completingToday) {
@@ -131,6 +133,7 @@ export function useTodos(selectedDate) {
     }
 
     await updateTodo(todo.id, {
+      title: payload.task.trim(),
       task: payload.task.trim(),
       note: payload.note?.trim() || "",
       time: payload.time || todo.time || "09:00",

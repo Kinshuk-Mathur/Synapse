@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
+import { recordMeaningfulAiUsage } from "../../services/analytics";
 import { updateMomentumProgress } from "../../services/userStats";
 import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 
@@ -979,6 +980,11 @@ export default function SynapseAIWorkspace() {
       try {
         await updateMomentumProgress(user?.uid, {
           pillar: "ai",
+          prompt: trimmed,
+          hasAttachment: hadAttachment,
+          interactionDurationMs: performance.now() - interactionStartedAt
+        });
+        await recordMeaningfulAiUsage(user?.uid, {
           prompt: trimmed,
           hasAttachment: hadAttachment,
           interactionDurationMs: performance.now() - interactionStartedAt

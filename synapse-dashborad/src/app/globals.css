@@ -6821,3 +6821,836 @@ textarea {
     margin-inline: 10px;
   }
 }
+
+.analytics-dashboard-frame {
+  width: min(1760px, 100%);
+}
+
+.analytics-workspace {
+  display: grid;
+  gap: 18px;
+}
+
+.analytics-topbar,
+.analytics-title-block,
+.analytics-top-actions,
+.analytics-controls,
+.analytics-select-shell,
+.analytics-panel-header,
+.analytics-panel-header > div,
+.analytics-kicker,
+.analytics-report-pills,
+.analytics-empty-inline,
+.analytics-heatmap-legend,
+.analytics-win-row {
+  display: flex;
+  align-items: center;
+}
+
+.analytics-topbar {
+  position: relative;
+  z-index: 35;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.analytics-title-block {
+  min-width: 0;
+  gap: 14px;
+}
+
+.analytics-title-icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--chart-blue) 24%, var(--transparent)), color-mix(in oklab, var(--chart-pink) 20%, var(--transparent))),
+    var(--panel);
+  color: var(--chart-pink);
+  box-shadow: var(--shadow-glow);
+}
+
+.analytics-title-block h1 {
+  margin: 0;
+  font-size: clamp(32px, 3vw, 48px);
+  line-height: 1;
+}
+
+.analytics-title-block p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  font-size: 15px;
+}
+
+.analytics-top-actions {
+  flex: none;
+  gap: 12px;
+}
+
+.analytics-controls {
+  position: relative;
+  z-index: 25;
+  gap: 14px;
+}
+
+.analytics-select-shell {
+  flex: 0 0 196px;
+  height: 54px;
+  gap: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-pulse) 12%, var(--transparent)), color-mix(in oklab, var(--color-surface) 78%, var(--transparent))),
+    var(--panel);
+  padding: 0 14px;
+  box-shadow: 0 0 28px color-mix(in oklab, var(--color-pulse) 16%, var(--transparent));
+  color: var(--color-text);
+  backdrop-filter: blur(18px);
+}
+
+.analytics-select-shell select {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  background: var(--transparent);
+  font-weight: 800;
+}
+
+.analytics-select-shell svg {
+  flex: none;
+  color: var(--chart-pink);
+}
+
+.analytics-week-tabs {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.analytics-week-tabs button,
+.analytics-no-weeks {
+  display: grid;
+  min-height: 54px;
+  align-content: center;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--panel) 78%, var(--transparent));
+  padding: 8px 14px;
+  text-align: left;
+  box-shadow: 0 14px 36px color-mix(in oklab, var(--color-ink) 22%, var(--transparent));
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease,
+    background 220ms ease;
+}
+
+.analytics-week-tabs button:hover,
+.analytics-week-tabs button.is-active {
+  border-color: color-mix(in oklab, var(--color-pulse) 72%, var(--color-text));
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 22%, var(--transparent)), color-mix(in oklab, var(--color-accent) 38%, var(--transparent))),
+    var(--panel);
+  box-shadow:
+    0 0 28px color-mix(in oklab, var(--color-pulse) 35%, var(--transparent)),
+    0 18px 46px color-mix(in oklab, var(--color-ink) 28%, var(--transparent));
+  transform: translateY(-2px);
+}
+
+.analytics-week-tabs span {
+  font-weight: 850;
+}
+
+.analytics-week-tabs small,
+.analytics-no-weeks {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.analytics-report-card {
+  position: relative;
+  display: grid;
+  min-height: 286px;
+  overflow: hidden;
+  grid-template-columns: minmax(220px, 0.72fr) minmax(280px, 1fr) 112px;
+  gap: 22px;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 30%, var(--border));
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 18% 28%, color-mix(in oklab, var(--color-pulse) 28%, var(--transparent)), var(--transparent) 34%),
+    radial-gradient(circle at 82% 12%, color-mix(in oklab, var(--chart-blue) 24%, var(--transparent)), var(--transparent) 30%),
+    linear-gradient(135deg, color-mix(in oklab, var(--color-surface) 78%, var(--transparent)), color-mix(in oklab, var(--color-bg) 92%, var(--transparent))),
+    var(--panel);
+  padding: 26px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--color-text) 8%, var(--transparent)),
+    0 24px 80px color-mix(in oklab, var(--color-ink) 38%, var(--transparent));
+  backdrop-filter: blur(22px);
+}
+
+.analytics-report-card::before {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, color-mix(in oklab, var(--color-text) 70%, var(--transparent)) 0 1px, var(--transparent) 1px),
+    linear-gradient(128deg, var(--transparent) 18%, color-mix(in oklab, var(--color-pulse) 16%, var(--transparent)) 48%, var(--transparent) 74%);
+  background-size: 74px 74px, 100% 100%;
+  opacity: 0.18;
+  content: "";
+}
+
+.analytics-report-visual,
+.analytics-report-copy,
+.analytics-score-orbit {
+  position: relative;
+  z-index: 1;
+}
+
+.analytics-report-visual {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  color: var(--chart-pink);
+}
+
+.analytics-report-visual svg {
+  filter:
+    drop-shadow(0 0 20px color-mix(in oklab, var(--color-pulse) 70%, var(--transparent)))
+    drop-shadow(0 0 30px color-mix(in oklab, var(--chart-blue) 55%, var(--transparent)));
+}
+
+.analytics-report-visual i {
+  position: absolute;
+  width: min(260px, 90%);
+  aspect-ratio: 1.62;
+  border: 1px solid color-mix(in oklab, var(--chart-blue) 56%, var(--transparent));
+  border-radius: 50%;
+  transform: rotate(-12deg);
+  box-shadow: 0 0 28px color-mix(in oklab, var(--chart-blue) 34%, var(--transparent));
+}
+
+.analytics-ai-badge {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 70%, var(--color-text));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--panel-strong) 78%, var(--transparent));
+  color: var(--color-text);
+  font-weight: 900;
+  box-shadow: var(--shadow-glow);
+}
+
+.analytics-report-copy {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+}
+
+.analytics-kicker {
+  gap: 8px;
+  color: color-mix(in oklab, var(--chart-pink) 80%, var(--color-text));
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.analytics-report-copy h2 {
+  margin: 0;
+  font-size: clamp(28px, 2.8vw, 40px);
+  line-height: 1.08;
+}
+
+.analytics-report-copy p {
+  max-width: 680px;
+  margin: 0;
+  color: color-mix(in oklab, var(--color-text) 82%, var(--color-muted));
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.analytics-report-pills {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.analytics-report-pills span {
+  border: 1px solid color-mix(in oklab, var(--color-text) 12%, var(--transparent));
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 16%, var(--transparent)), color-mix(in oklab, var(--chart-blue) 12%, var(--transparent))),
+    color-mix(in oklab, var(--color-text) 7%, var(--transparent));
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.analytics-score-orbit {
+  display: grid;
+  align-self: center;
+  width: 104px;
+  height: 104px;
+  place-items: center;
+  border: 10px solid color-mix(in oklab, var(--chart-pink) 80%, var(--color-accent));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--panel-strong) 80%, var(--transparent));
+  box-shadow:
+    inset 0 0 26px color-mix(in oklab, var(--color-ink) 42%, var(--transparent)),
+    0 0 30px color-mix(in oklab, var(--color-pulse) 42%, var(--transparent));
+}
+
+.analytics-score-orbit strong {
+  align-self: end;
+  font-size: 32px;
+  line-height: 0.9;
+}
+
+.analytics-score-orbit span {
+  align-self: start;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.analytics-stats-grid,
+.analytics-graphs-grid,
+.analytics-bottom-grid,
+.analytics-insight-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.analytics-stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.analytics-stat-card,
+.analytics-panel {
+  border: 1px solid color-mix(in oklab, var(--analytics-tone, var(--color-pulse)) 24%, var(--border));
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 84% 12%, color-mix(in oklab, var(--analytics-tone, var(--color-pulse)) 18%, var(--transparent)), var(--transparent) 34%),
+    linear-gradient(145deg, color-mix(in oklab, var(--color-surface) 84%, var(--transparent)), color-mix(in oklab, var(--color-bg) 92%, var(--transparent))),
+    var(--panel);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--color-text) 7%, var(--transparent)),
+    0 18px 58px color-mix(in oklab, var(--color-ink) 30%, var(--transparent));
+  backdrop-filter: blur(20px);
+}
+
+.analytics-stat-card {
+  display: grid;
+  min-height: 150px;
+  gap: 10px;
+  padding: 20px;
+}
+
+.analytics-stat-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.analytics-stat-card svg {
+  color: var(--analytics-tone);
+  filter: drop-shadow(0 0 12px color-mix(in oklab, var(--analytics-tone) 68%, var(--transparent)));
+}
+
+.analytics-stat-card strong {
+  font-size: clamp(28px, 2.4vw, 40px);
+  line-height: 1;
+}
+
+.analytics-stat-card small {
+  color: color-mix(in oklab, var(--color-lime) 70%, var(--color-text));
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.analytics-graphs-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.analytics-panel {
+  --analytics-tone: var(--chart-pink);
+  min-width: 0;
+  min-height: 330px;
+  padding: 18px;
+}
+
+.analytics-panel:nth-child(1),
+.analytics-panel:nth-child(2) {
+  grid-column: span 4;
+}
+
+.analytics-panel:nth-child(3) {
+  --analytics-tone: var(--chart-gold);
+  grid-column: span 4;
+}
+
+.analytics-panel:nth-child(4) {
+  --analytics-tone: var(--chart-blue);
+  grid-column: span 5;
+}
+
+.analytics-heatmap-panel {
+  --analytics-tone: var(--chart-pink);
+  grid-column: span 7;
+}
+
+.analytics-panel-header {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.analytics-panel-header > div {
+  min-width: 0;
+  gap: 12px;
+}
+
+.analytics-panel-header > div > span {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, var(--analytics-tone) 60%, var(--transparent));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--analytics-tone) 15%, var(--transparent));
+  color: var(--analytics-tone);
+  box-shadow: 0 0 18px color-mix(in oklab, var(--analytics-tone) 42%, var(--transparent));
+}
+
+.analytics-panel-header h3,
+.analytics-panel-header p {
+  margin: 0;
+}
+
+.analytics-panel-header h3 {
+  font-size: 19px;
+  line-height: 1.16;
+}
+
+.analytics-panel-header p {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.analytics-panel-header strong {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.analytics-chart-body {
+  position: relative;
+  display: grid;
+  min-height: 252px;
+  place-items: stretch;
+}
+
+.analytics-empty-inline {
+  justify-content: center;
+  min-height: 100%;
+  gap: 8px;
+  border: 1px dashed color-mix(in oklab, var(--color-text) 14%, var(--transparent));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  padding: 18px;
+  color: var(--color-muted);
+  text-align: center;
+  font-weight: 750;
+}
+
+.analytics-empty-inline svg {
+  color: var(--chart-pink);
+}
+
+.analytics-chart-tooltip {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--panel-strong) 94%, var(--transparent));
+  padding: 10px 12px;
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+}
+
+.analytics-chart-tooltip span {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.analytics-goal-pie {
+  position: relative;
+  display: flex;
+  min-height: 244px;
+  align-items: center;
+  gap: 12px;
+}
+
+.analytics-goal-pie-center {
+  position: absolute;
+  left: calc(29% - 38px);
+  top: 50%;
+  display: grid;
+  width: 76px;
+  transform: translateY(-50%);
+  text-align: center;
+}
+
+.analytics-goal-pie-center strong {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.analytics-goal-pie-center span {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.analytics-goal-legend {
+  display: grid;
+  flex: 1;
+  gap: 14px;
+}
+
+.analytics-goal-legend span {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-muted);
+  font-weight: 760;
+}
+
+.analytics-goal-legend i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--legend-color);
+  box-shadow: 0 0 16px color-mix(in oklab, var(--legend-color) 58%, var(--transparent));
+}
+
+.analytics-goal-legend b {
+  color: var(--color-text);
+}
+
+.analytics-momentum-consistency {
+  display: grid;
+  gap: 12px;
+}
+
+.analytics-momentum-consistency > div:first-child {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+}
+
+.analytics-momentum-consistency strong {
+  font-size: 42px;
+  line-height: 0.9;
+}
+
+.analytics-momentum-consistency span {
+  color: var(--color-muted);
+  font-weight: 760;
+}
+
+.analytics-heatmap-wrap {
+  display: grid;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 2px 0;
+}
+
+.react-calendar-heatmap {
+  min-width: 620px;
+}
+
+.react-calendar-heatmap text {
+  fill: var(--color-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.react-calendar-heatmap rect {
+  rx: 3px;
+  ry: 3px;
+  stroke: color-mix(in oklab, var(--color-text) 6%, var(--transparent));
+  transition:
+    opacity 180ms ease,
+    stroke 180ms ease,
+    filter 180ms ease;
+}
+
+.react-calendar-heatmap rect:hover {
+  stroke: color-mix(in oklab, var(--color-text) 60%, var(--transparent));
+  filter: drop-shadow(0 0 8px color-mix(in oklab, var(--color-pulse) 60%, var(--transparent)));
+}
+
+.heatmap-empty {
+  fill: color-mix(in oklab, var(--color-text) 7%, var(--transparent));
+}
+
+.heatmap-level-1 {
+  fill: color-mix(in oklab, var(--color-accent) 58%, var(--color-bg));
+}
+
+.heatmap-level-2 {
+  fill: color-mix(in oklab, var(--chart-purple) 78%, var(--color-bg));
+}
+
+.heatmap-level-3 {
+  fill: color-mix(in oklab, var(--chart-pink) 72%, var(--chart-purple));
+}
+
+.heatmap-level-4 {
+  fill: color-mix(in oklab, var(--chart-pink) 72%, var(--color-text));
+}
+
+.analytics-heatmap-legend {
+  justify-content: center;
+  gap: 8px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.analytics-heatmap-legend i {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  box-shadow: 0 0 12px color-mix(in oklab, var(--color-pulse) 36%, var(--transparent));
+}
+
+.analytics-bottom-grid {
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+}
+
+.analytics-insights-panel,
+.analytics-wins-panel {
+  min-height: 278px;
+}
+
+.analytics-insight-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.analytics-insight-card {
+  display: grid;
+  min-height: 174px;
+  align-content: space-between;
+  gap: 10px;
+  border: 1px solid color-mix(in oklab, var(--insight-tone, var(--chart-pink)) 32%, var(--border));
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--insight-tone, var(--chart-pink)) 24%, var(--transparent)), var(--transparent) 54%),
+    color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  padding: 16px;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-text) 7%, var(--transparent));
+}
+
+.analytics-insight-card.tone-pink {
+  --insight-tone: var(--chart-pink);
+}
+
+.analytics-insight-card.tone-blue {
+  --insight-tone: var(--chart-blue);
+}
+
+.analytics-insight-card.tone-green {
+  --insight-tone: var(--color-lime);
+}
+
+.analytics-insight-card.tone-gold {
+  --insight-tone: var(--chart-gold);
+}
+
+.analytics-insight-card.tone-purple {
+  --insight-tone: var(--chart-purple);
+}
+
+.analytics-insight-card svg {
+  color: var(--insight-tone);
+  filter: drop-shadow(0 0 14px color-mix(in oklab, var(--insight-tone) 52%, var(--transparent)));
+}
+
+.analytics-insight-card strong {
+  font-size: 15px;
+}
+
+.analytics-insight-card p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.42;
+}
+
+.analytics-win-list {
+  display: grid;
+  gap: 10px;
+}
+
+.analytics-win-row {
+  gap: 12px;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text) 8%, var(--transparent));
+  padding: 10px 0 12px;
+}
+
+.analytics-win-row:last-child {
+  border-bottom: 0;
+}
+
+.analytics-win-row > span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, var(--chart-pink) 52%, var(--transparent));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--chart-pink) 12%, var(--transparent));
+  color: var(--chart-gold);
+  box-shadow: 0 0 16px color-mix(in oklab, var(--chart-pink) 32%, var(--transparent));
+}
+
+.analytics-win-row div {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 3px;
+}
+
+.analytics-win-row strong {
+  font-size: 14px;
+}
+
+.analytics-win-row small {
+  color: var(--color-muted);
+}
+
+.analytics-win-row b {
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 30%, var(--transparent));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-pulse) 14%, var(--transparent));
+  padding: 8px 10px;
+  color: color-mix(in oklab, var(--chart-pink) 80%, var(--color-text));
+  white-space: nowrap;
+}
+
+@media (max-width: 1320px) {
+  .analytics-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analytics-panel:nth-child(1),
+  .analytics-panel:nth-child(2),
+  .analytics-panel:nth-child(3),
+  .analytics-panel:nth-child(4),
+  .analytics-heatmap-panel {
+    grid-column: span 6;
+  }
+
+  .analytics-insight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1080px) {
+  .analytics-topbar,
+  .analytics-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .analytics-top-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .analytics-select-shell {
+    flex-basis: auto;
+  }
+
+  .analytics-week-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analytics-report-card {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-report-visual {
+    min-height: 170px;
+  }
+
+  .analytics-score-orbit {
+    position: absolute;
+    right: 22px;
+    top: 22px;
+  }
+
+  .analytics-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .analytics-workspace {
+    padding: 18px 14px 24px;
+  }
+
+  .analytics-title-block h1 {
+    font-size: 34px;
+  }
+
+  .analytics-stats-grid,
+  .analytics-week-tabs,
+  .analytics-insight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-panel:nth-child(1),
+  .analytics-panel:nth-child(2),
+  .analytics-panel:nth-child(3),
+  .analytics-panel:nth-child(4),
+  .analytics-heatmap-panel {
+    grid-column: span 12;
+  }
+
+  .analytics-report-card {
+    padding: 20px;
+  }
+
+  .analytics-report-copy p {
+    font-size: 15px;
+  }
+
+  .analytics-score-orbit {
+    width: 84px;
+    height: 84px;
+    border-width: 8px;
+  }
+
+  .analytics-score-orbit strong {
+    font-size: 26px;
+  }
+}

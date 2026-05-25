@@ -1,10 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import Image from "next/image";
 import {
   Bell,
-  ChevronDown,
   LogOut,
   Menu,
   Plus,
@@ -19,6 +17,7 @@ import {
   getCurrentGoalMonth,
   getMonthName
 } from "../../services/monthlyGoals";
+import ProfileAvatarMenu from "../ProfileAvatarMenu";
 import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 import GoalCard from "./GoalCard";
 import GoalForm from "./GoalForm";
@@ -44,7 +43,7 @@ export default function GoalsWorkspace() {
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [actionError, setActionError] = useState("");
   const { theme, applyTheme } = useSynapseTheme();
-  const { user, logout } = useAuth();
+  const { user, profile, setProfile, logout } = useAuth();
   const {
     selectedGoals,
     selectedTrend,
@@ -63,7 +62,7 @@ export default function GoalsWorkspace() {
     return selectedGoals.filter((goal) => goal.status === filter);
   }, [filter, selectedGoals]);
   const monthTitle = `${getMonthName(selectedMonth)} ${selectedYear}`;
-  const studentName = user?.displayName?.split(" ")[0] || "STUDENT";
+  const studentName = profile?.name || user?.displayName?.split(" ")[0] || "STUDENT";
 
   const runGoalAction = async (action) => {
     try {
@@ -118,19 +117,13 @@ export default function GoalsWorkspace() {
                 <Bell size={20} />
                 <span>{selectedStats.inProgress}</span>
               </button>
-              <div className="profile-chip">
-                <Image
-                  src="/assets/synapse-icon-cropped.png"
-                  alt="Student profile"
-                  width={36}
-                  height={36}
-                />
-                <div>
-                  <strong>{studentName}</strong>
-                  <small>Goal Mode</small>
-                </div>
-                <ChevronDown size={14} />
-              </div>
+              <ProfileAvatarMenu
+                user={user}
+                profile={profile}
+                studentName={studentName}
+                modeLabel="Goal Mode"
+                onProfileUpdate={setProfile}
+              />
               <button className="logout-button" type="button" onClick={() => runGoalAction(logout)}>
                 <LogOut size={17} />
                 <span>Logout</span>
