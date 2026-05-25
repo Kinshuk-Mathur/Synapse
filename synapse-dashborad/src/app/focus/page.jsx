@@ -1,11 +1,15 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import {
   BarChart3,
+  CalendarDays,
   CheckSquare,
+  ChevronLeft,
+  ChevronRight,
   FolderOpen,
   HelpCircle,
   LayoutDashboard,
@@ -15,11 +19,14 @@ import {
   Sparkles,
   Target,
   Timer,
-  Trophy
+  Trophy,
+  X
 } from "lucide-react";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import { useAuth } from "../../context/AuthContext";
 import { useSynapseFocus } from "../../hooks/useSynapseFocus";
+import { buildFocusSummary } from "../../services/focusSessions";
+import { formatDateKey, parseDateKey } from "../../services/todos";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
@@ -49,22 +56,261 @@ function formatTimestamp(timestamp) {
   });
 }
 
+const monthNames = Array.from({ length: 12 }, (_, month) =>
+  new Date(2026, month, 1).toLocaleDateString(undefined, { month: "short" })
+);
+const focusLockEmptyMessage = "Get extension from Focus Lock";
+
+function getCurrentFocusPeriod() {
+  const today = new Date();
+  return {
+    year: today.getFullYear(),
+    month: today.getMonth(),
+    weekIndex: Math.floor((today.getDate() - 1) / 7)
+  };
+}
+
+function getMonthWeeks(year, month) {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const weekCount = Math.ceil(daysInMonth / 7);
+
+  return Array.from({ length: weekCount }, (_, index) => {
+    const startDay = index * 7 + 1;
+    const endDay = Math.min(daysInMonth, startDay + 6);
+    const startDate = new Date(year, month, startDay);
+    const endDate = new Date(year, month, endDay);
+
+    return {
+      index,
+      label: `Week ${index + 1}`,
+      startDateKey: formatDateKey(startDate),
+      endDateKey: formatDateKey(endDate)
+    };
+  });
+}
+
+function formatDateRange(startDateKey, endDateKey) {
+  const startDate = parseDateKey(startDateKey);
+  const endDate = parseDateKey(endDateKey);
+  const options = { month: "short", day: "numeric" };
+  const start = startDate.toLocaleDateString(undefined, options);
+  const end = endDate.toLocaleDateString(undefined, {
+    ...options,
+    year: startDate.getFullYear() === endDate.getFullYear() ? undefined : "numeric"
+  });
+
+  return `${start} - ${end}`;
+}
+
+function formatDayLabel(dateKey) {
+  return parseDateKey(dateKey).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function FocusPeriodPicker({
+  open,
+  pickerRef,
+  pickerStep,
+  pickerYear,
+  draftMonth,
+  selectedPeriod,
+  onToggle,
+  onClose,
+  onStepChange,
+  onYearChange,
+  onDraftMonth,
+  onSelectWeek
+}) {
+  const draftWeeks = draftMonth ? getMonthWeeks(draftMonth.year, draftMonth.month) : [];
+
+  return (
+    <div className="focus-period-picker" ref={pickerRef}>
+      <button
+        className={`focus-calendar-button ${open ? "is-active" : ""}`}
+        type="button"
+        aria-label="Select Focus Lock period"
+        title="Select Focus Lock period"
+        aria-expanded={open}
+        onClick={onToggle}
+      >
+        <CalendarDays size={22} />
+      </button>
+
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            className="focus-period-menu"
+            initial={{ opacity: 0, y: 10, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ duration: 0.18 }}
+          >
+            {pickerStep === "months" ? (
+              <>
+                <div className="focus-period-menu-header">
+                  <button type="button" aria-label="Previous year" onClick={() => onYearChange(pickerYear - 1)}>
+                    <ChevronLeft size={16} />
+                  </button>
+                  <strong>{pickerYear}</strong>
+                  <button type="button" aria-label="Next year" onClick={() => onYearChange(pickerYear + 1)}>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+                <div className="focus-month-grid">
+                  {monthNames.map((monthName, month) => {
+                    const active = selectedPeriod.year === pickerYear && selectedPeriod.month === month;
+                    return (
+                      <button
+                        className={active ? "is-active" : ""}
+                        key={monthName}
+                        type="button"
+                        onClick={() => {
+                          onDraftMonth({ year: pickerYear, month });
+                          onStepChange("weeks");
+                        }}
+                      >
+                        {monthName}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="focus-period-menu-header">
+                  <button type="button" onClick={() => onStepChange("months")}>
+                    <ChevronLeft size={16} />
+                    Months
+                  </button>
+                  <strong>{monthNames[draftMonth.month]} {draftMonth.year}</strong>
+                  <button type="button" aria-label="Close period picker" onClick={onClose}>
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="focus-week-grid">
+                  {draftWeeks.map((week) => {
+                    const active =
+                      selectedPeriod.year === draftMonth.year &&
+                      selectedPeriod.month === draftMonth.month &&
+                      selectedPeriod.weekIndex === week.index;
+                    return (
+                      <button
+                        className={active ? "is-active" : ""}
+                        key={week.startDateKey}
+                        type="button"
+                        onClick={() => onSelectWeek({ ...draftMonth, weekIndex: week.index })}
+                      >
+                        <span>{week.label}</span>
+                        <small>{formatDateRange(week.startDateKey, week.endDateKey)}</small>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function FocusPage() {
   const { user } = useAuth();
-  const { summary, loading, error } = useSynapseFocus(user);
-  const weeklyData = summary.weeklyData?.length
-    ? summary.weeklyData
-    : Array.from({ length: 7 }, (_, index) => {
-        const date = new Date();
-        date.setDate(date.getDate() + index - 6);
-        return {
-          day: date.toLocaleDateString(undefined, { weekday: "short" }),
-          dateKey: date.toISOString(),
-          hours: 0
-        };
-      });
+  const { sessions: focusSessions, loading, error } = useSynapseFocus(user);
+  const [selectedPeriod, setSelectedPeriod] = useState(getCurrentFocusPeriod);
+  const [selectedDateKey, setSelectedDateKey] = useState("");
+  const [periodPickerOpen, setPeriodPickerOpen] = useState(false);
+  const [pickerStep, setPickerStep] = useState("months");
+  const [pickerYear, setPickerYear] = useState(() => getCurrentFocusPeriod().year);
+  const [draftMonth, setDraftMonth] = useState(() => {
+    const currentPeriod = getCurrentFocusPeriod();
+    return { year: currentPeriod.year, month: currentPeriod.month };
+  });
+  const pickerRef = useRef(null);
+  const monthWeeks = useMemo(
+    () => getMonthWeeks(selectedPeriod.year, selectedPeriod.month),
+    [selectedPeriod.month, selectedPeriod.year]
+  );
+  const selectedWeek = monthWeeks[Math.min(selectedPeriod.weekIndex, monthWeeks.length - 1)] || monthWeeks[0];
+  const weekSummary = useMemo(
+    () =>
+      buildFocusSummary(focusSessions, {
+        startDateKey: selectedWeek.startDateKey,
+        endDateKey: selectedWeek.endDateKey,
+        weeklyStartDateKey: selectedWeek.startDateKey,
+        weeklyEndDateKey: selectedWeek.endDateKey,
+        sessionLimit: Infinity
+      }),
+    [focusSessions, selectedWeek]
+  );
+  const daySummary = useMemo(
+    () =>
+      selectedDateKey
+        ? buildFocusSummary(focusSessions, {
+            startDateKey: selectedDateKey,
+            endDateKey: selectedDateKey,
+            weeklyStartDateKey: selectedWeek.startDateKey,
+            weeklyEndDateKey: selectedWeek.endDateKey,
+            sessionLimit: Infinity
+          })
+        : null,
+    [focusSessions, selectedDateKey, selectedWeek]
+  );
+  const visibleSummary = daySummary || weekSummary;
+  const weeklyData = weekSummary.weeklyData || [];
   const maxWeeklyHours = Math.max(...weeklyData.map((item) => item.hours), 1);
-  const recentSessions = summary.recentSessions || [];
+  const recentSessions = visibleSummary.recentSessions || [];
+  const selectedRangeLabel = formatDateRange(selectedWeek.startDateKey, selectedWeek.endDateKey);
+  const periodLabel = selectedDateKey
+    ? formatDayLabel(selectedDateKey)
+    : `${monthNames[selectedPeriod.month]} ${selectedPeriod.year} - Week ${selectedPeriod.weekIndex + 1}`;
+  const hasAnyFocusSessions = focusSessions.length > 0;
+  const emptyPeriodMessage = hasAnyFocusSessions ? "No Focus Lock data in this period." : focusLockEmptyMessage;
+
+  useEffect(() => {
+    if (!periodPickerOpen) return undefined;
+
+    const closePicker = (event) => {
+      if (pickerRef.current?.contains(event.target)) return;
+      setPeriodPickerOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setPeriodPickerOpen(false);
+    };
+
+    window.addEventListener("pointerdown", closePicker);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("pointerdown", closePicker);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [periodPickerOpen]);
+
+  const togglePeriodPicker = () => {
+    setPeriodPickerOpen((open) => {
+      const nextOpen = !open;
+      if (nextOpen) {
+        setPickerStep("months");
+        setPickerYear(selectedPeriod.year);
+        setDraftMonth({ year: selectedPeriod.year, month: selectedPeriod.month });
+      }
+      return nextOpen;
+    });
+  };
+
+  const selectPeriodWeek = (nextPeriod) => {
+    setSelectedPeriod(nextPeriod);
+    setSelectedDateKey("");
+    setPeriodPickerOpen(false);
+  };
+
+  const selectDay = (dateKey) => {
+    setSelectedDateKey((currentDateKey) => (currentDateKey === dateKey ? "" : dateKey));
+  };
 
   return (
     <ProtectedRoute>
@@ -113,10 +359,35 @@ export default function FocusPage() {
 
           <section className="workspace focus-workspace">
             <header className="focus-page-hero">
-              <div>
-                <span>FOCUSLOCK - powered by Synapse</span>
-                <h1>Focus Lock</h1>
+              <div className="focus-hero-copy">
+                <span className="focus-page-eyebrow">FOCUSLOCK - powered by Synapse</span>
+                <div className="focus-hero-title-row">
+                  <h1>Focus Lock</h1>
+                  <FocusPeriodPicker
+                    open={periodPickerOpen}
+                    pickerRef={pickerRef}
+                    pickerStep={pickerStep}
+                    pickerYear={pickerYear}
+                    draftMonth={draftMonth}
+                    selectedPeriod={selectedPeriod}
+                    onToggle={togglePeriodPicker}
+                    onClose={() => setPeriodPickerOpen(false)}
+                    onStepChange={setPickerStep}
+                    onYearChange={setPickerYear}
+                    onDraftMonth={setDraftMonth}
+                    onSelectWeek={selectPeriodWeek}
+                  />
+                </div>
                 <p>Session history, blocked distractions, and productivity analytics from the browser extension.</p>
+                <div className="focus-period-summary">
+                  <strong>{periodLabel}</strong>
+                  <span>{selectedDateKey ? "Day view" : selectedRangeLabel}</span>
+                  {selectedDateKey ? (
+                    <button type="button" onClick={() => setSelectedDateKey("")}>
+                      Back to week
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <button className="focus-extension-button" type="button">
                 <ShieldCheck size={18} />
@@ -129,23 +400,23 @@ export default function FocusPage() {
             <section className="focus-kpi-grid">
               <article className="focus-kpi">
                 <Timer size={22} />
-                <span>Focus Today</span>
-                <strong>{loading ? "--" : formatDuration(summary.focusSecondsToday)}</strong>
+                <span>Focus Time</span>
+                <strong>{loading ? "--" : formatDuration(visibleSummary.totalFocusSeconds)}</strong>
               </article>
               <article className="focus-kpi">
                 <Trophy size={22} />
                 <span>Completed</span>
-                <strong>{loading ? "--" : summary.sessionsCompletedToday}</strong>
+                <strong>{loading ? "--" : visibleSummary.sessionsCompleted}</strong>
               </article>
               <article className="focus-kpi">
                 <ShieldCheck size={22} />
                 <span>Blocked</span>
-                <strong>{loading ? "--" : summary.blockedDistractionsToday}</strong>
+                <strong>{loading ? "--" : visibleSummary.blockedDistractions}</strong>
               </article>
               <article className="focus-kpi">
                 <Sparkles size={22} />
                 <span>Focus Days</span>
-                <strong>{loading ? "--" : `${summary.currentStreak}d`}</strong>
+                <strong>{loading ? "--" : `${visibleSummary.focusDays}d`}</strong>
               </article>
             </section>
 
@@ -153,16 +424,22 @@ export default function FocusPage() {
               <article className="panel focus-week-panel">
                 <div className="panel-header">
                   <h2>Weekly Focus</h2>
-                  <span>{summary.productivityScore}% score</span>
+                  <span>{weekSummary.productivityScore || 0}% score</span>
                 </div>
                 <div className="focus-bars">
                   {weeklyData.map((day) => (
-                    <div className="focus-bar-item" key={day.dateKey}>
+                    <button
+                      className={`focus-bar-item ${selectedDateKey === day.dateKey ? "is-active" : ""}`}
+                      key={day.dateKey}
+                      type="button"
+                      aria-label={`View ${formatDayLabel(day.dateKey)} stats`}
+                      onClick={() => selectDay(day.dateKey)}
+                    >
                       <div>
                         <i style={{ height: `${Math.max(6, (day.hours / maxWeeklyHours) * 100)}%` }} />
                       </div>
                       <span>{day.day}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </article>
@@ -170,18 +447,18 @@ export default function FocusPage() {
               <article className="panel focus-distractions-panel">
                 <div className="panel-header">
                   <h2>Most Blocked</h2>
-                  <span>{summary.topDistractions?.length || 0} sources</span>
+                  <span>{visibleSummary.topDistractions?.length || 0} sources</span>
                 </div>
                 <div className="focus-distraction-stack">
-                  {summary.topDistractions?.length ? (
-                    summary.topDistractions.map((item) => (
+                  {visibleSummary.topDistractions?.length ? (
+                    visibleSummary.topDistractions.map((item) => (
                       <div className="focus-distraction-row" key={item.host}>
                         <span>{item.name}</span>
                         <strong>{item.count}</strong>
                       </div>
                     ))
                   ) : (
-                    <div className="focus-empty">No distractions blocked yet today.</div>
+                    <div className="focus-empty">{hasAnyFocusSessions ? "No distractions blocked in this period." : focusLockEmptyMessage}</div>
                   )}
                 </div>
               </article>
@@ -190,7 +467,7 @@ export default function FocusPage() {
             <section className="panel focus-history-panel">
               <div className="panel-header">
                 <h2>Session History</h2>
-                <span>{summary.sessionsCompleted} total completed</span>
+                <span>{recentSessions.length} sessions</span>
               </div>
               <div className="focus-history-list">
                 {recentSessions.length ? (
@@ -205,7 +482,7 @@ export default function FocusPage() {
                     </article>
                   ))
                 ) : (
-                  <div className="focus-empty">Start a Focus Lock session from the browser extension to populate this timeline.</div>
+                  <div className="focus-empty">{emptyPeriodMessage}</div>
                 )}
               </div>
             </section>

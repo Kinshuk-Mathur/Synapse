@@ -9,6 +9,7 @@ import {
 
 export function useSynapseFocus(user) {
   const [summary, setSummary] = useState(emptyFocusSummary);
+  const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [bridgeStatus, setBridgeStatus] = useState("waiting");
@@ -17,6 +18,7 @@ export function useSynapseFocus(user) {
   useEffect(() => {
     if (!user?.uid) {
       setSummary(emptyFocusSummary);
+      setSessions([]);
       setLoading(false);
       return undefined;
     }
@@ -25,8 +27,9 @@ export function useSynapseFocus(user) {
 
     return listenToFocusSessions(
       user.uid,
-      (nextSummary) => {
+      (nextSummary, nextSessions = []) => {
         setSummary(nextSummary);
+        setSessions(nextSessions);
         setError("");
         setLoading(false);
       },
@@ -140,6 +143,7 @@ export function useSynapseFocus(user) {
 
   return {
     summary,
+    sessions,
     loading,
     error,
     bridgeStatus

@@ -131,25 +131,8 @@ const baseStatCards = [
   }
 ];
 
-const fallbackFocusData = [
-  { day: "Mon", hours: 4.2 },
-  { day: "Tue", hours: 5.1 },
-  { day: "Wed", hours: 4.1 },
-  { day: "Thu", hours: 5.7 },
-  { day: "Fri", hours: 5.1 },
-  { day: "Sat", hours: 3.0 },
-  { day: "Sun", hours: 4.4 }
-];
-
-const fallbackDistractions = [
-  { name: "YouTube", time: "1h 32m", value: 82, icon: Youtube, tone: "var(--chart-red)" },
-  { name: "Instagram", time: "58m", value: 58, icon: Instagram, tone: "var(--chart-pink)" },
-  { name: "Reddit", time: "32m", value: 32, icon: MoreHorizontal, tone: "var(--chart-orange)" },
-  { name: "Twitter", time: "18m", value: 21, icon: Twitter, tone: "var(--chart-blue)" },
-  { name: "Other", time: "12m", value: 14, icon: MoreHorizontal, tone: "var(--color-muted)" }
-];
-
 const goalAccents = ["var(--chart-pink)", "var(--chart-blue)", "var(--chart-gold)"];
+const focusLockEmptyMessage = "Get extension from Focus Lock";
 
 const cardMotion = {
   hidden: { opacity: 0, y: 22 },
@@ -629,6 +612,14 @@ export default function Home() {
     completed: 0,
     averageProgress: 0
   };
+  const hasFocusLockActivity = Boolean(
+    (focusSummary.recentSessions?.length || 0) ||
+    focusSummary.totalFocusSeconds ||
+    focusSummary.sessionsCompleted ||
+    focusSummary.blockedDistractions ||
+    focusSummary.blockedDistractionsToday ||
+    focusSummary.topDistractions?.length
+  );
 
   const openGoalsPage = () => {
     router.push(goalsAppUrl);
@@ -677,7 +668,9 @@ export default function Home() {
             ? "Focus Lock sync unavailable"
             : focusBridgeStatus === "connected"
             ? "Live from Focus Lock"
-            : "Open extension to start"
+            : hasFocusLockActivity
+            ? "Open extension to sync"
+            : focusLockEmptyMessage
         };
       }
 
@@ -692,8 +685,12 @@ export default function Home() {
       if (card.label === "Focus Score") {
         return {
           ...card,
-          value: focusLoading ? "--" : `${focusSummary.productivityScore}%`,
-          meta: focusSummary.currentStreak > 0 ? `${focusSummary.currentStreak}-day focus rhythm` : "Build today's momentum"
+          value: focusLoading ? "--" : `${focusSummary.productivityScore || 0}%`,
+          meta: hasFocusLockActivity
+            ? focusSummary.currentStreak > 0
+              ? `${focusSummary.currentStreak}-day focus rhythm`
+              : "No focus score yet"
+            : focusLockEmptyMessage
         };
       }
 
@@ -713,6 +710,7 @@ export default function Home() {
     dashboardTodos,
     focusBridgeStatus,
     focusError,
+    hasFocusLockActivity,
     focusLoading,
     focusSummary
   ]);
@@ -726,7 +724,7 @@ export default function Home() {
     }
   };
 
-  const focusChartData = focusSummary.weeklyData?.length ? focusSummary.weeklyData : fallbackFocusData;
+  const focusChartData = hasFocusLockActivity ? focusSummary.weeklyData || [] : [];
   const dashboardDistractions = focusSummary.topDistractions?.length
     ? focusSummary.topDistractions.map((item, index, list) => {
         const Icon = getDistractionIcon(item.name);
@@ -741,7 +739,7 @@ export default function Home() {
           tone: tones[index] || "var(--color-muted)"
         };
       })
-    : fallbackDistractions;
+    : [];
 
   return (
     <ProtectedRoute>
@@ -906,7 +904,9 @@ export default function Home() {
                     </button>
                   </div>
                   <div className="chart-wrap">
-                    {mounted ? (
+                    {focusLoading || !mounted ? (
+                      <div className="chart-placeholder" />
+                    ) : hasFocusLockActivity ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={focusChartData} margin={{ left: -12, right: 4, top: 8, bottom: 0 }}>
                           <defs>
@@ -941,7 +941,10 @@ export default function Home() {
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="chart-placeholder" />
+                      <Link className="dashboard-focus-empty dashboard-focus-empty-link" href="/focus">
+                        <ShieldCheck size={18} />
+                        <span>{focusLockEmptyMessage}</span>
+                      </Link>
                     )}
                   </div>
                 </motion.article>
@@ -957,7 +960,10 @@ export default function Home() {
                     <button>View All</button>
                   </div>
                   <div className="distraction-list">
-                    {dashboardDistractions.map((item) => {
+                    {focusLoading ? (
+                      <div className="dashboard-focus-empty">Syncing Focus Lock...</div>
+                    ) : dashboardDistractions.length ? (
+                      dashboardDistractions.map((item) => {
                       const Icon = item.icon;
                       return (
                         <div className="distraction-item" key={item.name}>
@@ -973,7 +979,15 @@ export default function Home() {
                           <small>{item.time}</small>
                         </div>
                       );
-                    })}
+                      })
+                    ) : hasFocusLockActivity ? (
+                      <div className="dashboard-focus-empty">No distractions blocked yet.</div>
+                    ) : (
+                      <Link className="dashboard-focus-empty dashboard-focus-empty-link" href="/focus">
+                        <ShieldCheck size={18} />
+                        <span>{focusLockEmptyMessage}</span>
+                      </Link>
+                    )}
                   </div>
                 </motion.article>
               </section>

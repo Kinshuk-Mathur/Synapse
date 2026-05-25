@@ -15,10 +15,12 @@ const EMPTY_SUMMARY = {
   sessionsCompletedToday: 0,
   blockedDistractionsToday: 0,
   totalFocusSeconds: 0,
+  blockedDistractions: 0,
   sessionsCompleted: 0,
+  focusDays: 0,
   currentStreak: 0,
   bestStreak: 0,
-  productivityScore: 72,
+  productivityScore: 0,
   weeklyData: [],
   topDistractions: [],
   topAttemptTypes: [],
@@ -85,8 +87,60 @@ function computeBestStreak(dayMap) {
   return best;
 }
 
-export function buildFocusSummary(sessions = []) {
-  if (!sessions.length) return EMPTY_SUMMARY;
+function getDateDiffInDays(startDate, endDate) {
+  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+  return Math.round((end - start) / 86400000);
+}
+
+function isWithinDateRange(dateKey, options = {}) {
+  if (options.startDateKey && dateKey < options.startDateKey) return false;
+  if (options.endDateKey && dateKey > options.endDateKey) return false;
+  return true;
+}
+
+function buildWeeklyData(dayMap, options = {}) {
+  if (!options.weeklyStartDateKey && !options.startDateKey) {
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = addDays(new Date(), index - 6);
+      const dateKey = formatDateKey(date);
+      return {
+        day: date.toLocaleDateString(undefined, { weekday: "short" }),
+        dateKey,
+        hours: Number(((dayMap[dateKey]?.focusSeconds || 0) / 3600).toFixed(2))
+      };
+    });
+  }
+
+  const startDate = parseDateKey(options.weeklyStartDateKey || options.startDateKey);
+  const endDate = options.weeklyEndDateKey
+    ? parseDateKey(options.weeklyEndDateKey)
+    : options.endDateKey
+    ? parseDateKey(options.endDateKey)
+    : addDays(startDate, 6);
+  const dayCount = Math.max(1, Math.min(7, getDateDiffInDays(startDate, endDate) + 1));
+
+  return Array.from({ length: dayCount }, (_, index) => {
+    const date = addDays(startDate, index);
+    const dateKey = formatDateKey(date);
+    return {
+      day: date.toLocaleDateString(undefined, { weekday: "short" }),
+      dateKey,
+      hours: Number(((dayMap[dateKey]?.focusSeconds || 0) / 3600).toFixed(2))
+    };
+  });
+}
+
+function buildEmptyFocusSummary(options = {}) {
+  return {
+    ...EMPTY_SUMMARY,
+    weeklyData: options.weeklyStartDateKey || options.startDateKey ? buildWeeklyData({}, options) : []
+  };
+}
+
+export function buildFocusSummary(sessions = [], options = {}) {
+  const filteredSessions = sessions.filter((session) => isWithinDateRange(dateKeyFromSession(session), options));
+  if (!filteredSessions.length) return buildEmptyFocusSummary(options);
 
   const todayKey = formatDateKey();
   const dayMap = {};
@@ -95,8 +149,9 @@ export function buildFocusSummary(sessions = []) {
   const intervalHeatmap = {};
   let focusScoreTotal = 0;
   let focusScoreSamples = 0;
+  let blockedDistractions = 0;
 
-  sessions.forEach((session) => {
+  filteredSessions.forEach((session) => {
     const dateKey = dateKeyFromSession(session);
     if (!dayMap[dateKey]) {
       dayMap[dateKey] = {
@@ -111,8 +166,14 @@ export function buildFocusSummary(sessions = []) {
 
     dayMap[dateKey].focusSeconds += Number(session.focusSeconds || 0);
     dayMap[dateKey].blockedDistractions += Number(session.violations || 0);
+    blockedDistractions += Number(session.violations || 0);
     if (session.completed) dayMap[dateKey].sessionsCompleted += 1;
-    if (Number.isFinite(Number(session.focusScore))) {
+    if (
+      session.focusScore !== null &&
+      session.focusScore !== undefined &&
+      session.focusScore !== "" &&
+      Number.isFinite(Number(session.focusScore))
+    ) {
       const score = Number(session.focusScore);
       focusScoreTotal += score;
       focusScoreSamples += 1;
@@ -144,20 +205,11 @@ export function buildFocusSummary(sessions = []) {
   });
 
   const today = dayMap[todayKey] || {};
-  const totalFocusSeconds = sessions.reduce((total, session) => total + Number(session.focusSeconds || 0), 0);
-  const sessionsCompleted = sessions.filter((session) => session.completed).length;
+  const totalFocusSeconds = filteredSessions.reduce((total, session) => total + Number(session.focusSeconds || 0), 0);
+  const sessionsCompleted = filteredSessions.filter((session) => session.completed).length;
   const currentStreak = computeStreak(dayMap);
   const bestStreak = computeBestStreak(dayMap);
-
-  const weeklyData = Array.from({ length: 7 }, (_, index) => {
-    const date = addDays(new Date(), index - 6);
-    const dateKey = formatDateKey(date);
-    return {
-      day: date.toLocaleDateString(undefined, { weekday: "short" }),
-      dateKey,
-      hours: Number(((dayMap[dateKey]?.focusSeconds || 0) / 3600).toFixed(2))
-    };
-  });
+  const weeklyData = buildWeeklyData(dayMap, options);
 
   const topDistractions = Object.entries(distractionMap)
     .map(([host, count]) => ({
@@ -168,16 +220,9 @@ export function buildFocusSummary(sessions = []) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  const focusHoursToday = (today.focusSeconds || 0) / 3600;
   const productivityScore = focusScoreSamples > 0
     ? Math.round(focusScoreTotal / focusScoreSamples)
-    : Math.max(
-        42,
-        Math.min(
-          99,
-          Math.round(66 + Math.min(24, focusHoursToday * 8) + (today.sessionsCompleted || 0) * 4 - (today.blockedDistractions || 0) * 1.2)
-        )
-      );
+    : 0;
 
   const intervalHeatmapList = Object.values(intervalHeatmap)
     .sort((a, b) => a.startMinute - b.startMinute);
@@ -188,13 +233,17 @@ export function buildFocusSummary(sessions = []) {
     .map(([type, count]) => ({ type, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 6);
+  const sortedSessions = [...filteredSessions].sort((a, b) => Number(b.startedAt || 0) - Number(a.startedAt || 0));
+  const sessionLimit = options.sessionLimit === undefined ? 8 : options.sessionLimit;
 
   return {
     focusSecondsToday: today.focusSeconds || 0,
     sessionsCompletedToday: today.sessionsCompleted || 0,
     blockedDistractionsToday: today.blockedDistractions || 0,
     totalFocusSeconds,
+    blockedDistractions,
     sessionsCompleted,
+    focusDays: Object.values(dayMap).filter((day) => (day.focusSeconds || 0) > 0).length,
     currentStreak,
     bestStreak,
     productivityScore,
@@ -203,7 +252,7 @@ export function buildFocusSummary(sessions = []) {
     topAttemptTypes,
     intervalHeatmap: intervalHeatmapList,
     distractionPeaks,
-    recentSessions: [...sessions].sort((a, b) => Number(b.startedAt || 0) - Number(a.startedAt || 0)).slice(0, 8)
+    recentSessions: Number.isFinite(sessionLimit) ? sortedSessions.slice(0, sessionLimit) : sortedSessions
   };
 }
 
@@ -218,7 +267,7 @@ export function listenToFocusSessions(uid, onNext, onError) {
           id: sessionDoc.id,
           ...sessionDoc.data()
         }));
-        onNext(buildFocusSummary(sessions));
+        onNext(buildFocusSummary(sessions), sessions);
       },
       onError
     );
@@ -230,6 +279,7 @@ export function listenToFocusSessions(uid, onNext, onError) {
 
 function normalizeSessionRecord(uid, record) {
   const id = record.id || `${record.startedAt || Date.now()}`;
+  const focusScore = Number(record.focusScore);
 
   return {
     uid,
@@ -250,7 +300,7 @@ function normalizeSessionRecord(uid, record) {
     distractionAttempts: record.distractionAttempts || [],
     distractionIntervals: record.distractionIntervals || [],
     distractionPeaks: record.distractionPeaks || [],
-    focusScore: Number(record.focusScore || 100),
+    focusScore: Number.isFinite(focusScore) ? focusScore : null,
     stopWarningCount: Number(record.stopWarningCount || 0),
     source: "focus-lock-extension",
     updatedAt: serverTimestamp()
@@ -284,7 +334,7 @@ function normalizeActiveSession(uid, activeSession) {
     distractionAttempts: activeSession.distractionAttempts || [],
     distractionIntervals: Object.values(activeSession.distractionIntervals || {}),
     distractionPeaks: activeSession.distractionPeaks || [],
-    focusScore: activeSession.focusScore ?? 100,
+    focusScore: activeSession.focusScore,
     stopWarningCount: activeSession.stopWarningCount || 0
   });
 }

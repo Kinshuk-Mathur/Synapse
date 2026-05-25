@@ -1309,7 +1309,47 @@ textarea {
 }
 
 .chart-wrap {
+  position: relative;
   height: 200px;
+}
+
+.dashboard-focus-empty {
+  display: grid;
+  min-height: 120px;
+  place-items: center;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  padding: 16px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.chart-wrap .dashboard-focus-empty {
+  min-height: 100%;
+}
+
+.dashboard-focus-empty-link {
+  display: grid;
+  gap: 8px;
+  color: var(--color-text);
+  font-weight: 800;
+  text-decoration: none;
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    color 220ms ease;
+}
+
+.dashboard-focus-empty-link svg {
+  color: var(--color-pulse);
+  filter: drop-shadow(0 0 14px color-mix(in oklab, var(--color-pulse) 48%, var(--transparent)));
+}
+
+.dashboard-focus-empty-link:hover {
+  border-color: var(--border-strong);
+  color: var(--color-pulse);
+  box-shadow: 0 0 20px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
 }
 
 .distraction-list,
@@ -6135,7 +6175,13 @@ textarea {
   backdrop-filter: blur(20px);
 }
 
-.focus-page-hero span {
+.focus-hero-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.focus-page-eyebrow {
+  display: inline-block;
   color: var(--color-muted);
   font-size: 12px;
   font-weight: 800;
@@ -6143,8 +6189,18 @@ textarea {
   text-transform: uppercase;
 }
 
-.focus-page-hero h1 {
+.focus-hero-title-row {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin: 8px 0 10px;
+}
+
+.focus-page-hero h1 {
+  margin: 0;
   font-size: clamp(38px, 6vw, 68px);
   line-height: 0.95;
   letter-spacing: 0;
@@ -6156,6 +6212,187 @@ textarea {
   color: var(--color-muted);
   font-size: 16px;
   line-height: 1.6;
+}
+
+.focus-period-picker {
+  position: relative;
+  z-index: 20;
+  flex: none;
+}
+
+.focus-calendar-button {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 16%, var(--transparent)), color-mix(in oklab, var(--color-text) 5%, var(--transparent))),
+    var(--panel);
+  color: var(--color-text);
+  box-shadow: 0 0 24px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    color 220ms ease,
+    transform 220ms ease;
+}
+
+.focus-calendar-button:hover,
+.focus-calendar-button.is-active {
+  border-color: var(--border-strong);
+  color: var(--color-pulse);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
+}
+
+.focus-period-menu {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: min(330px, calc(100vw - 44px));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in oklab, var(--color-pulse) 20%, var(--transparent)), var(--transparent) 36%),
+    color-mix(in oklab, var(--panel-strong) 94%, var(--transparent));
+  padding: 14px;
+  box-shadow:
+    0 22px 70px color-mix(in oklab, var(--color-ink) 58%, var(--transparent)),
+    0 0 32px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
+  backdrop-filter: blur(22px);
+}
+
+.focus-period-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.focus-period-menu-header strong {
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.focus-period-menu-header button {
+  display: inline-flex;
+  min-width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 6%, var(--transparent));
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+  transition:
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.focus-period-menu-header button:hover {
+  border-color: var(--border-strong);
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+.focus-month-grid,
+.focus-week-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.focus-month-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.focus-month-grid button,
+.focus-week-grid button {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  color: var(--color-muted);
+  font-weight: 800;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.focus-month-grid button {
+  min-height: 42px;
+}
+
+.focus-week-grid button {
+  display: grid;
+  min-height: 58px;
+  align-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.focus-week-grid small {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.focus-month-grid button:hover,
+.focus-week-grid button:hover,
+.focus-month-grid button.is-active,
+.focus-week-grid button.is-active {
+  border-color: color-mix(in oklab, var(--color-pulse) 62%, var(--border));
+  background: color-mix(in oklab, var(--color-pulse) 14%, var(--transparent));
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+.focus-period-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.focus-period-summary strong,
+.focus-period-summary span,
+.focus-period-summary button {
+  min-height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.focus-period-summary strong {
+  color: var(--color-text);
+}
+
+.focus-period-summary span {
+  color: var(--color-muted);
+}
+
+.focus-period-summary button {
+  color: var(--color-pulse);
+  font-weight: 800;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.focus-period-summary button:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 18px color-mix(in oklab, var(--color-pulse) 16%, var(--transparent));
 }
 
 .focus-extension-button {
@@ -6252,7 +6489,14 @@ textarea {
   height: 100%;
   grid-template-rows: minmax(0, 1fr) 20px;
   gap: 10px;
+  border: 0;
+  background: transparent;
+  padding: 0;
   text-align: center;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    filter 180ms ease;
 }
 
 .focus-bar-item div {
@@ -6263,6 +6507,9 @@ textarea {
   border-radius: 8px;
   background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
   padding: 6px;
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .focus-bar-item i {
@@ -6276,6 +6523,22 @@ textarea {
 .focus-bar-item span {
   color: var(--color-muted);
   font-size: 12px;
+}
+
+.focus-bar-item:hover,
+.focus-bar-item.is-active {
+  transform: translateY(-2px);
+}
+
+.focus-bar-item:hover div,
+.focus-bar-item.is-active div {
+  background: color-mix(in oklab, var(--color-pulse) 12%, var(--transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-pulse) 40%, var(--transparent));
+}
+
+.focus-bar-item.is-active span {
+  color: var(--color-text);
+  font-weight: 800;
 }
 
 .focus-distraction-stack,
@@ -6450,6 +6713,11 @@ textarea {
     flex-direction: column;
   }
 
+  .focus-hero-title-row {
+    max-width: none;
+    width: 100%;
+  }
+
   .focus-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -6503,6 +6771,19 @@ textarea {
 @media (max-width: 560px) {
   .focus-kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  .focus-hero-title-row {
+    align-items: flex-start;
+  }
+
+  .focus-calendar-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .focus-period-menu {
+    right: -4px;
   }
 
   .focus-history-item {
