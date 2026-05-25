@@ -26,10 +26,10 @@ const navItems = [
   { label: "Settings", icon: Settings, href: "/settings" }
 ];
 
-export default function TodoSidebar() {
+export default function TodoSidebar({ open = false, onNavigate }) {
   return (
     <motion.aside
-      className="sidebar"
+      className={`sidebar ${open ? "is-mobile-open" : ""}`}
       initial={{ opacity: 0, x: -24 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5 }}
@@ -51,7 +51,11 @@ export default function TodoSidebar() {
 
           return (
             <motion.div key={item.label} whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
-              <Link href={item.href} className={`nav-item ${item.active ? "is-active" : ""}`}>
+              <Link
+                href={item.href}
+                className={`nav-item ${item.active ? "is-active" : ""}`}
+                onClick={onNavigate}
+              >
                 <Icon size={20} />
                 <span>{item.label}</span>
               </Link>

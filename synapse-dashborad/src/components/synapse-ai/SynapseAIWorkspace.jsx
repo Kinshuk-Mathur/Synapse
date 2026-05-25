@@ -644,7 +644,7 @@ export default function SynapseAIWorkspace() {
   const [activeId, setActiveId] = useState("");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -750,6 +750,7 @@ export default function SynapseAIWorkspace() {
     setInput("");
     setSelectedFile(null);
     setUploadError("");
+    setSidebarOpen(false);
   };
 
   const handleDeleteChat = (conversationId) => {
@@ -1057,12 +1058,22 @@ export default function SynapseAIWorkspace() {
       <div className="ambient-grid" aria-hidden="true" />
 
       <div className={`synapse-ai-frame ${sidebarOpen ? "history-open" : "history-closed"}`}>
+        {sidebarOpen ? (
+          <button
+            className="synapse-ai-scrim"
+            type="button"
+            aria-label="Close chat history"
+            onClick={() => setSidebarOpen(false)}
+          />
+        ) : null}
+
         <ChatSidebar
           conversations={conversations}
           activeId={activeId}
           onNewChat={handleNewChat}
           onOpenChat={(id) => {
             setActiveId(id);
+            setSidebarOpen(false);
           }}
           onDeleteChat={handleDeleteChat}
           open={sidebarOpen}

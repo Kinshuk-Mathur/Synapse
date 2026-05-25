@@ -33,6 +33,7 @@ export default function TodoWorkspace() {
   const [selectedDate, setSelectedDate] = useState(formatDateKey());
   const [currentMonth, setCurrentMonth] = useState(() => parseDateKey(formatDateKey()));
   const [actionError, setActionError] = useState("");
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const { theme, applyTheme } = useSynapseTheme();
   const { user, profile, setProfile, logout } = useAuth();
   const {
@@ -92,12 +93,25 @@ export default function TodoWorkspace() {
       <div className="ambient-grid" aria-hidden="true" />
 
       <div className="dashboard-frame todo-dashboard-frame">
-        <TodoSidebar />
+        <button
+          className={`sidebar-scrim ${navigationOpen ? "is-visible" : ""}`}
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setNavigationOpen(false)}
+        />
+
+        <TodoSidebar open={navigationOpen} onNavigate={() => setNavigationOpen(false)} />
 
         <section className="workspace todo-workspace">
           <header className="todo-topbar">
             <div className="todo-title-block">
-              <button className="icon-button menu-button" aria-label="Open navigation" type="button">
+              <button
+                className="icon-button app-sidebar-toggle"
+                aria-label="Open navigation"
+                aria-expanded={navigationOpen}
+                type="button"
+                onClick={() => setNavigationOpen(true)}
+              >
                 <Menu size={22} />
               </button>
               <div>

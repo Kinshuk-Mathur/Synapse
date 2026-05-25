@@ -14,6 +14,7 @@ import {
   HelpCircle,
   LayoutDashboard,
   LockKeyhole,
+  Menu,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -226,6 +227,7 @@ export default function FocusPage() {
   const [periodPickerOpen, setPeriodPickerOpen] = useState(false);
   const [pickerStep, setPickerStep] = useState("months");
   const [pickerYear, setPickerYear] = useState(() => getCurrentFocusPeriod().year);
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const [draftMonth, setDraftMonth] = useState(() => {
     const currentPeriod = getCurrentFocusPeriod();
     return { year: currentPeriod.year, month: currentPeriod.month };
@@ -318,8 +320,15 @@ export default function FocusPage() {
         <div className="ambient-grid" aria-hidden="true" />
 
         <div className="dashboard-frame">
+          <button
+            className={`sidebar-scrim ${navigationOpen ? "is-visible" : ""}`}
+            type="button"
+            aria-label="Close navigation"
+            onClick={() => setNavigationOpen(false)}
+          />
+
           <motion.aside
-            className="sidebar"
+            className={`sidebar ${navigationOpen ? "is-mobile-open" : ""}`}
             initial={{ opacity: 0, x: -24 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
@@ -340,7 +349,11 @@ export default function FocusPage() {
                 const Icon = item.icon;
                 return (
                   <motion.div key={item.label} whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
-                    <Link href={item.href} className={`nav-item ${item.active ? "is-active" : ""}`}>
+                    <Link
+                      href={item.href}
+                      className={`nav-item ${item.active ? "is-active" : ""}`}
+                      onClick={() => setNavigationOpen(false)}
+                    >
                       <Icon size={20} />
                       <span>{item.label}</span>
                     </Link>
@@ -362,6 +375,15 @@ export default function FocusPage() {
               <div className="focus-hero-copy">
                 <span className="focus-page-eyebrow">FOCUSLOCK - powered by Synapse</span>
                 <div className="focus-hero-title-row">
+                  <button
+                    className="icon-button app-sidebar-toggle"
+                    type="button"
+                    aria-label="Open navigation"
+                    aria-expanded={navigationOpen}
+                    onClick={() => setNavigationOpen(true)}
+                  >
+                    <Menu size={22} />
+                  </button>
                   <h1>Focus Lock</h1>
                   <FocusPeriodPicker
                     open={periodPickerOpen}

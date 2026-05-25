@@ -21,6 +21,7 @@ import {
   Lightbulb,
   LockKeyhole,
   LogOut,
+  Menu,
   Settings,
   Sparkles,
   Target,
@@ -142,10 +143,10 @@ function StatCard({ icon: Icon, label, value, detail, tone = "pink", delay = 0 }
   );
 }
 
-function AnalyticsSidebar({ userStats, loading }) {
+function AnalyticsSidebar({ userStats, loading, open = false, onNavigate }) {
   return (
     <motion.aside
-      className="sidebar"
+      className={`sidebar ${open ? "is-mobile-open" : ""}`}
       initial={{ opacity: 0, x: -24 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5 }}
@@ -167,7 +168,11 @@ function AnalyticsSidebar({ userStats, loading }) {
 
           return (
             <motion.div key={item.label} whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
-              <Link href={item.href} className={`nav-item ${item.active ? "is-active" : ""}`}>
+              <Link
+                href={item.href}
+                className={`nav-item ${item.active ? "is-active" : ""}`}
+                onClick={onNavigate}
+              >
                 <Icon size={20} />
                 <span>{item.label}</span>
               </Link>
@@ -317,6 +322,7 @@ export default function AnalyticsWorkspace() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const selectedMonthDate = useMemo(() => parseMonthValue(selectedMonthValue), [selectedMonthValue]);
   const weeks = useMemo(
     () => buildUserAnchoredMonthWeeks(selectedMonthDate, startDate),
@@ -386,11 +392,32 @@ export default function AnalyticsWorkspace() {
       <div className="ambient-grid" aria-hidden="true" />
 
       <div className="dashboard-frame analytics-dashboard-frame">
-        <AnalyticsSidebar userStats={userStats} loading={statsLoading} />
+        <button
+          className={`sidebar-scrim ${navigationOpen ? "is-visible" : ""}`}
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setNavigationOpen(false)}
+        />
+
+        <AnalyticsSidebar
+          userStats={userStats}
+          loading={statsLoading}
+          open={navigationOpen}
+          onNavigate={() => setNavigationOpen(false)}
+        />
 
         <section className="workspace analytics-workspace">
           <header className="analytics-topbar">
             <div className="analytics-title-block">
+              <button
+                className="icon-button app-sidebar-toggle"
+                type="button"
+                aria-label="Open navigation"
+                aria-expanded={navigationOpen}
+                onClick={() => setNavigationOpen(true)}
+              >
+                <Menu size={22} />
+              </button>
               <span className="analytics-title-icon">
                 <Zap size={30} />
               </span>

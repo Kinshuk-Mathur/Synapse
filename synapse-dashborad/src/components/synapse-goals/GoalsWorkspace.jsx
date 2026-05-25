@@ -42,6 +42,7 @@ export default function GoalsWorkspace() {
   const [filter, setFilter] = useState("All");
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const { theme, applyTheme } = useSynapseTheme();
   const { user, profile, setProfile, logout } = useAuth();
   const {
@@ -79,12 +80,25 @@ export default function GoalsWorkspace() {
       <div className="ambient-grid" aria-hidden="true" />
 
       <div className="dashboard-frame goals-dashboard-frame">
-        <GoalsSidebar />
+        <button
+          className={`sidebar-scrim ${navigationOpen ? "is-visible" : ""}`}
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setNavigationOpen(false)}
+        />
+
+        <GoalsSidebar open={navigationOpen} onNavigate={() => setNavigationOpen(false)} />
 
         <section className="workspace goals-workspace">
           <header className="goals-topbar">
             <div className="goals-heading-block">
-              <button className="icon-button menu-button" aria-label="Open navigation" type="button">
+              <button
+                className="icon-button app-sidebar-toggle"
+                aria-label="Open navigation"
+                aria-expanded={navigationOpen}
+                type="button"
+                onClick={() => setNavigationOpen(true)}
+              >
                 <Menu size={22} />
               </button>
               <div>

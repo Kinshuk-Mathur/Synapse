@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   LockKeyhole,
   LogOut,
+  Menu,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -487,6 +488,7 @@ export default function Home() {
   const [dashboardTodoLoading, setDashboardTodoLoading] = useState(true);
   const [dashboardTodoError, setDashboardTodoError] = useState("");
   const [momentumModalOpen, setMomentumModalOpen] = useState(false);
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const { user, logout, profile, setProfile } = useAuth();
   const currentGoalMonth = useMemo(() => getCurrentGoalMonth(), []);
   const {
@@ -745,8 +747,15 @@ export default function Home() {
       <div className="ambient-grid" aria-hidden="true" />
 
       <div className="dashboard-frame">
+        <button
+          className={`sidebar-scrim ${navigationOpen ? "is-visible" : ""}`}
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setNavigationOpen(false)}
+        />
+
         <motion.aside
-          className="sidebar"
+          className={`sidebar ${navigationOpen ? "is-mobile-open" : ""}`}
           initial={{ opacity: 0, x: -24 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
@@ -771,7 +780,11 @@ export default function Home() {
                   whileHover={{ x: 4 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <Link href={item.href} className={`nav-item ${item.active ? "is-active" : ""}`}>
+                  <Link
+                    href={item.href}
+                    className={`nav-item ${item.active ? "is-active" : ""}`}
+                    onClick={() => setNavigationOpen(false)}
+                  >
                     <Icon size={20} />
                     <span>{item.label}</span>
                   </Link>
@@ -806,6 +819,16 @@ export default function Home() {
 
         <section className="workspace">
           <header className="topbar">
+            <button
+              className="icon-button app-sidebar-toggle"
+              type="button"
+              aria-label="Open navigation"
+              aria-expanded={navigationOpen}
+              onClick={() => setNavigationOpen(true)}
+            >
+              <Menu size={22} />
+            </button>
+
             <MomentumTimeline days={weeklyProgress} />
 
             <div className="top-actions">
