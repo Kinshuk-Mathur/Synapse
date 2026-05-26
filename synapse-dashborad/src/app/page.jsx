@@ -195,6 +195,127 @@ function getDistractionIcon(name = "") {
   return MoreHorizontal;
 }
 
+function formatShortDate(dateKey = "") {
+  if (!dateKey) return "";
+  const [year, month, day] = String(dateKey).split("-").map(Number);
+  if (!year || !month || !day) return dateKey;
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function getDateKeyFromGoal(goal = {}) {
+  const date = goal.deadlineDate || goal.deadline;
+  if (!date) return "";
+  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+  const parsedDate = date instanceof Date ? date : typeof date.toDate === "function" ? date.toDate() : new Date(date);
+  if (Number.isNaN(parsedDate.getTime())) return "";
+  return formatDateKey(parsedDate);
+}
+
+function getBestFocusWindow(sessions = [], productiveTime) {
+  const buckets = {};
+
+  sessions.forEach((session) => {
+    const startedAt = Number(session.startedAt || 0);
+    const focusSeconds = Number(session.focusSeconds || session.durationSeconds || 0);
+    if (!startedAt || focusSeconds <= 0) return;
+    const hour = new Date(startedAt).getHours();
+    buckets[hour] = (buckets[hour] || 0) + Math.round(focusSeconds / 60);
+  });
+
+  const [hour, minutes] = Object.entries(buckets).sort((a, b) => b[1] - a[1])[0] || [];
+
+  if (minutes > 0) {
+    const start = Number(hour);
+    const end = (start + 2) % 24;
+    const formatHour = (value) => {
+      const suffix = value >= 12 ? "PM" : "AM";
+      const hourValue = value % 12 || 12;
+      return `${hourValue}${suffix}`;
+    };
+    return `${formatHour(start)}-${formatHour(end)}`;
+  }
+
+  if (Array.isArray(productiveTime) && productiveTime.length) return productiveTime.join(", ");
+  if (productiveTime) return String(productiveTime);
+  return "Not enough data";
+}
+
+function buildAiDailyBriefing({
+  todos,
+  pendingTodos,
+  goals,
+  focusSummary,
+  focusSessions,
+  userStats,
+  weeklyProgress,
+  profile
+}) {
+  const todayKey = formatDateKey();
+  const todayTodos = todos.filter((todo) => todo.selectedDate === todayKey);
+  const completedToday = todayTodos.filter((todo) => todo.completed).length;
+  const currentDay = weeklyProgress.find((day) => day.isCurrent) || {};
+  const progress = currentDay.progress || {};
+  const completedFocus = Boolean(progress.completedFocus) || Number(focusSummary.focusSecondsToday || 0) >= 900;
+  const completedWorkWin =
+    Boolean(progress.completedTask || progress.completedGoalUpdate) || completedToday > 0;
+  const sortedPending = pendingTodos
+    .slice()
+    .sort((a, b) => {
+      const priorityCompare =
+        ["High", "Medium", "Low"].indexOf(a.priority || "Medium") -
+        ["High", "Medium", "Low"].indexOf(b.priority || "Medium");
+      if (priorityCompare !== 0) return priorityCompare;
+      return String(a.selectedDate || "").localeCompare(String(b.selectedDate || ""));
+    });
+  const urgentTodos = sortedPending.filter((todo) => todo.selectedDate <= todayKey).slice(0, 2);
+  const activeGoals = goals.filter((goal) => !goal.completed && Number(goal.progress || 0) < 100);
+  const upcomingGoals = activeGoals
+    .map((goal) => ({
+      ...goal,
+      deadlineKey: getDateKeyFromGoal(goal)
+    }))
+    .filter((goal) => goal.deadlineKey)
+    .sort((a, b) => a.deadlineKey.localeCompare(b.deadlineKey))
+    .slice(0, 2);
+  const weakAreas = [];
+
+  if (Number(focusSummary.focusSecondsToday || 0) < 900) weakAreas.push("Focus consistency");
+  if (pendingTodos.some((todo) => todo.selectedDate < todayKey)) weakAreas.push("Overdue tasks");
+  if (activeGoals.length && activeGoals.reduce((sum, goal) => sum + Number(goal.progress || 0), 0) / activeGoals.length < 45) {
+    weakAreas.push("Goal progress");
+  }
+  if (Number(userStats.currentMomentum || 0) <= 1) weakAreas.push("Momentum");
+
+  const stillNeed = [];
+  if (!completedFocus) stillNeed.push("1 focus session");
+  if (!completedWorkWin) stillNeed.push("1 completed task or goal update");
+
+  const nextTodo = urgentTodos[0] || sortedPending[0];
+  const nextGoal = upcomingGoals[0] || activeGoals.sort((a, b) => Number(a.progress || 0) - Number(b.progress || 0))[0];
+  const recommendation = nextTodo
+    ? `Start a 45-minute focus session for ${nextTodo.task || nextTodo.title}.`
+    : nextGoal
+      ? `Move ${nextGoal.title} forward with one focused progress update.`
+      : completedFocus
+        ? "Close the loop by finishing one meaningful task."
+        : "Start a 25-minute focus session and protect the next block.";
+
+  return {
+    momentumLabel: `${Number(userStats.currentMomentum || 0)} Day${
+      Number(userStats.currentMomentum || 0) === 1 ? "" : "s"
+    }`,
+    stillNeed,
+    priorities: urgentTodos.length ? urgentTodos : sortedPending.slice(0, 2),
+    weakAreas: Array.from(new Set(weakAreas)).slice(0, 3),
+    focusWindow: getBestFocusWindow(focusSessions, profile?.productiveTime),
+    upcomingGoals,
+    recommendation
+  };
+}
+
 function MiniLine({ color, ready }) {
   if (!ready) {
     return <div className="sparkline-placeholder" />;
@@ -505,6 +626,7 @@ export default function Home() {
   } = useUserStats();
   const {
     summary: focusSummary,
+    sessions: focusSessions,
     loading: focusLoading,
     error: focusError,
     bridgeStatus: focusBridgeStatus
@@ -740,6 +862,29 @@ export default function Home() {
         };
       })
     : [];
+  const aiDailyBriefing = useMemo(
+    () =>
+      buildAiDailyBriefing({
+        todos: dashboardTodos,
+        pendingTodos: dashboardPendingTodos,
+        goals: dashboardGoals,
+        focusSummary,
+        focusSessions,
+        userStats,
+        weeklyProgress,
+        profile
+      }),
+    [
+      dashboardGoals,
+      dashboardPendingTodos,
+      dashboardTodos,
+      focusSessions,
+      focusSummary,
+      profile,
+      userStats,
+      weeklyProgress
+    ]
+  );
 
   return (
     <ProtectedRoute>
@@ -1021,6 +1166,97 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.55, delay: 0.1 }}
             >
+              <motion.article
+                className="panel dashboard-side-panel ai-briefing-panel"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.2 }}
+              >
+                <div className="panel-header ai-briefing-header">
+                  <div>
+                    <span className="ai-briefing-kicker">
+                      <Sparkles size={14} />
+                      Live context
+                    </span>
+                    <h2>AI Daily Briefing</h2>
+                  </div>
+                  <Link className="add-button add-task-link" href={synapseAiUrl}>
+                    Open AI
+                  </Link>
+                </div>
+
+                <div className="ai-briefing-momentum">
+                  <span>
+                    <Flame size={18} />
+                    Momentum
+                  </span>
+                  <strong>{userStatsLoading ? "--" : aiDailyBriefing.momentumLabel}</strong>
+                </div>
+
+                <div className="ai-briefing-body">
+                  <div className="ai-briefing-block">
+                    <span>You still need</span>
+                    {aiDailyBriefing.stillNeed.length ? (
+                      <ul>
+                        {aiDailyBriefing.stillNeed.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>Momentum loop is covered for today.</p>
+                    )}
+                  </div>
+
+                  <div className="ai-briefing-block">
+                    <span>Pending priorities</span>
+                    {dashboardTodoLoading ? (
+                      <p>Syncing tasks...</p>
+                    ) : aiDailyBriefing.priorities.length ? (
+                      <ul>
+                        {aiDailyBriefing.priorities.map((todo) => (
+                          <li key={todo.id || `${todo.task}-${todo.selectedDate}`}>
+                            {todo.task || todo.title}
+                            <small>{todo.selectedDate === formatDateKey() ? "Today" : formatShortDate(todo.selectedDate)}</small>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No pending task pressure.</p>
+                    )}
+                  </div>
+
+                  <div className="ai-briefing-grid">
+                    <div>
+                      <Timer size={15} />
+                      <span>Best focus</span>
+                      <strong>{aiDailyBriefing.focusWindow}</strong>
+                    </div>
+                    <div>
+                      <Target size={15} />
+                      <span>Deadlines</span>
+                      <strong>
+                        {aiDailyBriefing.upcomingGoals.length
+                          ? `${aiDailyBriefing.upcomingGoals[0].title} ${formatShortDate(aiDailyBriefing.upcomingGoals[0].deadlineKey)}`
+                          : "None soon"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {aiDailyBriefing.weakAreas.length ? (
+                    <div className="ai-briefing-chips" aria-label="Weak areas">
+                      {aiDailyBriefing.weakAreas.map((area) => (
+                        <span key={area}>{area}</span>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="ai-briefing-recommendation">
+                    <span>Recommended next step</span>
+                    <p>{aiDailyBriefing.recommendation}</p>
+                  </div>
+                </div>
+              </motion.article>
+
               <motion.article
                 className="panel todo-panel dashboard-side-panel"
                 initial={{ opacity: 0, y: 20 }}

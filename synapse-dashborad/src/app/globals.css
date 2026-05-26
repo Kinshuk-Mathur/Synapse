@@ -1570,6 +1570,195 @@ textarea {
   text-align: center;
 }
 
+.ai-briefing-panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-pulse) 14%, var(--transparent)), color-mix(in oklab, var(--color-bg) 72%, var(--transparent))),
+    var(--panel);
+}
+
+.ai-briefing-panel::before {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 0%, color-mix(in oklab, var(--color-accent) 30%, var(--transparent)), var(--transparent) 32%),
+    radial-gradient(circle at 100% 18%, color-mix(in oklab, var(--color-pulse) 24%, var(--transparent)), var(--transparent) 28%);
+  content: "";
+  pointer-events: none;
+}
+
+.ai-briefing-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ai-briefing-header {
+  margin-bottom: 14px;
+}
+
+.ai-briefing-header > div {
+  display: grid;
+  gap: 5px;
+}
+
+.ai-briefing-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-pulse);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ai-briefing-momentum {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 28%, var(--transparent));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 6%, var(--transparent));
+  padding: 13px 14px;
+  box-shadow: 0 0 24px color-mix(in oklab, var(--color-pulse) 14%, var(--transparent));
+}
+
+.ai-briefing-momentum span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.ai-briefing-momentum svg {
+  color: var(--color-gold);
+  filter: drop-shadow(0 0 12px color-mix(in oklab, var(--color-gold) 48%, var(--transparent)));
+}
+
+.ai-briefing-momentum strong {
+  font-size: 22px;
+}
+
+.ai-briefing-body {
+  display: grid;
+  gap: 13px;
+  margin-top: 14px;
+}
+
+.ai-briefing-block {
+  display: grid;
+  gap: 8px;
+}
+
+.ai-briefing-block > span,
+.ai-briefing-recommendation > span,
+.ai-briefing-grid span {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.ai-briefing-block ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-briefing-block li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--grid-line);
+  padding-bottom: 7px;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.ai-briefing-block li::before {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--color-pulse);
+  box-shadow: 0 0 12px color-mix(in oklab, var(--color-pulse) 58%, var(--transparent));
+  content: "";
+}
+
+.ai-briefing-block li small {
+  flex: none;
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+.ai-briefing-block p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.ai-briefing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ai-briefing-grid > div {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  border: 1px solid var(--grid-line);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  padding: 11px;
+}
+
+.ai-briefing-grid svg {
+  color: var(--color-sky);
+}
+
+.ai-briefing-grid strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-briefing-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.ai-briefing-chips span {
+  border: 1px solid color-mix(in oklab, var(--color-gold) 32%, var(--transparent));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-gold) 12%, var(--transparent));
+  padding: 6px 8px;
+  color: var(--color-gold);
+  font-size: 12px;
+}
+
+.ai-briefing-recommendation {
+  display: grid;
+  gap: 7px;
+  border-left: 2px solid var(--color-pulse);
+  padding-left: 12px;
+}
+
+.ai-briefing-recommendation p {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 .ai-panel {
   position: sticky;
   top: 22px;
@@ -4424,6 +4613,10 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .ai-briefing-panel {
+    grid-column: 1 / -1;
+  }
+
   .todo-page-grid {
     grid-template-columns: minmax(300px, 0.85fr) minmax(420px, 1.15fr);
   }
@@ -4563,6 +4756,10 @@ textarea {
 
   .dashboard-side-column {
     grid-template-columns: 1fr;
+  }
+
+  .ai-briefing-panel {
+    grid-column: auto;
   }
 
   .brand-wordmark {

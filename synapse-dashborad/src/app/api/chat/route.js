@@ -7,6 +7,12 @@ import {
   splitResponseForStreaming,
   SYNAPSE_AI_BUSY_MESSAGE
 } from "../../../lib/aiModels.js";
+import {
+  buildUserContext,
+  composeActionReply,
+  executeAiAction,
+  parseAiActionResponse
+} from "../../../lib/aiContextEngine.js";
 import { createGroqClient } from "../../../lib/groq.js";
 import { fetchUserProfileFromFirestore, saveAiMemoryToFirestore } from "../../../lib/serverFirestore.js";
 
@@ -95,6 +101,22 @@ async function getRoutedGroqResponse(client, cleanMessages, systemPrompt, reques
   );
 }
 
+async function prepareAiResponse(rawMessage, uid, idToken, userContext, requestId) {
+  const parsedResponse = parseAiActionResponse(rawMessage);
+  const actionResult = parsedResponse.action
+    ? await executeAiAction(uid, idToken, parsedResponse.action, {
+        context: userContext,
+        requestId
+      })
+    : null;
+
+  return {
+    message: composeActionReply(parsedResponse.reply, actionResult),
+    action: parsedResponse.action,
+    actionResult
+  };
+}
+
 export async function POST(req) {
   const requestId =
     globalThis.crypto?.randomUUID?.() || `chat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -113,7 +135,14 @@ export async function POST(req) {
     const uid = typeof body.uid === "string" ? body.uid : "";
     const idToken = getBearerToken(req);
     const userProfile = uid && idToken ? await fetchUserProfileFromFirestore(uid, idToken, requestId) : null;
-    const systemPrompt = buildSystemPrompt(userProfile);
+    const userContext = uid && idToken
+      ? await buildUserContext(uid, {
+          idToken,
+          userProfile,
+          requestId
+        })
+      : null;
+    const systemPrompt = buildSystemPrompt(userProfile, userContext);
     const latestPrompt = cleanMessages.filter((message) => message.role === "user").at(-1)?.content || "";
 
     if (uid && idToken) {
@@ -131,7 +160,9 @@ export async function POST(req) {
     console.info(
       `[SYNAPSE AI ${requestId}] Clean messages=${cleanMessages.length}; latestRole=${
         cleanMessages.at(-1)?.role || "none"
-      }; stream=${Boolean(body.stream)}; personalization=${Boolean(userProfile?.onboardingCompleted)}`
+      }; stream=${Boolean(body.stream)}; personalization=${Boolean(userProfile?.onboardingCompleted)}; context=${Boolean(
+        userContext
+      )}`
     );
 
     if (!cleanMessages.length) {
@@ -146,20 +177,29 @@ export async function POST(req) {
     if (wantsStreaming(req, body)) {
       return streamingResponse(async ({ send }) => {
         const routedResponse = await getRoutedGroqResponse(groq, cleanMessages, systemPrompt, requestId, true);
+        const aiResponse = await prepareAiResponse(
+          routedResponse.message,
+          uid,
+          idToken,
+          userContext,
+          requestId
+        );
 
         console.info(
           `[SYNAPSE AI ${requestId}] Streaming response ready. modelUsed=${
             routedResponse.modelUsed
-          }; emergency=${Boolean(routedResponse.emergency)}`
+          }; emergency=${Boolean(routedResponse.emergency)}; action=${aiResponse.action?.type || "none"}`
         );
 
         send({
           type: "meta",
           modelUsed: routedResponse.modelUsed,
-          emergency: Boolean(routedResponse.emergency)
+          emergency: Boolean(routedResponse.emergency),
+          action: aiResponse.action,
+          actionResult: aiResponse.actionResult
         });
 
-        for (const chunk of splitResponseForStreaming(routedResponse.message)) {
+        for (const chunk of splitResponseForStreaming(aiResponse.message)) {
           send({
             type: "token",
             content: chunk
@@ -170,23 +210,34 @@ export async function POST(req) {
         send({
           type: "done",
           modelUsed: routedResponse.modelUsed,
-          emergency: Boolean(routedResponse.emergency)
+          emergency: Boolean(routedResponse.emergency),
+          action: aiResponse.action,
+          actionResult: aiResponse.actionResult
         });
       });
     }
 
     const routedResponse = await getRoutedGroqResponse(groq, cleanMessages, systemPrompt, requestId, false);
+    const aiResponse = await prepareAiResponse(
+      routedResponse.message,
+      uid,
+      idToken,
+      userContext,
+      requestId
+    );
 
     console.info(
       `[SYNAPSE AI ${requestId}] JSON response ready. modelUsed=${
         routedResponse.modelUsed
-      }; emergency=${Boolean(routedResponse.emergency)}`
+      }; emergency=${Boolean(routedResponse.emergency)}; action=${aiResponse.action?.type || "none"}`
     );
 
     return jsonResponse({
-      message: routedResponse.message,
+      message: aiResponse.message,
       modelUsed: routedResponse.modelUsed,
-      emergency: Boolean(routedResponse.emergency)
+      emergency: Boolean(routedResponse.emergency),
+      action: aiResponse.action,
+      actionResult: aiResponse.actionResult
     });
   } catch (error) {
     console.error(`[SYNAPSE AI ${requestId}] Groq API route failed:`, error?.message || error);
