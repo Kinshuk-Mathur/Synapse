@@ -57,6 +57,10 @@ export function calculateGoalProgress(current, target) {
   return Math.min(100, Math.max(0, Math.round((safeCurrent / safeTarget) * 100)));
 }
 
+function clampGoalPercentage(value) {
+  return Math.min(100, Math.max(0, Math.round(Number(value) || 0)));
+}
+
 export function getGoalStatus(current, target) {
   const progress = calculateGoalProgress(current, target);
 
@@ -155,9 +159,18 @@ function normalizeProgressEntry(entry) {
 function normalizeGoalPayload(payload) {
   const selectedMonth = Number(payload.month) || getCurrentGoalMonth().month;
   const selectedYear = Number(payload.year) || getCurrentGoalMonth().year;
-  const target = Math.max(1, Number(payload.target) || 1);
-  const current = Math.max(0, Number(payload.current ?? payload.currentProgress) || 0);
-  const progress = calculateGoalProgress(current, target);
+  const explicitProgress = payload.progressPercentage ?? payload.progress;
+  const hasExplicitProgress =
+    explicitProgress !== undefined &&
+    explicitProgress !== null &&
+    explicitProgress !== "";
+  const target = hasExplicitProgress ? 100 : Math.max(1, Number(payload.target) || 1);
+  const progress = hasExplicitProgress
+    ? clampGoalPercentage(explicitProgress)
+    : calculateGoalProgress(payload.current ?? payload.currentProgress, target);
+  const current = hasExplicitProgress
+    ? progress
+    : Math.max(0, Number(payload.current ?? payload.currentProgress) || 0);
 
   return {
     title: String(payload.title || "").trim(),

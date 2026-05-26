@@ -965,9 +965,7 @@ async function markProgressPillar(uid, idToken, pillar, requestId) {
     nextStats.totalGoalsUpdated += 1;
   }
 
-  const productiveDayComplete =
-    nextProgress.completedFocus &&
-    (nextProgress.completedTask || nextProgress.completedGoalUpdate);
+  const productiveDayComplete = nextProgress.completedFocus;
 
   if (productiveDayComplete && !previousProgress.momentumCompleted) {
     const currentMomentum =

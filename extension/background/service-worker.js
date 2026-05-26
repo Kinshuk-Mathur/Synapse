@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS = {
   sameOriginLock: true,
   fullscreenProtection: true,
   blockDistractingSites: true,
-  dashboardUrl: "https://synapse24.netlify.app/focus",
+  dashboardUrl: "https://synapse24.netlify.app",
   restrictedHosts: [
     "instagram.com",
     "twitter.com",
@@ -370,7 +370,10 @@ function computeStreak() {
   let cursor = getDateKey();
   let streak = 0;
 
-  while (focusStats.daily[cursor]?.focusSeconds > 0 || focusStats.daily[cursor]?.sessionsCompleted > 0) {
+  while (
+    Number(focusStats.daily[cursor]?.sessionsCompleted || 0) > 0 &&
+    Number(focusStats.daily[cursor]?.focusSeconds || 0) >= 15 * 60
+  ) {
     streak += 1;
     cursor = addDays(cursor, -1);
   }

@@ -20,10 +20,11 @@ export default function GoalForm({ mode = "create", goal, month, year, onCancel,
     ...emptyGoal,
     ...goal,
     target: goal?.target ?? 100,
-    currentProgress: goal?.current ?? goal?.currentProgress ?? 0,
+    currentProgress: goal?.progress ?? goal?.progressPercentage ?? goal?.current ?? goal?.currentProgress ?? 0,
     deadline: goal?.deadlineDateKey || goal?.deadline || ""
   }));
   const [busy, setBusy] = useState(false);
+  const progressValue = Math.min(100, Math.max(0, Math.round(Number(form.currentProgress) || 0)));
 
   const updateField = (field, value) => {
     setForm((current) => ({
@@ -40,6 +41,9 @@ export default function GoalForm({ mode = "create", goal, month, year, onCancel,
       setBusy(true);
       await onSave({
         ...form,
+        target: 100,
+        currentProgress: progressValue,
+        progressPercentage: progressValue,
         month,
         year
       });
@@ -97,26 +101,19 @@ export default function GoalForm({ mode = "create", goal, month, year, onCancel,
           </select>
         </label>
 
-        <label>
+        <label className="goal-progress-slider-field">
           <Gauge size={16} />
+          <span>Progress</span>
           <input
-            type="number"
-            min="1"
-            value={form.target}
-            onChange={(event) => updateField("target", event.target.value)}
-            aria-label="Goal target"
-          />
-        </label>
-
-        <label>
-          <Gauge size={16} />
-          <input
-            type="number"
+            type="range"
             min="0"
-            value={form.currentProgress}
+            max="100"
+            step="1"
+            value={progressValue}
             onChange={(event) => updateField("currentProgress", event.target.value)}
-            aria-label="Goal current progress"
+            aria-label="Goal progress percentage"
           />
+          <strong>{progressValue}%</strong>
         </label>
 
         <label>

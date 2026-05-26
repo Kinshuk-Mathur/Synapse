@@ -51,11 +51,15 @@ function formatHost(host = "") {
     .join(" ");
 }
 
+function hasCompletedFocusDay(day = {}) {
+  return Number(day.sessionsCompleted || 0) > 0 && Number(day.focusSeconds || 0) >= 15 * 60;
+}
+
 function computeStreak(dayMap) {
   let cursor = formatDateKey();
   let streak = 0;
 
-  while ((dayMap[cursor]?.focusSeconds || 0) > 0) {
+  while (hasCompletedFocusDay(dayMap[cursor])) {
     streak += 1;
     cursor = formatDateKey(addDays(parseDateKey(cursor), -1));
   }
@@ -70,7 +74,7 @@ function computeBestStreak(dayMap) {
   let previousKey = "";
 
   keys.forEach((dateKey) => {
-    if ((dayMap[dateKey]?.focusSeconds || 0) <= 0) {
+    if (!hasCompletedFocusDay(dayMap[dateKey])) {
       current = 0;
       previousKey = dateKey;
       return;
@@ -243,7 +247,7 @@ export function buildFocusSummary(sessions = [], options = {}) {
     totalFocusSeconds,
     blockedDistractions,
     sessionsCompleted,
-    focusDays: Object.values(dayMap).filter((day) => (day.focusSeconds || 0) > 0).length,
+    focusDays: Object.values(dayMap).filter(hasCompletedFocusDay).length,
     currentStreak,
     bestStreak,
     productivityScore,
@@ -447,12 +451,16 @@ export async function recordExtensionFocusPayload(uid, payload) {
   );
 
   const todayKey = formatDateKey();
-  const completedFocusSecondsToday = history
-    .filter((record) => record.completed && dateKeyFromSession(record) === todayKey)
-    .reduce((total, record) => total + Number(record.focusSeconds || 0), 0);
+  const completedFocusSecondsToday = Math.max(
+    0,
+    ...history
+      .filter((record) => record.completed && dateKeyFromSession(record) === todayKey)
+      .map((record) => Number(record.focusSeconds || 0))
+  );
   const todayFocusSummary = dailyEntries.find((day) => day?.dateKey === todayKey);
   const syncedCompletedFocusSecondsToday =
-    Number(todayFocusSummary?.sessionsCompleted || 0) > 0
+    Number(todayFocusSummary?.sessionsCompleted || 0) > 0 &&
+    Number(todayFocusSummary?.focusSeconds || 0) >= 15 * 60
       ? Number(todayFocusSummary?.focusSeconds || 0)
       : 0;
   const focusMinutes = Math.floor(

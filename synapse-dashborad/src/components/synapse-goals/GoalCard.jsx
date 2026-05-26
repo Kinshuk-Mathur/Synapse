@@ -12,7 +12,7 @@ import {
   Sparkles,
   Trash2
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDeadlineStatus } from "../../services/monthlyGoals";
 import GoalForm from "./GoalForm";
 
@@ -26,11 +26,34 @@ const categoryIcons = {
 
 export default function GoalCard({ goal, month, year, onEdit, onDelete }) {
   const [editing, setEditing] = useState(false);
+  const [quickProgress, setQuickProgress] = useState(Number(goal.progress) || 0);
+  const [savingProgress, setSavingProgress] = useState(false);
   const Icon = categoryIcons[goal.category] || Sparkles;
   const progress = Number(goal.progress) || 0;
+  const sliderProgress = Math.min(100, Math.max(0, Math.round(Number(quickProgress) || 0)));
   const remaining = Math.max(0, 100 - progress);
   const completed = Boolean(goal.completed) || progress >= 100 || goal.status === "Completed";
   const deadlineText = formatDeadlineStatus(goal.deadlineDate || goal.deadline);
+
+  useEffect(() => {
+    setQuickProgress(progress);
+  }, [progress]);
+
+  const saveQuickProgress = async () => {
+    if (savingProgress || sliderProgress === progress) return;
+
+    try {
+      setSavingProgress(true);
+      await onEdit(goal, {
+        ...goal,
+        target: 100,
+        currentProgress: sliderProgress,
+        progressPercentage: sliderProgress
+      });
+    } finally {
+      setSavingProgress(false);
+    }
+  };
 
   return (
     <motion.article
@@ -98,12 +121,10 @@ export default function GoalCard({ goal, month, year, onEdit, onDelete }) {
 
           <div className="goal-progress-row">
             <div>
-              <strong>
-                {goal.current}/{goal.target}
-              </strong>
-              <span>{progress}% complete</span>
+              <strong>{progress}%</strong>
+              <span>complete</span>
             </div>
-            <small>{remaining}% remaining</small>
+            <small>{savingProgress ? "Saving..." : `${remaining}% remaining`}</small>
           </div>
 
           <div className="goal-progress-track">
@@ -113,6 +134,28 @@ export default function GoalCard({ goal, month, year, onEdit, onDelete }) {
               transition={{ duration: 0.65, ease: "easeOut" }}
             />
           </div>
+
+          <label className="goal-card-slider">
+            <span>Update progress</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={sliderProgress}
+              disabled={savingProgress}
+              onChange={(event) => setQuickProgress(event.target.value)}
+              onPointerUp={saveQuickProgress}
+              onBlur={saveQuickProgress}
+              onKeyUp={(event) => {
+                if (["ArrowLeft", "ArrowRight", "Home", "End", "Enter", " "].includes(event.key)) {
+                  saveQuickProgress();
+                }
+              }}
+              aria-label={`Update ${goal.title} progress percentage`}
+            />
+            <strong>{sliderProgress}%</strong>
+          </label>
 
           {goal.notes ? <p className="goal-note">{goal.notes}</p> : null}
         </>

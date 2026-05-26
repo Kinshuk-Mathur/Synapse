@@ -291,9 +291,7 @@ export async function updateMomentumProgress(uid, options = {}) {
       nextProgress.aiPromptFingerprint = fingerprint || previousProgress.aiPromptFingerprint || "attachment";
     }
 
-    const productiveDayComplete =
-      nextProgress.completedFocus &&
-      (nextProgress.completedTask || nextProgress.completedGoalUpdate);
+    const productiveDayComplete = nextProgress.completedFocus;
 
     if (productiveDayComplete && !previousProgress.momentumCompleted) {
       const previousMomentum = nextStats.currentMomentum || 0;

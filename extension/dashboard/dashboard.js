@@ -1,6 +1,6 @@
 const retryBtn = document.getElementById("retry-btn");
 const focusBtn = document.getElementById("focus-btn");
-const dashboardUrl = "https://synapse24.netlify.app/focus";
+const dashboardUrl = "https://synapse24.netlify.app";
 
 function ignoreRuntimeError() {
   void chrome.runtime.lastError;

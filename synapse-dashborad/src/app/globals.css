@@ -3286,14 +3286,16 @@ textarea {
 
 .synapse-markdown {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   color: var(--color-text);
-  font-size: 15px;
-  line-height: 1.62;
+  font-size: 15.5px;
+  line-height: 1.72;
+  overflow-wrap: anywhere;
 }
 
 .synapse-markdown p,
 .synapse-markdown ul,
+.synapse-markdown ol,
 .synapse-markdown h3,
 .synapse-markdown h4,
 .synapse-markdown h5,
@@ -3304,24 +3306,21 @@ textarea {
 .synapse-markdown h3,
 .synapse-markdown h4,
 .synapse-markdown h5 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   color: var(--color-text);
   font-weight: 850;
   letter-spacing: 0;
-  line-height: 1.25;
+  line-height: 1.28;
 }
 
 .synapse-markdown h3 {
-  margin-top: 4px;
-  font-size: 20px;
+  margin-top: 6px;
+  font-size: 19px;
 }
 
 .synapse-markdown h4,
 .synapse-markdown h5 {
   color: color-mix(in oklab, var(--color-text) 92%, var(--color-pulse));
-  font-size: 17px;
+  font-size: 16.5px;
 }
 
 .synapse-markdown p {
@@ -3333,20 +3332,31 @@ textarea {
   font-weight: 850;
 }
 
-.synapse-markdown ul {
+.synapse-markdown ul,
+.synapse-markdown ol {
   display: grid;
-  gap: 8px;
+  gap: 9px;
   padding-left: 0;
   color: color-mix(in oklab, var(--color-text) 84%, var(--color-muted));
+}
+
+.synapse-markdown ul {
   list-style: none;
+}
+
+.synapse-markdown ol {
+  padding-left: 22px;
 }
 
 .synapse-markdown li {
   position: relative;
+}
+
+.synapse-markdown ul li {
   padding-left: 22px;
 }
 
-.synapse-markdown li::before {
+.synapse-markdown ul li::before {
   position: absolute;
   top: 0.72em;
   left: 2px;
@@ -3356,6 +3366,15 @@ textarea {
   background: linear-gradient(135deg, var(--color-pulse), var(--color-sky));
   box-shadow: 0 0 12px color-mix(in oklab, var(--color-pulse) 54%, var(--transparent));
   content: "";
+}
+
+.synapse-markdown ol li {
+  padding-left: 4px;
+}
+
+.synapse-markdown ol li::marker {
+  color: var(--color-pulse);
+  font-weight: 900;
 }
 
 .synapse-markdown blockquote {
@@ -3385,11 +3404,16 @@ textarea {
   background: color-mix(in oklab, var(--color-bg) 82%, var(--color-ink));
   padding: 14px;
   color: var(--color-text);
+  line-height: 1.55;
 }
 
 .synapse-markdown code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 13px;
+}
+
+.synapse-markdown pre code {
+  white-space: pre-wrap;
 }
 
 .synapse-markdown p code,
@@ -4024,8 +4048,27 @@ textarea {
 
 .goal-form-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.4fr) minmax(160px, 0.8fr);
   gap: 10px;
+}
+
+.goal-form .goal-progress-slider-field {
+  display: grid;
+  grid-template-columns: auto auto minmax(120px, 1fr) auto;
+}
+
+.goal-progress-slider-field span,
+.goal-progress-slider-field strong,
+.goal-card-slider span,
+.goal-card-slider strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.goal-form input[type="range"],
+.goal-card-slider input {
+  height: 8px;
+  accent-color: var(--color-pulse);
 }
 
 .goal-form-actions {
@@ -4190,6 +4233,22 @@ textarea {
 
 .goal-progress-track {
   height: 7px;
+}
+
+.goal-card-slider {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  padding: 10px 12px;
+  color: var(--color-muted);
+}
+
+.goal-card-slider strong {
+  color: var(--color-text);
 }
 
 .goal-note {
@@ -4782,6 +4841,16 @@ textarea {
 
   .side-nav {
     grid-template-columns: 1fr;
+  }
+
+  .goal-card-slider,
+  .goal-form .goal-progress-slider-field {
+    grid-template-columns: 1fr auto;
+  }
+
+  .goal-card-slider input,
+  .goal-form .goal-progress-slider-field input {
+    grid-column: 1 / -1;
   }
 
   .nav-item {

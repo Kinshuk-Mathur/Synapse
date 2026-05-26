@@ -476,10 +476,7 @@ export function buildDailyAnalyticsFromSources(sources = {}, options = {}) {
 
     const day = getDay(dateKey);
     day.momentumCompleted = Boolean(progress.momentumCompleted);
-    day.momentumPillarsCompleted = [
-      progress.completedFocus,
-      progress.completedTask || progress.completedGoalUpdate
-    ].filter(Boolean).length;
+    day.momentumPillarsCompleted = progress.completedFocus ? 1 : 0;
     day.focusMinutes = Math.max(day.focusMinutes, Math.round(safeNumber(progress.focusMinutes)));
   });
 
@@ -788,14 +785,14 @@ export function buildWeeklyReport({ week, days = [], userStats = {}, studentName
     strongestWindow && focusMinutes >= 30
       ? `Your strongest focus window was ${strongestWindow.label}; keep your hardest work close to that rhythm.`
       : momentumDays < 2
-        ? "Build one clean daily loop: 15+ minutes of Focus Lock plus one task or goal update."
+        ? "Build one clean daily loop: complete one 15+ minute Focus Lock session."
         : "Your consistency is starting to compound. Keep the week simple and repeatable.";
 
   return {
     title: `Great work, ${studentName}.`,
     body: `This week you ${sentenceParts.join(", ")}. Your average productivity score was ${averageScore}/100. ${recommendation}`,
     highlights: [
-      momentumDays ? `${momentumDays} productive days` : "",
+      momentumDays ? `${momentumDays} focus days` : "",
       focusMinutes ? `${formatMinutes(focusMinutes)} focus` : "",
       taskRate !== null ? `${taskRate}% tasks` : "",
       averageScore ? `${averageScore}/100 score` : ""

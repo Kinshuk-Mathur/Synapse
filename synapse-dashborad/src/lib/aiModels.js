@@ -130,6 +130,7 @@ or
 
 Formatting rules:
 - Use clean Markdown with short headings, bullets, and compact paragraphs.
+- For answers longer than 5 sentences, make the reply string easy to scan with a short heading, subheadings, numbered steps, and formulas on their own lines when useful.
 - Do not use emojis unless the user asks for them.
 - Avoid long decorative separators.
 - Do not output raw LaTeX delimiters or commands such as \\[, \\], \\frac{}, \\vec{}, \\hat{}, \\text{}, or $$.

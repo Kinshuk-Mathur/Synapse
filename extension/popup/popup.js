@@ -29,7 +29,7 @@ const syncLine = document.getElementById("sync-line");
 const durationPresetButtons = [...document.querySelectorAll(".duration-preset")];
 
 const RING_SIZE = 301.59;
-const DEFAULT_DASHBOARD_URL = "https://synapse24.netlify.app/focus";
+const DEFAULT_DASHBOARD_URL = "https://synapse24.netlify.app";
 let timerInterval = null;
 let currentSession = null;
 let currentStats = null;
@@ -117,7 +117,7 @@ async function focusExistingDashboardTab() {
   if (!dashboardTab?.id) return false;
 
   await focusWindow(dashboardTab.windowId);
-  await updateTab(dashboardTab.id, { active: true });
+  await updateTab(dashboardTab.id, { active: true, url: DEFAULT_DASHBOARD_URL });
   return true;
 }
 
@@ -505,12 +505,7 @@ dashboardBtn.addEventListener("click", async () => {
     return;
   }
 
-  const savedUrl = currentSettings?.dashboardUrl || "";
-  const dashboardUrl = savedUrl.includes("localhost:3000") || savedUrl.includes("127.0.0.1:3000")
-    ? DEFAULT_DASHBOARD_URL
-    : savedUrl || DEFAULT_DASHBOARD_URL;
-
-  await createTab(dashboardUrl);
+  await createTab(DEFAULT_DASHBOARD_URL);
   window.close();
 });
 

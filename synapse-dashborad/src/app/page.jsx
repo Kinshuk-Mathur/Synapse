@@ -72,11 +72,11 @@ const themes = [
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/", active: true },
+  { label: "SYNAPSE AI", icon: Sparkles, href: synapseAiUrl },
   { label: "Focus Lock", icon: LockKeyhole, href: "/focus" },
   { label: "To-Do List", icon: CheckSquare, href: todoAppUrl },
   { label: "Goals", icon: Target, href: goalsAppUrl },
   { label: "Analytics", icon: BarChart3, href: "/analytics" },
-  { label: "SYNAPSE AI", icon: Sparkles, href: synapseAiUrl },
   { label: "Resources", icon: FolderOpen, href: "#" },
   { label: "Settings", icon: Settings, href: "/settings" }
 ];
@@ -244,7 +244,6 @@ function getBestFocusWindow(sessions = [], productiveTime) {
 }
 
 function buildAiDailyBriefing({
-  todos,
   pendingTodos,
   goals,
   focusSummary,
@@ -254,13 +253,11 @@ function buildAiDailyBriefing({
   profile
 }) {
   const todayKey = formatDateKey();
-  const todayTodos = todos.filter((todo) => todo.selectedDate === todayKey);
-  const completedToday = todayTodos.filter((todo) => todo.completed).length;
   const currentDay = weeklyProgress.find((day) => day.isCurrent) || {};
   const progress = currentDay.progress || {};
-  const completedFocus = Boolean(progress.completedFocus) || Number(focusSummary.focusSecondsToday || 0) >= 900;
-  const completedWorkWin =
-    Boolean(progress.completedTask || progress.completedGoalUpdate) || completedToday > 0;
+  const completedFocus =
+    Boolean(progress.completedFocus) ||
+    (Number(focusSummary.sessionsCompletedToday || 0) > 0 && Number(focusSummary.focusSecondsToday || 0) >= 900);
   const sortedPending = pendingTodos
     .slice()
     .sort((a, b) => {
@@ -290,8 +287,7 @@ function buildAiDailyBriefing({
   if (Number(userStats.currentMomentum || 0) <= 1) weakAreas.push("Momentum");
 
   const stillNeed = [];
-  if (!completedFocus) stillNeed.push("1 focus session");
-  if (!completedWorkWin) stillNeed.push("1 completed task or goal update");
+  if (!completedFocus) stillNeed.push("1 Focus Lock session of 15+ minutes");
 
   const nextTodo = urgentTodos[0] || sortedPending[0];
   const nextGoal = upcomingGoals[0] || activeGoals.sort((a, b) => Number(a.progress || 0) - Number(b.progress || 0))[0];
@@ -423,7 +419,7 @@ function MomentumTimeline({ days = [] }) {
               className={`momentum-day is-${day.state} ${day.isCurrent ? "is-current-day" : ""}`}
               key={day.dateKey}
               role="listitem"
-              title={`${day.label}: ${day.completed ? "productive day complete" : day.isFuture ? "future day" : day.isCurrent ? "in progress" : "missed"}`}
+              title={`${day.label}: ${day.completed ? "Momentum day complete" : day.isFuture ? "future day" : day.isCurrent ? "in progress" : "missed"}`}
             >
               <span className="momentum-node">
                 {day.completed ? <Check size={13} /> : null}
@@ -440,7 +436,7 @@ function MomentumTimeline({ days = [] }) {
           );
         })}
       </div>
-      <span className="momentum-week-count">{completedCount}/7 productive days</span>
+      <span className="momentum-week-count">{completedCount}/7 focus days</span>
     </motion.section>
   );
 }
@@ -474,13 +470,13 @@ function MomentumExplainerModal({ open, onClose }) {
               <Flame size={22} />
             </div>
             <h2 id="momentum-modal-title">How SYNAPSE Momentum Works</h2>
-            <p>🔥 Momentum grows when you complete a full productive day.</p>
+            <p>Momentum grows automatically when Focus Lock records a real focus session.</p>
             <span>To maintain Momentum daily:</span>
             <ul>
-              <li>Complete a 15+ min focus session</li>
-              <li>Finish at least 1 task or update a goal</li>
+              <li>Complete one 15+ minute Focus Lock session</li>
+              <li>Open SYNAPSE so the extension can sync the session</li>
             </ul>
-            <p className="momentum-reset-line">Miss Focus Lock or the task/goal win: → Momentum resets.</p>
+            <p className="momentum-reset-line">Miss a 15+ minute Focus Lock session and Momentum resets.</p>
             <strong>Consistency builds discipline.</strong>
           </motion.article>
         </motion.div>
@@ -865,7 +861,6 @@ export default function Home() {
   const aiDailyBriefing = useMemo(
     () =>
       buildAiDailyBriefing({
-        todos: dashboardTodos,
         pendingTodos: dashboardPendingTodos,
         goals: dashboardGoals,
         focusSummary,
@@ -877,7 +872,6 @@ export default function Home() {
     [
       dashboardGoals,
       dashboardPendingTodos,
-      dashboardTodos,
       focusSessions,
       focusSummary,
       profile,
@@ -951,7 +945,7 @@ export default function Home() {
                 <Flame size={34} />
                 <b>{userStatsLoading ? "--" : userStats.currentMomentum || 0}</b>
               </strong>
-              <p>{userStatsError ? "Momentum sync unavailable" : "15+ focus + task/goal win."}</p>
+              <p>{userStatsError ? "Momentum sync unavailable" : "15+ min Focus Lock session."}</p>
               <em>Longest: {userStatsLoading ? "--" : userStats.longestMomentum || 0} days</em>
             </motion.button>
 

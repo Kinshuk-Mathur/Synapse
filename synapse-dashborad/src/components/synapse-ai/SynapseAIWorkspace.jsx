@@ -299,6 +299,55 @@ function normalizeMathContent(content) {
     });
 }
 
+function unwrapAiJsonContent(content) {
+  const raw = String(content || "").trim();
+  if (!raw) return "";
+
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidates = [
+    raw,
+    fenced?.[1],
+    raw.includes("{") && raw.includes("}") ? raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1) : ""
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    let parsed = candidate.trim();
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch {
+        break;
+      }
+
+      if (parsed && typeof parsed === "object") {
+        const reply = parsed.reply || parsed.message || parsed.content;
+        if (typeof reply === "string" && reply.trim()) return reply.trim();
+        break;
+      }
+
+      if (typeof parsed !== "string") break;
+    }
+  }
+
+  return raw;
+}
+
+function formatDenseAiContent(content) {
+  const text = unwrapAiJsonContent(content);
+  const lineCount = text.split("\n").filter((line) => line.trim()).length;
+
+  if (text.length < 220 || lineCount > 3) return text;
+
+  return text
+    .replace(/\s+(\*\*Phase\s+\d+:[^*]+\*\*)/g, "\n\n### $1")
+    .replace(/\s+(\*\*(?:Additional Tips|Your Next Step|Key Takeaway|Example|Solution|Formula|Steps?)[^*]*\*\*)/g, "\n\n### $1")
+    .replace(/\s+(\d+\.\s+\*\*[^*]+:\*\*)/g, "\n$1")
+    .replace(/\s+(\d+\.\s+[A-Z][^:.]{2,64}:)/g, "\n$1")
+    .replace(/\s+\*\s+/g, "\n- ")
+    .trim();
+}
+
 function renderInlineMarkdown(text) {
   const tokens = convertLatexExpression(text).split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
 
@@ -316,7 +365,7 @@ function renderInlineMarkdown(text) {
 }
 
 function MarkdownMessage({ content }) {
-  const sections = normalizeMathContent(content).split(/```/g);
+  const sections = normalizeMathContent(formatDenseAiContent(content)).split(/```/g);
   const elements = [];
 
   const flushParagraph = (lines, key) => {
@@ -347,18 +396,21 @@ function MarkdownMessage({ content }) {
     const lines = section.split("\n");
     let paragraph = [];
     let list = [];
+    let listType = "ul";
 
     const flushList = (key) => {
       if (!list.length) return;
 
+      const ListTag = listType;
       elements.push(
-        <ul key={`ul-${key}`}>
+        <ListTag key={`${listType}-${key}`}>
           {list.map((item, index) => (
             <li key={`${item}-${index}`}>{renderInlineMarkdown(item)}</li>
           ))}
-        </ul>
+        </ListTag>
       );
       list = [];
+      listType = "ul";
     };
 
     lines.forEach((rawLine, lineIndex) => {
@@ -396,6 +448,19 @@ function MarkdownMessage({ content }) {
         return;
       }
 
+      const boldHeading = /^\*\*([^*]{3,96})\*\*:?\s*$/.exec(line);
+      if (boldHeading) {
+        flushParagraph(paragraph, key);
+        flushList(key);
+        paragraph = [];
+        elements.push(
+          <h4 key={`bold-h-${key}`}>
+            {renderInlineMarkdown(boldHeading[1])}
+          </h4>
+        );
+        return;
+      }
+
       const quote = /^>\s+(.+)$/.exec(line);
       if (quote) {
         flushParagraph(paragraph, key);
@@ -412,6 +477,8 @@ function MarkdownMessage({ content }) {
       const bullet = /^[-*]\s+(.+)$/.exec(line);
       if (bullet) {
         flushParagraph(paragraph, key);
+        if (list.length && listType !== "ul") flushList(key);
+        listType = "ul";
         paragraph = [];
         list.push(bullet[1]);
         return;
@@ -420,6 +487,8 @@ function MarkdownMessage({ content }) {
       const ordered = /^\d+\.\s+(.+)$/.exec(line);
       if (ordered) {
         flushParagraph(paragraph, key);
+        if (list.length && listType !== "ol") flushList(key);
+        listType = "ol";
         paragraph = [];
         list.push(ordered[1]);
         return;
@@ -482,6 +551,7 @@ function getAttachmentIcon(attachment) {
 function MessageBubble({ message, onCopy }) {
   const fromUser = message.role === "user";
   const AttachmentIcon = getAttachmentIcon(message.attachment);
+  const displayContent = fromUser ? message.content : formatDenseAiContent(message.content);
 
   return (
     <motion.article
@@ -510,13 +580,13 @@ function MessageBubble({ message, onCopy }) {
           </div>
         ) : null}
 
-        <MarkdownMessage content={message.content} />
+        <MarkdownMessage content={displayContent} />
 
         <footer>
           <time>{formatTime(message.createdAt)}</time>
           {!fromUser ? (
             <span className="message-actions">
-              <button type="button" onClick={() => onCopy(message.content)} aria-label="Copy response">
+              <button type="button" onClick={() => onCopy(displayContent)} aria-label="Copy response">
                 <Copy size={15} />
               </button>
               <button type="button" aria-label="Like response">
