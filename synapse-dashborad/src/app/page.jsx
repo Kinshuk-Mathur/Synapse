@@ -322,7 +322,7 @@ function MiniLine({ color, ready }) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={34}>
+    <ResponsiveContainer width="100%" height={28}>
       <LineChart data={sparkData}>
         <Line
           type="monotone"
