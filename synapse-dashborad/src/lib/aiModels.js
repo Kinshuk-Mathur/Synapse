@@ -72,6 +72,31 @@ Premium response style:
 - Avoid robotic phrases like "It is important to..." when a sharper sentence is possible.
 - Do not over-compress meaningful explanations. Depth is part of the SYNAPSE experience.
 - Keep the answer readable: short paragraphs, strong section labels, bullets where helpful, and no giant text walls.
+- The default SYNAPSE experience is a formatted mentor answer, not a flat paragraph.
+`;
+
+const STRUCTURED_ANSWER_BLUEPRINT_BLOCK = `
+SYNAPSE structured answer blueprint:
+- For every real question, use a clear structure unless the user explicitly asks for a short answer.
+- Start with a direct 1-2 sentence answer or orientation, then move into sections.
+- Use bold section labels, ## headings, numbered steps, bullets, examples, key takeaways, and a conclusion/next step whenever they improve understanding.
+- For definitions and concept explanations, prefer this flow:
+  # Topic Name
+  ## Simple Meaning
+  ## Core Explanation
+  ## Example
+  ## Key Takeaways
+  ## Conclusion
+- For calculations and science/math doubts, prefer this flow:
+  # Solution
+  ## Given Values
+  ## Formula
+  ## Step-by-Step Calculation
+  ## Final Answer
+  ## Key Takeaway
+- For strategy, productivity, startup, and coding answers, include practical examples, common mistakes, and next actions when relevant.
+- Use numbered steps with bold mini-headings for processes, like "1. **Recall the formula**".
+- Do not answer educational questions as a single paragraph, even if the question is small.
 `;
 
 const CONTEXT_INTELLIGENCE_BLOCK = `
@@ -87,10 +112,12 @@ Realtime context intelligence:
 const MARKDOWN_CONTRACT_BLOCK = `
 Markdown rendering contract:
 - The reply must be clean Markdown designed for react-markdown.
-- For every medium or large response, start with exactly one # main heading that names the answer.
+- For every real question that is not a greeting or explicit brevity request, start with exactly one # main heading that names the answer.
 - Use ## subheadings to separate ideas. Each major section should feel visually distinct when rendered.
 - Use bullets, numbered lists, bold text, inline code, tables, blockquotes, and fenced code blocks when useful.
 - Use bullet lists for concepts, numbered lists for processes, and bold text for the key idea in a bullet.
+- Include ## Key Takeaways near the end of most educational, planning, coding, and strategic answers.
+- Include ## Conclusion or ## Next Steps when the answer needs closure or action.
 - Use tables for comparisons, roadmaps, tradeoffs, chapter priorities, and strategy choices when they improve scanning.
 - Code examples must use fenced code blocks with a language tag.
 - Insert blank lines between headings, paragraphs, lists, tables, and code blocks.
@@ -115,9 +142,9 @@ function classifyPrompt(prompt = "") {
   const greetingOnly = /^(hi|hello|hey|yo|thanks|thank you|ok|okay|yes|no|cool|great)[.!?\s]*$/i.test(
     String(prompt || "").trim()
   );
-  const tinyFact = wordCount <= 5 && /\b(what is|define|who is|when is|2\+2|yes|no)\b/.test(text);
+  const tinyArithmetic = wordCount <= 4 && /\b\d+\s*[+\-*/]\s*\d+\b/.test(text);
 
-  if (greetingOnly || tinyFact || explicitlyBrief) {
+  if (greetingOnly || explicitlyBrief || tinyArithmetic) {
     return {
       mode: "short",
       depth: "low",
@@ -150,7 +177,7 @@ function classifyPrompt(prompt = "") {
   }
 
   if (
-    /\b(explain|teach|roadmap|guide|how|strategy|study plan|learn|understand|compare|chapter|prepare|revision|improve|build|master|deep|step by step)\b/.test(
+    /\b(what is|define|meaning of|explain|teach|roadmap|guide|how|strategy|study plan|learn|understand|compare|chapter|prepare|revision|improve|build|master|deep|solve|calculate|derive|formula|example|step by step)\b/.test(
       text
     )
   ) {
@@ -251,6 +278,7 @@ Selected response mode: ${mode === "balanced" ? "BALANCED MENTOR" : "DETAILED TE
 ## Examples
 ## Real-Life Applications
 ## Common Mistakes
+## Key Takeaways
 ## Pro Tips
 ## Next Steps
 - Do not force every section. Choose only the sections that make the answer stronger.
@@ -341,6 +369,8 @@ ${buildUserProfileBlock(userData)}
 ${realtimeContext}
 
 ${STYLE_CONTRACT_BLOCK}
+
+${STRUCTURED_ANSWER_BLUEPRINT_BLOCK}
 
 ${CONTEXT_INTELLIGENCE_BLOCK}
 

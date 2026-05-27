@@ -40,6 +40,74 @@ function normalizeMarkdownSpacing(value = "") {
     .trim();
 }
 
+function hasMarkdownStructure(value = "") {
+  const text = String(value || "");
+
+  return (
+    /(^|\n)\s{0,3}#{1,4}\s+\S/m.test(text) ||
+    /(^|\n)\s*(?:[-*+]\s+|\d+\.\s+)/m.test(text) ||
+    /(^|\n)\s*>\s+\S/m.test(text) ||
+    /(^|\n)\s*\|.+\|\s*$/m.test(text) ||
+    /\*\*[^*\n]{2,80}\*\*/.test(text) ||
+    /```[\s\S]*?```/.test(text)
+  );
+}
+
+function splitSentences(value = "") {
+  return (
+    String(value || "")
+      .match(/[^.!?]+[.!?]+(?:["')\]]+)?|[^.!?]+$/g)
+      ?.map((sentence) => sentence.trim())
+      .filter(Boolean) || []
+  );
+}
+
+function groupSentences(sentences = [], size = 2) {
+  const groups = [];
+
+  for (let index = 0; index < sentences.length; index += size) {
+    groups.push(sentences.slice(index, index + size).join(" "));
+  }
+
+  return groups;
+}
+
+function structurePlainAiReply(value = "") {
+  const text = String(value || "").trim();
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  const sentences = splitSentences(text);
+
+  if (
+    !text ||
+    wordCount < 70 ||
+    sentences.length < 4 ||
+    hasMarkdownStructure(text) ||
+    /^[\[{]/.test(text)
+  ) {
+    return text;
+  }
+
+  const hasSingleParagraph = !/\n{2,}/.test(text);
+  const bodySentences = hasSingleParagraph && sentences.length > 4 ? sentences.slice(0, -1) : sentences;
+  const body =
+    hasSingleParagraph
+      ? groupSentences(bodySentences, 2).join("\n\n")
+      : text
+          .split(/\n{2,}/)
+          .map((paragraph) => paragraph.trim())
+          .filter(Boolean)
+          .join("\n\n");
+  const keyTakeaway = hasSingleParagraph && sentences.length > 4 ? sentences.at(-1) : "";
+
+  return [
+    "# SYNAPSE Answer",
+    `## Core Explanation\n\n${body}`,
+    keyTakeaway ? `## Key Takeaway\n\n- ${keyTakeaway}` : ""
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 function parseJsonStringAt(value, startIndex) {
   if (value[startIndex] !== "\"") return "";
 
@@ -178,7 +246,8 @@ function CodeBlock({ className = "", children, node, ...props }) {
 }
 
 export default function AIMessageRenderer({ content, compact = false }) {
-  const markdown = normalizeMarkdownSpacing(extractAiReplyText(content));
+  const normalizedMarkdown = normalizeMarkdownSpacing(extractAiReplyText(content));
+  const markdown = compact ? normalizedMarkdown : structurePlainAiReply(normalizedMarkdown);
 
   return (
     <ReactMarkdown
