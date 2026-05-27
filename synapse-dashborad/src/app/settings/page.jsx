@@ -193,7 +193,9 @@ function SettingsContent() {
             <ArrowLeft size={17} />
             Dashboard
           </Link>
-          <Image src="/assets/main-logo.jpeg" alt="SYNAPSE" width={158} height={62} className="settings-logo" />
+          <Link href="/" aria-label="Go to SYNAPSE dashboard">
+            <Image src="/assets/main-logo.jpeg" alt="SYNAPSE" width={158} height={62} className="settings-logo" />
+          </Link>
           <button className="settings-save-button" type="button" onClick={saveSettings} disabled={saving}>
             {saving ? <Loader2 className="spin" size={17} /> : <Save size={17} />}
             Save

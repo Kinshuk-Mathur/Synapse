@@ -31,11 +31,11 @@ import { formatDateKey, parseDateKey } from "../../services/todos";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
+  { label: "SYNAPSE AI", icon: Sparkles, href: "/synapse-ai" },
   { label: "Focus Lock", icon: LockKeyhole, href: "/focus", active: true },
   { label: "To-Do List", icon: CheckSquare, href: "/todo" },
   { label: "Goals", icon: Target, href: "/goals" },
   { label: "Analytics", icon: BarChart3, href: "/analytics" },
-  { label: "SYNAPSE AI", icon: Sparkles, href: "/synapse-ai" },
   { label: "Resources", icon: FolderOpen, href: "#" },
   { label: "Settings", icon: Settings, href: "/settings" }
 ];
@@ -334,14 +334,21 @@ export default function FocusPage() {
             transition={{ duration: 0.5 }}
           >
             <div className="brand-lockup">
-              <Image
-                src="/assets/main-logo.jpeg"
-                alt="SYNAPSE logo"
-                width={186}
-                height={74}
-                className="brand-wordmark"
-                priority
-              />
+              <Link
+                href="/"
+                className="brand-home-link"
+                aria-label="Go to SYNAPSE dashboard"
+                onClick={() => setNavigationOpen(false)}
+              >
+                <Image
+                  src="/assets/main-logo.jpeg"
+                  alt="SYNAPSE logo"
+                  width={186}
+                  height={74}
+                  className="brand-wordmark"
+                  priority
+                />
+              </Link>
             </div>
 
             <nav className="side-nav" aria-label="Focus sections">

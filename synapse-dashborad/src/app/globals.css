@@ -189,6 +189,13 @@ textarea {
   padding: 0 16px;
 }
 
+.brand-home-link {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 7px;
+  text-decoration: none;
+}
+
 .brand-wordmark {
   width: 172px;
   height: auto;
