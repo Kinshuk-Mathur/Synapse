@@ -8,6 +8,17 @@ import { Check, Copy } from "lucide-react";
 
 const markdownPlugins = [remarkGfm];
 const rehypePlugins = [[rehypeHighlight, { ignoreMissing: true }]];
+const INVALID_PLACEHOLDER_MARKDOWN = `# Response Formatting Issue
+
+This answer contained an internal placeholder, so SYNAPSE blocked it from display.
+
+## Next Step
+
+Use **Regenerate** to get the clean structured answer.`;
+
+function isInvalidPlaceholderReply(value = "") {
+  return /^(clean Markdown user-facing answer|code here)\.?$/i.test(String(value || "").trim());
+}
 
 function normalizeMarkdownSpacing(value = "") {
   const raw = String(value || "")
@@ -246,7 +257,10 @@ function CodeBlock({ className = "", children, node, ...props }) {
 }
 
 export default function AIMessageRenderer({ content, compact = false }) {
-  const normalizedMarkdown = normalizeMarkdownSpacing(extractAiReplyText(content));
+  const extractedMarkdown = extractAiReplyText(content);
+  const normalizedMarkdown = isInvalidPlaceholderReply(extractedMarkdown)
+    ? INVALID_PLACEHOLDER_MARKDOWN
+    : normalizeMarkdownSpacing(extractedMarkdown);
   const markdown = compact ? normalizedMarkdown : structurePlainAiReply(normalizedMarkdown);
 
   return (

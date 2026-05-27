@@ -103,6 +103,11 @@ async function getRoutedGroqResponse(client, cleanMessages, systemPrompt, reques
 
 async function prepareAiResponse(rawMessage, uid, idToken, userContext, requestId) {
   const parsedResponse = parseAiActionResponse(rawMessage);
+
+  if (/\bclean Markdown user-facing answer\b/i.test(parsedResponse.reply || "")) {
+    throw new Error("Invalid AI response placeholder.");
+  }
+
   const actionResult = parsedResponse.action
     ? await executeAiAction(uid, idToken, parsedResponse.action, {
         context: userContext,

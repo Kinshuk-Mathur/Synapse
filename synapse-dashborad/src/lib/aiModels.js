@@ -226,9 +226,7 @@ Selected response mode: CODING MENTOR.
 # Problem Overview
 ## Solution
 ## Code Example
-\`\`\`language
-code here
-\`\`\`
+- Put runnable code in a fenced code block with the correct language tag.
 ## Explanation
 ## Common Mistakes
 ## Optimization Tips
@@ -333,23 +331,13 @@ Action rules:
 
 Response contract:
 - Return ONLY one clean valid JSON object. No Markdown fence around the JSON object.
-- The "reply" field must contain premium Markdown for direct rendering in the SYNAPSE AI chat UI.
+- The "reply" field must contain the final answer to the user's latest question, written as clean Markdown for direct rendering in the SYNAPSE AI chat UI.
 - Encode Markdown line breaks inside the JSON string as \\n. Do not use literal unescaped line breaks inside the JSON string.
 - Never put {"reply": ...}, "action": null, or backend schema text inside the reply itself.
-
-Valid shape:
-{
-  "reply": "clean Markdown user-facing answer",
-  "action": null
-}
-or
-{
-  "reply": "clean Markdown user-facing answer",
-  "action": {
-    "type": "create_todo",
-    "data": { "title": "Revise Chemistry", "date": "${today}", "time": "19:00", "priority": "Medium" }
-  }
-}`;
+- Never copy placeholder labels, schema descriptions, or example text into the reply.
+- Required top-level keys: reply, action.
+- Use action null unless the user clearly requested a todo/goal action.
+- If an action is needed, action must contain type and data. Example action data may use today's date: ${today}.`;
 }
 
 export function buildSystemPrompt(userData = {}, userContext = null, latestPrompt = "", options = {}) {
@@ -443,6 +431,8 @@ function getResponseQualityIssue(value) {
   const text = String(value || "").trim();
   const cjkMatches = text.match(/[\u3400-\u9fff\uf900-\ufaff]/g) || [];
   const weirdInternalPatterns = [
+    /\bclean Markdown user-facing answer\b/i,
+    /\bcode here\b/i,
     /\btype\s*:\s*def\b/i,
     /\bFlatDictionary\b/i,
     /\bFormal adenosine\b/i,
