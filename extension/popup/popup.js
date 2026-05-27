@@ -146,22 +146,11 @@ function formatHms(totalSeconds) {
   return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
-function formatDurationInput(totalSeconds) {
-  const minutes = Math.max(1, Math.round(Math.max(0, Number(totalSeconds) || 0) / 60));
-  return String(minutes);
-}
-
 function parseDurationInput(value) {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
-  if (/^\d+$/.test(trimmed)) {
-    const minutes = Number(trimmed);
-    return minutes > 0 ? minutes * 60 : null;
-  }
-
   const parts = trimmed.split(":");
-  if (parts.length === 2) parts.unshift("0");
   if (parts.length !== 3) return null;
 
   const [hoursText, minutesText, secondsText] = parts;
@@ -332,7 +321,7 @@ function hydrateSettings(settings = {}) {
   activeGoalChip.textContent = goal;
 
   const duration = settings.defaultDurationSeconds || 7200;
-  durationInput.value = formatDurationInput(duration);
+  durationInput.value = formatHms(duration);
 }
 
 async function loadState() {
@@ -400,7 +389,7 @@ startBtn.addEventListener("click", async () => {
   const durationSeconds = parseDurationInput(durationInput.value);
 
   if (!durationSeconds) {
-    syncLine.textContent = "Enter at least 1 minute.";
+    syncLine.textContent = "Use HH:MM:SS, like 01:30:00.";
     return;
   }
 
