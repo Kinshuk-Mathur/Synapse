@@ -9,6 +9,37 @@ import { Check, Copy } from "lucide-react";
 const markdownPlugins = [remarkGfm];
 const rehypePlugins = [[rehypeHighlight, { ignoreMissing: true }]];
 
+function normalizeMarkdownSpacing(value = "") {
+  const raw = String(value || "")
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .replace(/\t/g, "  ")
+    .trim();
+
+  if (!raw) return "";
+
+  const parts = raw.split(/(```[\s\S]*?```)/g);
+
+  return parts
+    .map((part, index) => {
+      if (index % 2 === 1) return part.trim();
+
+      return part
+        .replace(/[ \t]+\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/([^\n])(\s+#{1,3}\s+)/g, "$1\n\n$2")
+        .replace(/([^\n])(\s+(?:[-*]\s+|\d+\.\s+))/g, "$1\n$2")
+        .replace(/(^|\n)(#{1,3}\s+[^\n]+)\n(?!\n)/g, "$1$2\n\n")
+        .replace(/(^|\n)([-*]\s+[^\n]+)\n(?![-*\s\d]|\n)/g, "$1$2\n\n")
+        .replace(/(^|\n)(\d+\.\s+[^\n]+)\n(?!\d+\.|\n)/g, "$1$2\n\n")
+        .trim();
+    })
+    .filter(Boolean)
+    .join("\n\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function parseJsonStringAt(value, startIndex) {
   if (value[startIndex] !== "\"") return "";
 
@@ -147,7 +178,7 @@ function CodeBlock({ className = "", children, node, ...props }) {
 }
 
 export default function AIMessageRenderer({ content, compact = false }) {
-  const markdown = extractAiReplyText(content);
+  const markdown = normalizeMarkdownSpacing(extractAiReplyText(content));
 
   return (
     <ReactMarkdown
@@ -156,6 +187,46 @@ export default function AIMessageRenderer({ content, compact = false }) {
       rehypePlugins={rehypePlugins}
       skipHtml
       components={{
+        h1: ({ children, node, ...props }) => (
+          <h1 className="ai-md-heading ai-md-heading-main" {...props}>
+            {children}
+          </h1>
+        ),
+        h2: ({ children, node, ...props }) => (
+          <h2 className="ai-md-heading ai-md-heading-section" {...props}>
+            {children}
+          </h2>
+        ),
+        h3: ({ children, node, ...props }) => (
+          <h3 className="ai-md-heading ai-md-heading-subsection" {...props}>
+            {children}
+          </h3>
+        ),
+        p: ({ children, node, ...props }) => (
+          <p className="ai-md-paragraph" {...props}>
+            {children}
+          </p>
+        ),
+        ul: ({ children, node, ...props }) => (
+          <ul className="ai-md-list ai-md-list-unordered" {...props}>
+            {children}
+          </ul>
+        ),
+        ol: ({ children, node, ...props }) => (
+          <ol className="ai-md-list ai-md-list-ordered" {...props}>
+            {children}
+          </ol>
+        ),
+        li: ({ children, node, ...props }) => (
+          <li className="ai-md-list-item" {...props}>
+            {children}
+          </li>
+        ),
+        blockquote: ({ children, node, ...props }) => (
+          <blockquote className="ai-md-callout" {...props}>
+            {children}
+          </blockquote>
+        ),
         pre: ({ children }) => <>{children}</>,
         code: CodeBlock,
         table: ({ children, node, ...props }) => (

@@ -87,10 +87,14 @@ Realtime context intelligence:
 const MARKDOWN_CONTRACT_BLOCK = `
 Markdown rendering contract:
 - The reply must be clean Markdown designed for react-markdown.
-- Use # and ## headings for major educational or strategic answers.
+- For every medium or large response, start with exactly one # main heading that names the answer.
+- Use ## subheadings to separate ideas. Each major section should feel visually distinct when rendered.
 - Use bullets, numbered lists, bold text, inline code, tables, blockquotes, and fenced code blocks when useful.
+- Use bullet lists for concepts, numbered lists for processes, and bold text for the key idea in a bullet.
 - Use tables for comparisons, roadmaps, tradeoffs, chapter priorities, and strategy choices when they improve scanning.
 - Code examples must use fenced code blocks with a language tag.
+- Insert blank lines between headings, paragraphs, lists, tables, and code blocks.
+- Never write a long answer as one paragraph. Break dense ideas into readable sections.
 - Do not output raw HTML. Do not output raw backend JSON inside the reply.
 `;
 
@@ -181,6 +185,7 @@ Selected response mode: SHORT.
 - Use this only for greetings, confirmations, tiny factual questions, or explicit brevity requests.
 - Answer directly in 1-4 sentences.
 - Do not create artificial sections for a tiny answer.
+- Markdown is still allowed, but keep it minimal.
 ${minimumDepthRule}`;
   }
 
@@ -189,6 +194,7 @@ ${minimumDepthRule}`;
 Selected response mode: CODING MENTOR.
 - Teach like a senior engineer mentoring an ambitious student.
 - Start by clarifying the problem, then give the solution, then explain why it works.
+- Use clean Markdown with a # main heading and ## sections unless the user explicitly asks for a tiny answer.
 - Use this structure when relevant:
 # Problem Overview
 ## Solution
@@ -210,6 +216,7 @@ ${minimumDepthRule}`;
 Selected response mode: PRODUCTIVITY OPERATING SYSTEM.
 - Analyze the user's goals, tasks, focus data, Momentum, blockers, and today progress before recommending action.
 - Lead with the highest-leverage priority, not a generic routine.
+- Use a # main heading and ## sections so the plan is easy to scan.
 - Prefer this structure when relevant:
 # Your Productivity Analysis
 ## What Is Going Well
@@ -227,6 +234,7 @@ Selected response mode: STARTUP MENTOR.
 - Respond like a founder mentor with operator judgment.
 - Include frameworks, customer thinking, execution steps, validation logic, mistakes to avoid, and scaling insight.
 - Make advice practical enough that the student can act this week.
+- Use a # main heading, ## sections, bullets, and tables when comparing options or frameworks.
 - Avoid generic motivation. Make the answer useful for decisions and action.
 ${minimumDepthRule}`;
   }
@@ -234,6 +242,7 @@ ${minimumDepthRule}`;
   return `
 Selected response mode: ${mode === "balanced" ? "BALANCED MENTOR" : "DETAILED TEACHING"}.
 - Explain deeply enough for real understanding, not just recognition.
+- Use a # main heading for medium/large answers and ## subheadings for major sections.
 - For educational and strategic responses, choose relevant sections from:
 # Main Answer
 ## Core Explanation

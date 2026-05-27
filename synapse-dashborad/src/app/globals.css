@@ -8593,6 +8593,437 @@ textarea {
   }
 }
 
+/* Premium SYNAPSE AI response renderer v2 */
+.synapse-chat-stream {
+  gap: clamp(24px, 3vw, 36px);
+}
+
+.synapse-message.from-ai {
+  width: min(1080px, 98%);
+}
+
+.synapse-message.from-ai .message-shell {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in oklab, var(--color-pulse) 28%, var(--color-text) 10%);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 14% 0%, color-mix(in oklab, var(--color-pulse) 13%, var(--transparent)), var(--transparent) 32%),
+    radial-gradient(circle at 100% 18%, color-mix(in oklab, var(--color-accent) 8%, var(--transparent)), var(--transparent) 28%),
+    linear-gradient(150deg, color-mix(in oklab, var(--color-text) 5%, var(--transparent)), color-mix(in oklab, var(--color-surface) 78%, var(--transparent))),
+    color-mix(in oklab, var(--panel) 90%, black 6%);
+  padding: 32px;
+  box-shadow:
+    0 26px 78px color-mix(in oklab, black 42%, var(--transparent)),
+    0 0 40px color-mix(in oklab, var(--color-pulse) 10%, var(--transparent));
+}
+
+.synapse-message.from-ai .message-shell::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, var(--transparent), color-mix(in oklab, var(--color-pulse) 64%, white 8%), var(--transparent));
+  content: "";
+}
+
+.ai-response-markdown {
+  display: block;
+  width: 100%;
+  max-width: 82ch;
+  color: color-mix(in oklab, var(--color-text) 92%, white 3%);
+  font-size: 16px;
+  line-height: 1.82;
+  overflow-wrap: anywhere;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.ai-response-markdown.is-compact {
+  max-width: none;
+  font-size: 15px;
+  line-height: 1.66;
+}
+
+.ai-response-markdown > * {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.ai-response-markdown > *:first-child {
+  margin-top: 0;
+}
+
+.ai-response-markdown > *:last-child {
+  margin-bottom: 0;
+}
+
+.ai-response-markdown .ai-md-heading {
+  position: relative;
+  color: var(--color-text);
+  font-weight: 860;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.ai-response-markdown .ai-md-heading-main {
+  margin: 0 0 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-pulse) 28%, var(--transparent));
+  font-size: 30px;
+  line-height: 1.12;
+}
+
+.ai-response-markdown .ai-md-heading-section {
+  margin: 34px 0 14px;
+  padding-top: 20px;
+  border-top: 1px solid color-mix(in oklab, var(--color-text) 9%, var(--transparent));
+  color: color-mix(in oklab, var(--color-text) 86%, var(--color-pulse) 22%);
+  font-size: 22px;
+  line-height: 1.22;
+}
+
+.ai-response-markdown .ai-md-heading-section::before {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 72px;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in oklab, var(--color-pulse) 84%, white 6%), var(--transparent));
+  content: "";
+}
+
+.ai-response-markdown .ai-md-heading-subsection {
+  margin: 26px 0 10px;
+  color: color-mix(in oklab, var(--color-text) 84%, var(--color-muted));
+  font-size: 18px;
+  line-height: 1.28;
+}
+
+.ai-response-markdown .ai-md-paragraph {
+  margin: 0 0 18px;
+  color: color-mix(in oklab, var(--color-text) 82%, var(--color-muted));
+}
+
+.ai-response-markdown .ai-md-paragraph + .ai-md-paragraph {
+  margin-top: 8px;
+}
+
+.ai-response-markdown strong {
+  color: color-mix(in oklab, var(--color-text) 96%, white 4%);
+  font-weight: 860;
+}
+
+.ai-response-markdown em {
+  color: color-mix(in oklab, var(--color-text) 80%, var(--color-muted));
+}
+
+.ai-response-markdown .ai-md-list {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 22px;
+  color: color-mix(in oklab, var(--color-text) 82%, var(--color-muted));
+}
+
+.ai-response-markdown .ai-md-list-unordered {
+  padding-left: 0;
+  list-style: none;
+}
+
+.ai-response-markdown .ai-md-list-ordered {
+  padding-left: 26px;
+}
+
+.ai-response-markdown .ai-md-list-item {
+  position: relative;
+  padding-left: 4px;
+}
+
+.ai-response-markdown .ai-md-list-unordered > .ai-md-list-item {
+  padding-left: 26px;
+}
+
+.ai-response-markdown .ai-md-list-unordered > .ai-md-list-item::before {
+  position: absolute;
+  top: 0.78em;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 88%, white 4%), color-mix(in oklab, var(--color-accent) 78%, white 5%));
+  box-shadow: 0 0 14px color-mix(in oklab, var(--color-pulse) 46%, var(--transparent));
+  content: "";
+}
+
+.ai-response-markdown .ai-md-list-ordered > .ai-md-list-item::marker {
+  color: color-mix(in oklab, var(--color-pulse) 82%, white 8%);
+  font-weight: 900;
+}
+
+.ai-response-markdown .ai-md-list-item > .ai-md-paragraph {
+  margin: 0;
+}
+
+.ai-response-markdown .ai-md-list .ai-md-list {
+  margin: 10px 0 0;
+}
+
+.ai-response-markdown input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  accent-color: color-mix(in oklab, var(--color-pulse) 86%, white 4%);
+}
+
+.ai-response-markdown .ai-md-callout {
+  margin: 22px 0;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 34%, var(--transparent));
+  border-left: 4px solid color-mix(in oklab, var(--color-pulse) 78%, white 8%);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 13%, var(--transparent)), color-mix(in oklab, var(--color-sky) 7%, var(--transparent))),
+    color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  padding: 16px 18px;
+  box-shadow: 0 0 28px color-mix(in oklab, var(--color-pulse) 10%, var(--transparent));
+}
+
+.ai-response-markdown .ai-md-callout > *:last-child {
+  margin-bottom: 0;
+}
+
+.ai-response-markdown hr {
+  width: 100%;
+  height: 1px;
+  margin: 28px 0;
+  border: 0;
+  background: linear-gradient(90deg, var(--transparent), color-mix(in oklab, var(--color-pulse) 38%, var(--transparent)), var(--transparent));
+}
+
+.ai-response-markdown a {
+  color: color-mix(in oklab, var(--color-sky) 80%, white 6%);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.ai-response-markdown a:hover {
+  text-decoration: underline;
+}
+
+.ai-response-markdown p code,
+.ai-response-markdown li code,
+.ai-response-markdown table code,
+.ai-response-markdown blockquote code {
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 24%, var(--transparent));
+  border-radius: 7px;
+  background: color-mix(in oklab, var(--color-text) 8%, var(--transparent));
+  padding: 0.16em 0.48em;
+  color: color-mix(in oklab, var(--color-gold) 86%, white 5%);
+  font-family: "SFMono-Regular", "Cascadia Code", Consolas, "Liberation Mono", monospace;
+  font-size: 0.9em;
+  white-space: break-spaces;
+}
+
+.ai-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  margin: 20px 0 26px;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 24%, var(--transparent));
+  border-radius: 10px;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-text) 4%, var(--transparent)), color-mix(in oklab, var(--color-bg) 58%, var(--transparent))),
+    color-mix(in oklab, var(--color-bg) 72%, black 8%);
+  box-shadow: 0 18px 44px color-mix(in oklab, black 22%, var(--transparent));
+}
+
+.ai-table-scroll table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.ai-table-scroll th,
+.ai-table-scroll td {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+  padding: 14px 16px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ai-table-scroll th {
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 20%, var(--transparent)), color-mix(in oklab, var(--color-accent) 10%, var(--transparent)));
+  color: var(--color-text);
+  font-weight: 860;
+}
+
+.ai-table-scroll td {
+  color: color-mix(in oklab, var(--color-text) 80%, var(--color-muted));
+}
+
+.ai-table-scroll tr:last-child td {
+  border-bottom: 0;
+}
+
+.ai-code-block {
+  overflow: hidden;
+  margin: 22px 0 28px;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 52%, var(--transparent));
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in oklab, var(--color-pulse) 11%, var(--transparent)), var(--transparent) 28%),
+    linear-gradient(145deg, #07070d, color-mix(in oklab, var(--color-ink) 84%, var(--color-pulse) 8%));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 8%, var(--transparent)),
+    0 0 32px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent)),
+    0 18px 44px color-mix(in oklab, black 30%, var(--transparent));
+}
+
+.ai-code-toolbar {
+  min-height: 44px;
+  padding: 9px 12px;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-pulse) 24%, var(--transparent));
+  background:
+    linear-gradient(90deg, color-mix(in oklab, var(--color-text) 7%, var(--transparent)), color-mix(in oklab, var(--color-pulse) 9%, var(--transparent)));
+}
+
+.ai-code-toolbar span {
+  color: color-mix(in oklab, var(--color-text) 64%, var(--color-muted));
+  font-size: 12px;
+  font-weight: 820;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.ai-code-toolbar button {
+  opacity: 0;
+  box-shadow: 0 0 16px color-mix(in oklab, var(--color-pulse) 8%, var(--transparent));
+}
+
+.ai-code-block:hover .ai-code-toolbar button,
+.ai-code-toolbar button:focus-visible {
+  opacity: 1;
+}
+
+.ai-code-block pre {
+  overflow-x: auto;
+  margin: 0;
+  padding: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-pulse) 42%, var(--transparent)) var(--transparent);
+}
+
+.ai-code-block code {
+  display: block;
+  min-width: max-content;
+  color: color-mix(in oklab, var(--color-text) 88%, white 4%);
+  font-family: "SFMono-Regular", "Cascadia Code", Consolas, "Liberation Mono", monospace;
+  font-size: 13.5px;
+  line-height: 1.7;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.message-shell footer {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in oklab, var(--color-text) 8%, var(--transparent));
+}
+
+.synapse-thinking {
+  display: grid;
+  gap: 12px;
+  width: min(460px, 100%);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.synapse-thinking-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.synapse-thinking-copy > span {
+  color: color-mix(in oklab, var(--color-text) 82%, var(--color-muted));
+  font-size: 14px;
+  font-weight: 780;
+}
+
+.synapse-thinking-bars {
+  display: grid;
+  gap: 7px;
+}
+
+.synapse-thinking-bars i {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, color-mix(in oklab, var(--color-text) 7%, var(--transparent)), color-mix(in oklab, var(--color-pulse) 22%, var(--transparent)), color-mix(in oklab, var(--color-text) 7%, var(--transparent)));
+  background-size: 220% 100%;
+  animation: synapse-thinking-shimmer 1.9s ease-in-out infinite;
+}
+
+.synapse-thinking-bars i:nth-child(1) {
+  width: 88%;
+}
+
+.synapse-thinking-bars i:nth-child(2) {
+  width: 68%;
+  animation-delay: 120ms;
+}
+
+.synapse-thinking-bars i:nth-child(3) {
+  width: 46%;
+  animation-delay: 240ms;
+}
+
+@media (max-width: 720px) {
+  .synapse-chat-stream {
+    gap: 22px;
+  }
+
+  .synapse-message.from-ai .message-shell {
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .ai-response-markdown {
+    max-width: none;
+    font-size: 15.5px;
+    line-height: 1.76;
+  }
+
+  .ai-response-markdown .ai-md-heading-main {
+    margin-bottom: 18px;
+    font-size: 24px;
+  }
+
+  .ai-response-markdown .ai-md-heading-section {
+    margin-top: 28px;
+    padding-top: 16px;
+    font-size: 20px;
+  }
+
+  .ai-response-markdown .ai-md-heading-subsection {
+    font-size: 17px;
+  }
+
+  .ai-table-scroll {
+    margin: 18px 0 22px;
+  }
+
+  .ai-table-scroll table {
+    min-width: 560px;
+  }
+
+  .ai-code-block pre {
+    padding: 16px;
+  }
+}
+
 /* SYNAPSE Voice Mode MVP */
 .voice-mode-orb {
   position: relative;

@@ -370,8 +370,15 @@ function ThinkingIndicator() {
 
   return (
     <div className="synapse-thinking">
-      <span>{THINKING_STAGES[stageIndex]}</span>
-      <TypingDots />
+      <div className="synapse-thinking-copy">
+        <span>{THINKING_STAGES[stageIndex]}</span>
+        <TypingDots />
+      </div>
+      <div className="synapse-thinking-bars" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </div>
     </div>
   );
 }
