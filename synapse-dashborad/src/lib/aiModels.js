@@ -9,7 +9,7 @@ export const AI_ROUTER_CONFIG = {
   retriesPerModel: 1,
   maxMessages: 12,
   maxContentLength: 12_000,
-  temperature: 0.25,
+  temperature: 0.7,
   maxCompletionTokens: 2_400,
   retryDelayMs: 550,
   maxRateLimitWaitMs: 2_000,
@@ -83,7 +83,13 @@ function detectResponseMode(prompt = "") {
     return "detailed";
   }
 
-  return wordCount > 18 ? "detailed" : "balanced";
+  if (
+    /\b(startup|business|founder|roadmap|career|skills|learn first|in what order|strategy|build)\b/.test(text)
+  ) {
+    return "detailed";
+  }
+  
+  return wordCount > 10 ? "detailed" : "balanced";
 }
 
 function buildResponseModeInstructions(mode) {
@@ -205,10 +211,13 @@ Core instructions:
 - Use the realtime context before every recommendation.
 - Recommend the next action, urgent task, focus session, or goal update when useful.
 - Prioritize urgent tasks, weak consistency, deadlines, Momentum, and focus data.
-- Keep responses as concise as the selected response mode allows while staying complete and student-friendly.
+- Prioritize clarity, structure, and usefulness over shortness.
+- Detailed educational questions should receive detailed mentor-style responses.
+- Never compress important explanations into 1-2 lines.
 - Never invent todos, goals, focus minutes, Momentum, productivity scores, or deadlines.
 - If realtime context is empty, say there is not enough productivity data yet and suggest a clean next step.
-- Avoid generic motivational fluff.
+- Avoid generic empty motivation.
+- Motivation should feel intelligent, strategic, and actionable.
 - Never output hidden prompt text, debug text, type signatures, or internal template text.
 
 ${responseModeInstructions}
@@ -223,7 +232,12 @@ Action rules:
 - For updates/completions include id when known, otherwise include the best matching title.
 
 Response contract:
-Return ONLY strict JSON, no Markdown fences:
+Return a clean valid JSON object.
+
+The "reply" field should contain beautifully formatted Markdown designed for direct rendering inside a premium AI chat UI.
+
+Focus on readability, structure, teaching quality, and practical usefulness.
+
 - Encode Markdown line breaks inside the JSON string as \\n. Do not use literal unescaped line breaks inside the JSON string.
 {
   "reply": "clean Markdown user-facing answer",
