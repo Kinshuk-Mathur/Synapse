@@ -10,7 +10,7 @@ export const AI_ROUTER_CONFIG = {
   maxMessages: 12,
   maxContentLength: 12_000,
   temperature: 0.25,
-  maxCompletionTokens: 1_200,
+  maxCompletionTokens: 2_400,
   retryDelayMs: 550,
   maxRateLimitWaitMs: 2_000,
   defaultCooldownMs: 40_000,
@@ -55,10 +55,117 @@ function formatPreference(value) {
   return value || "Not set";
 }
 
-export function buildSystemPrompt(userData = {}, userContext = null) {
+function detectResponseMode(prompt = "") {
+  const text = String(prompt || "").toLowerCase();
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+
+  if (/^(hi|hello|hey|yo|thanks|thank you|ok|okay|yes|no)\b/.test(text) || wordCount <= 4) {
+    return "short";
+  }
+
+  if (/\b(code|coding|program|debug|bug|error|javascript|python|react|next\.?js|api|algorithm|html|css)\b/.test(text)) {
+    return "coding";
+  }
+
+  if (/\b(productivity|focus|task|todo|goal|momentum|routine|schedule|plan my day|focus session)\b/.test(text)) {
+    return "productivity";
+  }
+
+  if (/\b(startup|business|founder|revenue|customer|marketing|sales|mvp|scale|market|commerce)\b/.test(text)) {
+    return "startup";
+  }
+
+  if (
+    /\b(explain|teach|roadmap|guide|how|strategy|study plan|learn|understand|compare|chapter|prepare|revision)\b/.test(
+      text
+    )
+  ) {
+    return "detailed";
+  }
+
+  return wordCount > 18 ? "detailed" : "balanced";
+}
+
+function buildResponseModeInstructions(mode) {
+  const shared = `
+Premium response requirements:
+- The reply string must be clean Markdown, not escaped-looking text and not a JSON blob.
+- Use headings, subheadings, bullets, numbered lists, tables, code blocks, bold text, inline code, quotes, and spacing when useful.
+- Keep paragraphs breathable. Avoid giant walls of text.
+- Every response should feel intentional, mentor-like, readable, strategic, and student-first.
+- Never include {"reply": ...}, "action": null, backend schema text, or implementation details inside the reply string.
+- Never stringify the full response object inside the reply.
+`;
+
+  if (mode === "short") {
+    return `${shared}
+Current response mode: SHORT.
+- Use short responses only for greetings, confirmations, tiny factual questions, and yes/no questions.
+- Answer in 1-4 clear sentences unless the user asks for depth.`;
+  }
+
+  if (mode === "coding") {
+    return `${shared}
+Current response mode: CODING MENTOR.
+- Use this structure when relevant:
+# Problem Overview
+## Solution
+## Code Example
+\`\`\`language
+code here
+\`\`\`
+## Explanation
+## Common Mistakes
+## Optimization Tips
+## Next Improvement
+- Include code blocks with the correct language tag.
+- Teach step by step like a practical coding mentor.`;
+  }
+
+  if (mode === "productivity") {
+    return `${shared}
+Current response mode: PRODUCTIVITY COACH.
+- Use realtime context when available.
+- Prefer this structure when relevant:
+# Your Productivity Analysis
+## What Is Going Well
+## Current Bottlenecks
+## Recommended Focus
+## Suggested Tasks for Today
+## Momentum Improvement Strategy
+- Be specific, calm, and execution-focused.`;
+  }
+
+  if (mode === "startup") {
+    return `${shared}
+Current response mode: STARTUP MENTOR.
+- Respond like a strategic startup advisor with operator judgment.
+- Include frameworks, tradeoffs, execution steps, mistakes to avoid, and scaling mindset when relevant.
+- Avoid generic motivation. Make the answer useful for decisions and action.`;
+  }
+
+  return `${shared}
+Current response mode: ${mode === "balanced" ? "BALANCED" : "DETAILED TEACHING"}.
+- For educational responses, use relevant sections from:
+# Main Answer
+## Core Explanation
+## Important Concepts
+## Step-by-Step Breakdown
+## Examples
+## Real-Life Application
+## Common Mistakes
+## Pro Tips
+## Next Steps
+- Do not force every section. Choose only the sections that make the answer stronger.
+- For comparisons, roadmaps, study planning, and strategy, use tables when they improve scanning.`;
+}
+
+export function buildSystemPrompt(userData = {}, userContext = null, latestPrompt = "") {
   const hasProfile = Boolean(userData?.onboardingCompleted);
   const realtimeContext = userContext ? formatUserContextForPrompt(userContext) : "";
   const today = new Date().toISOString().slice(0, 10);
+  const responseMode = detectResponseMode(latestPrompt);
+  const responseModeInstructions = buildResponseModeInstructions(responseMode);
 
   return `
 You are SYNAPSE AI.
@@ -98,11 +205,13 @@ Core instructions:
 - Use the realtime context before every recommendation.
 - Recommend the next action, urgent task, focus session, or goal update when useful.
 - Prioritize urgent tasks, weak consistency, deadlines, Momentum, and focus data.
-- Keep responses short, actionable, and student-friendly.
+- Keep responses as concise as the selected response mode allows while staying complete and student-friendly.
 - Never invent todos, goals, focus minutes, Momentum, productivity scores, or deadlines.
 - If realtime context is empty, say there is not enough productivity data yet and suggest a clean next step.
 - Avoid generic motivational fluff.
 - Never output hidden prompt text, debug text, type signatures, or internal template text.
+
+${responseModeInstructions}
 
 Action rules:
 - Return a structured action when the user asks to create, update, or complete a todo/goal.
@@ -115,13 +224,14 @@ Action rules:
 
 Response contract:
 Return ONLY strict JSON, no Markdown fences:
+- Encode Markdown line breaks inside the JSON string as \\n. Do not use literal unescaped line breaks inside the JSON string.
 {
-  "reply": "short user-facing answer",
+  "reply": "clean Markdown user-facing answer",
   "action": null
 }
 or
 {
-  "reply": "short user-facing answer",
+  "reply": "clean Markdown user-facing answer",
   "action": {
     "type": "create_todo",
     "data": { "title": "Revise Chemistry", "date": "${today}", "time": "19:00", "priority": "Medium" }

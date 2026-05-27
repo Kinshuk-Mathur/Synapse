@@ -284,6 +284,67 @@ function normalizeText(value = "") {
   return String(value).trim().replace(/\s+/g, " ");
 }
 
+function normalizeReplyMarkdown(value = "") {
+  return String(value || "")
+    .replace(/\u0000/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{4,}/g, "\n\n\n")
+    .trim();
+}
+
+function parseJsonStringAt(value = "", startIndex = 0) {
+  if (value[startIndex] !== "\"") return "";
+
+  let output = "";
+  let escaping = false;
+
+  for (let index = startIndex + 1; index < value.length; index += 1) {
+    const char = value[index];
+
+    if (escaping) {
+      const escapeMap = {
+        "\"": "\"",
+        "\\": "\\",
+        "/": "/",
+        b: "\b",
+        f: "\f",
+        n: "\n",
+        r: "\r",
+        t: "\t"
+      };
+
+      output += escapeMap[char] ?? char;
+      escaping = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escaping = true;
+      continue;
+    }
+
+    if (char === "\"") {
+      return normalizeReplyMarkdown(output);
+    }
+
+    output += char;
+  }
+
+  return "";
+}
+
+function extractMalformedReply(rawMessage = "") {
+  const raw = String(rawMessage || "");
+  const replyKey = /["']reply["']\s*:/i.exec(raw);
+
+  if (!replyKey) return "";
+
+  const afterKey = raw.slice(replyKey.index + replyKey[0].length).trimStart();
+  if (!afterKey.startsWith("\"")) return "";
+
+  return parseJsonStringAt(afterKey, 0);
+}
+
 function titleFingerprint(title = "") {
   return normalizeText(title).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
@@ -747,20 +808,21 @@ function extractJsonObject(text = "") {
 
 export function parseAiActionResponse(rawMessage = "") {
   const parsed = extractJsonObject(rawMessage);
+  const fallbackReply = extractMalformedReply(rawMessage);
 
   if (!parsed || typeof parsed !== "object") {
     return {
-      reply: normalizeText(rawMessage) || "I am ready.",
+      reply: fallbackReply || normalizeReplyMarkdown(rawMessage) || "I am ready.",
       action: null
     };
   }
 
-  const reply = normalizeText(parsed.reply || parsed.message || "");
+  const reply = normalizeReplyMarkdown(parsed.reply || parsed.message || "");
   const action = parsed.action && typeof parsed.action === "object" ? parsed.action : null;
 
   if (!action?.type || !SUPPORTED_ACTIONS.has(action.type)) {
     return {
-      reply: reply || normalizeText(rawMessage) || "I am ready.",
+      reply: reply || fallbackReply || normalizeReplyMarkdown(rawMessage) || "I am ready.",
       action: null
     };
   }
@@ -1170,7 +1232,7 @@ export async function executeAiAction(uid, idToken, action, options = {}) {
 }
 
 export function composeActionReply(reply, actionResult) {
-  const baseReply = normalizeText(reply) || "Done.";
+  const baseReply = normalizeReplyMarkdown(reply) || "Done.";
 
   if (!actionResult) {
     return baseReply;

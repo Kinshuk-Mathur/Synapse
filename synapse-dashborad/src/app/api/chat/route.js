@@ -142,8 +142,8 @@ export async function POST(req) {
           requestId
         })
       : null;
-    const systemPrompt = buildSystemPrompt(userProfile, userContext);
     const latestPrompt = cleanMessages.filter((message) => message.role === "user").at(-1)?.content || "";
+    const systemPrompt = buildSystemPrompt(userProfile, userContext, latestPrompt);
 
     if (uid && idToken) {
       saveAiMemoryToFirestore(uid, idToken, {

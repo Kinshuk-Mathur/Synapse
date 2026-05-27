@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  BookMarked,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -20,8 +21,11 @@ import {
   Mic,
   Paperclip,
   Plus,
+  RefreshCw,
   Send,
   Sparkles,
+  ListTodo,
+  Target,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -35,13 +39,21 @@ import { recordMeaningfulAiUsage } from "../../services/analytics";
 import { updateMomentumProgress } from "../../services/userStats";
 import ProfileAvatarMenu from "../ProfileAvatarMenu";
 import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
+import AIMessageRenderer, { extractAiReplyText } from "./AIMessageRenderer";
 
 const STORAGE_KEY = "synapse-ai-conversations";
 const UPLOADED_FILES_KEY = "synapse-ai-uploaded-files";
+const SAVED_NOTES_KEY = "synapse-ai-saved-notes";
+const TASK_DRAFTS_KEY = "synapse-ai-task-drafts";
+const GOAL_DRAFTS_KEY = "synapse-ai-goal-drafts";
 const DASHBOARD_HREF = "/";
 const SUPPORTED_FILE_COPY = "PDF, JPG, PNG, HTML, text, Markdown, code, or JSON files";
 const SAFE_AI_ERROR = "SYNAPSE AI is currently busy. Please try again shortly.";
-const THINKING_STAGES = ["Understanding...", "Thinking...", "Preparing answer..."];
+const THINKING_STAGES = [
+  "Analyzing your question...",
+  "Building structured explanation...",
+  "Planning best response..."
+];
 
 const quickActions = [
   {
@@ -299,42 +311,8 @@ function normalizeMathContent(content) {
     });
 }
 
-function unwrapAiJsonContent(content) {
-  const raw = String(content || "").trim();
-  if (!raw) return "";
-
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidates = [
-    raw,
-    fenced?.[1],
-    raw.includes("{") && raw.includes("}") ? raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1) : ""
-  ].filter(Boolean);
-
-  for (const candidate of candidates) {
-    let parsed = candidate.trim();
-
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        parsed = JSON.parse(parsed);
-      } catch {
-        break;
-      }
-
-      if (parsed && typeof parsed === "object") {
-        const reply = parsed.reply || parsed.message || parsed.content;
-        if (typeof reply === "string" && reply.trim()) return reply.trim();
-        break;
-      }
-
-      if (typeof parsed !== "string") break;
-    }
-  }
-
-  return raw;
-}
-
 function formatDenseAiContent(content) {
-  const text = unwrapAiJsonContent(content);
+  const text = extractAiReplyText(content);
   const lineCount = text.split("\n").filter((line) => line.trim()).length;
 
   if (text.length < 220 || lineCount > 3) return text;
@@ -346,167 +324,6 @@ function formatDenseAiContent(content) {
     .replace(/\s+(\d+\.\s+[A-Z][^:.]{2,64}:)/g, "\n$1")
     .replace(/\s+\*\s+/g, "\n- ")
     .trim();
-}
-
-function renderInlineMarkdown(text) {
-  const tokens = convertLatexExpression(text).split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
-
-  return tokens.map((token, index) => {
-    if (token.startsWith("**") && token.endsWith("**")) {
-      return <strong key={`${token}-${index}`}>{token.slice(2, -2)}</strong>;
-    }
-
-    if (token.startsWith("`") && token.endsWith("`")) {
-      return <code key={`${token}-${index}`}>{token.slice(1, -1)}</code>;
-    }
-
-    return <span key={`${token}-${index}`}>{token}</span>;
-  });
-}
-
-function MarkdownMessage({ content }) {
-  const sections = normalizeMathContent(formatDenseAiContent(content)).split(/```/g);
-  const elements = [];
-
-  const flushParagraph = (lines, key) => {
-    if (!lines.length) return;
-
-    elements.push(
-      <p key={`p-${key}`}>
-        {lines.map((line, index) => (
-          <span key={`${line}-${index}`}>
-            {renderInlineMarkdown(line)}
-            {index < lines.length - 1 ? <br /> : null}
-          </span>
-        ))}
-      </p>
-    );
-  };
-
-  sections.forEach((section, sectionIndex) => {
-    if (sectionIndex % 2 === 1) {
-      elements.push(
-        <pre key={`code-${sectionIndex}`}>
-          <code>{section.replace(/^\w+\n/, "").trim()}</code>
-        </pre>
-      );
-      return;
-    }
-
-    const lines = section.split("\n");
-    let paragraph = [];
-    let list = [];
-    let listType = "ul";
-
-    const flushList = (key) => {
-      if (!list.length) return;
-
-      const ListTag = listType;
-      elements.push(
-        <ListTag key={`${listType}-${key}`}>
-          {list.map((item, index) => (
-            <li key={`${item}-${index}`}>{renderInlineMarkdown(item)}</li>
-          ))}
-        </ListTag>
-      );
-      list = [];
-      listType = "ul";
-    };
-
-    lines.forEach((rawLine, lineIndex) => {
-      const line = rawLine.trim();
-      const key = `${sectionIndex}-${lineIndex}`;
-
-      if (!line) {
-        flushParagraph(paragraph, key);
-        flushList(key);
-        paragraph = [];
-        return;
-      }
-
-      if (/^---+$/.test(line)) {
-        flushParagraph(paragraph, key);
-        flushList(key);
-        paragraph = [];
-        elements.push(<hr key={`hr-${key}`} />);
-        return;
-      }
-
-      const heading = /^(#{1,4})\s+(.+)$/.exec(line);
-      if (heading) {
-        flushParagraph(paragraph, key);
-        flushList(key);
-        paragraph = [];
-        const level = Math.min(heading[1].length, 3);
-        const HeadingTag = `h${level + 2}`;
-
-        elements.push(
-          <HeadingTag key={`h-${key}`}>
-            {renderInlineMarkdown(heading[2])}
-          </HeadingTag>
-        );
-        return;
-      }
-
-      const boldHeading = /^\*\*([^*]{3,96})\*\*:?\s*$/.exec(line);
-      if (boldHeading) {
-        flushParagraph(paragraph, key);
-        flushList(key);
-        paragraph = [];
-        elements.push(
-          <h4 key={`bold-h-${key}`}>
-            {renderInlineMarkdown(boldHeading[1])}
-          </h4>
-        );
-        return;
-      }
-
-      const quote = /^>\s+(.+)$/.exec(line);
-      if (quote) {
-        flushParagraph(paragraph, key);
-        flushList(key);
-        paragraph = [];
-        elements.push(
-          <blockquote key={`quote-${key}`}>
-            {renderInlineMarkdown(quote[1])}
-          </blockquote>
-        );
-        return;
-      }
-
-      const bullet = /^[-*]\s+(.+)$/.exec(line);
-      if (bullet) {
-        flushParagraph(paragraph, key);
-        if (list.length && listType !== "ul") flushList(key);
-        listType = "ul";
-        paragraph = [];
-        list.push(bullet[1]);
-        return;
-      }
-
-      const ordered = /^\d+\.\s+(.+)$/.exec(line);
-      if (ordered) {
-        flushParagraph(paragraph, key);
-        if (list.length && listType !== "ol") flushList(key);
-        listType = "ol";
-        paragraph = [];
-        list.push(ordered[1]);
-        return;
-      }
-
-      flushList(key);
-      paragraph.push(line);
-    });
-
-    flushParagraph(paragraph, `${sectionIndex}-end`);
-    flushList(`${sectionIndex}-end`);
-  });
-
-  return (
-    <div className="synapse-markdown">
-      {elements}
-    </div>
-  );
 }
 
 function TypingDots() {
@@ -548,10 +365,42 @@ function getAttachmentIcon(attachment) {
   return FileText;
 }
 
-function MessageBubble({ message, onCopy }) {
+function MessageBubble({ message, onCopy, onMessageAction }) {
   const fromUser = message.role === "user";
   const AttachmentIcon = getAttachmentIcon(message.attachment);
   const displayContent = fromUser ? message.content : formatDenseAiContent(message.content);
+  const aiActions = [
+    {
+      key: "copy",
+      label: "Copy response",
+      icon: Copy,
+      onClick: () => onCopy(displayContent)
+    },
+    {
+      key: "regenerate",
+      label: "Regenerate",
+      icon: RefreshCw,
+      onClick: () => onMessageAction("regenerate", message)
+    },
+    {
+      key: "save-note",
+      label: "Save as note",
+      icon: BookMarked,
+      onClick: () => onMessageAction("save-note", message)
+    },
+    {
+      key: "add-tasks",
+      label: "Add tasks from response",
+      icon: ListTodo,
+      onClick: () => onMessageAction("add-tasks", message)
+    },
+    {
+      key: "add-goals",
+      label: "Add goals from response",
+      icon: Target,
+      onClick: () => onMessageAction("add-goals", message)
+    }
+  ];
 
   return (
     <motion.article
@@ -580,19 +429,24 @@ function MessageBubble({ message, onCopy }) {
           </div>
         ) : null}
 
-        <MarkdownMessage content={displayContent} />
+        <AIMessageRenderer content={normalizeMathContent(displayContent)} compact={fromUser} />
 
         <footer>
           <time>{formatTime(message.createdAt)}</time>
           {!fromUser ? (
             <span className="message-actions">
-              <button type="button" onClick={() => onCopy(displayContent)} aria-label="Copy response">
-                <Copy size={15} />
-              </button>
-              <button type="button" aria-label="Like response">
+              {aiActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <button key={action.key} type="button" onClick={action.onClick} aria-label={action.label} title={action.label}>
+                    <Icon size={15} />
+                  </button>
+                );
+              })}
+              <button type="button" aria-label="Like response" title="Like response">
                 <ThumbsUp size={15} />
               </button>
-              <button type="button" aria-label="Dislike response">
+              <button type="button" aria-label="Dislike response" title="Dislike response">
                 <ThumbsDown size={15} />
               </button>
             </span>
@@ -709,6 +563,16 @@ function getFileMeta(file) {
   };
 }
 
+function saveLocalArtifact(key, artifact) {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(key) || "[]");
+    const next = Array.isArray(saved) ? saved : [];
+    window.localStorage.setItem(key, JSON.stringify([artifact, ...next].slice(0, 40)));
+  } catch {
+    window.localStorage.setItem(key, JSON.stringify([artifact]));
+  }
+}
+
 export default function SynapseAIWorkspace() {
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState("");
@@ -720,12 +584,13 @@ export default function SynapseAIWorkspace() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const streamRef = useRef(null);
   const textareaRef = useRef(null);
   const fileRef = useRef(null);
   const attachmentMenuRef = useRef(null);
+  const toastTimeoutRef = useRef(null);
   const { theme, applyTheme } = useSynapseTheme();
   const { user, profile, setProfile } = useAuth();
 
@@ -804,6 +669,14 @@ export default function SynapseAIWorkspace() {
     window.addEventListener("pointerdown", closeAttachmentMenu);
     return () => window.removeEventListener("pointerdown", closeAttachmentMenu);
   }, [attachmentMenuOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const updateConversation = (conversationId, updater) => {
     setConversations((current) =>
@@ -891,10 +764,76 @@ export default function SynapseAIWorkspace() {
     handleFile(event.dataTransfer.files?.[0]);
   };
 
+  const showToast = (message) => {
+    setToastMessage(message);
+
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+
+    toastTimeoutRef.current = window.setTimeout(() => setToastMessage(""), 1600);
+  };
+
   const copyMessage = async (content) => {
-    await navigator.clipboard.writeText(content);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+    await navigator.clipboard.writeText(extractAiReplyText(content));
+    showToast("Copied response");
+  };
+
+  const handleMessageAction = (action, message) => {
+    const content = extractAiReplyText(formatDenseAiContent(message.content));
+    const artifact = {
+      id: `${action}-${Date.now()}`,
+      source: "synapse-ai",
+      conversationId: activeId,
+      messageId: message.id,
+      content,
+      createdAt: new Date().toISOString()
+    };
+
+    if (action === "regenerate") {
+      const messages = activeConversation?.messages || [];
+      const messageIndex = messages.findIndex((item) => item.id === message.id);
+      const previousUser = messages
+        .slice(0, messageIndex >= 0 ? messageIndex : messages.length)
+        .reverse()
+        .find((item) => item.role === "user");
+
+      if (!previousUser) {
+        showToast("No prompt found to regenerate");
+        return;
+      }
+
+      setInput(String(previousUser.content || "").replace(/\n\nAttached file:[\s\S]*$/i, "").trim());
+      textareaRef.current?.focus();
+      showToast("Prompt loaded for regeneration");
+      return;
+    }
+
+    if (action === "save-note") {
+      saveLocalArtifact(SAVED_NOTES_KEY, {
+        ...artifact,
+        title: makeTitle(content)
+      });
+      showToast("Saved as note");
+      return;
+    }
+
+    if (action === "add-tasks") {
+      saveLocalArtifact(TASK_DRAFTS_KEY, {
+        ...artifact,
+        status: "draft"
+      });
+      showToast("Task draft saved");
+      return;
+    }
+
+    if (action === "add-goals") {
+      saveLocalArtifact(GOAL_DRAFTS_KEY, {
+        ...artifact,
+        status: "draft"
+      });
+      showToast("Goal draft saved");
+    }
   };
 
   const handleSend = async () => {
@@ -1222,7 +1161,12 @@ export default function SynapseAIWorkspace() {
               <div className="synapse-chat-stream" ref={streamRef}>
                 <AnimatePresence initial={false}>
                   {(activeConversation?.messages || []).map((message) => (
-                    <MessageBubble key={message.id} message={message} onCopy={copyMessage} />
+                    <MessageBubble
+                      key={message.id}
+                      message={message}
+                      onCopy={copyMessage}
+                      onMessageAction={handleMessageAction}
+                    />
                   ))}
                 </AnimatePresence>
 
@@ -1370,14 +1314,14 @@ export default function SynapseAIWorkspace() {
       </div>
 
       <AnimatePresence>
-        {copied ? (
+        {toastMessage ? (
           <motion.div
             className="copy-toast"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 18 }}
           >
-            Copied response
+            {toastMessage}
           </motion.div>
         ) : null}
       </AnimatePresence>

@@ -8248,3 +8248,347 @@ textarea {
     justify-content: center;
   }
 }
+
+/* Premium SYNAPSE AI response renderer */
+.synapse-message.from-ai {
+  width: min(1040px, 96%);
+}
+
+.synapse-message.from-ai .message-shell {
+  border-color: color-mix(in oklab, var(--color-pulse) 22%, var(--color-text) 10%);
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in oklab, var(--color-pulse) 10%, var(--transparent)), var(--transparent) 34%),
+    linear-gradient(145deg, color-mix(in oklab, var(--color-text) 5%, var(--transparent)), color-mix(in oklab, var(--color-surface) 70%, var(--transparent))),
+    color-mix(in oklab, var(--panel) 88%, var(--transparent));
+  padding: clamp(20px, 2.4vw, 30px);
+  box-shadow:
+    0 24px 70px color-mix(in oklab, var(--color-ink) 34%, var(--transparent)),
+    0 0 32px color-mix(in oklab, var(--color-pulse) 8%, var(--transparent));
+}
+
+.ai-response-markdown {
+  max-width: 78ch;
+  gap: 0;
+  color: color-mix(in oklab, var(--color-text) 90%, white 4%);
+  font-size: clamp(15.5px, 1vw, 16.5px);
+  line-height: 1.78;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.ai-response-markdown.is-compact {
+  max-width: none;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.ai-response-markdown > *:first-child {
+  margin-top: 0;
+}
+
+.ai-response-markdown > *:last-child {
+  margin-bottom: 0;
+}
+
+.ai-response-markdown h1,
+.ai-response-markdown h2,
+.ai-response-markdown h3,
+.ai-response-markdown h4 {
+  margin: 1.28em 0 0.55em;
+  color: var(--color-text);
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.18;
+}
+
+.ai-response-markdown h1 {
+  font-size: clamp(23px, 2.1vw, 32px);
+}
+
+.ai-response-markdown h2 {
+  font-size: clamp(19px, 1.55vw, 24px);
+  color: color-mix(in oklab, var(--color-text) 92%, var(--color-pulse));
+}
+
+.ai-response-markdown h3 {
+  font-size: clamp(17px, 1.25vw, 20px);
+}
+
+.ai-response-markdown h4 {
+  font-size: 16px;
+  color: color-mix(in oklab, var(--color-text) 86%, var(--color-muted));
+}
+
+.ai-response-markdown p {
+  margin: 0 0 1.05em;
+  color: color-mix(in oklab, var(--color-text) 84%, var(--color-muted));
+}
+
+.ai-response-markdown strong {
+  color: var(--color-text);
+  font-weight: 840;
+}
+
+.ai-response-markdown ul,
+.ai-response-markdown ol {
+  display: grid;
+  gap: 0.58em;
+  margin: 0.35em 0 1.1em;
+  color: color-mix(in oklab, var(--color-text) 84%, var(--color-muted));
+}
+
+.ai-response-markdown ul {
+  padding-left: 0;
+}
+
+.ai-response-markdown ol {
+  padding-left: 1.4em;
+}
+
+.ai-response-markdown li {
+  padding-left: 0.15em;
+}
+
+.ai-response-markdown li > p {
+  margin: 0;
+}
+
+.ai-response-markdown blockquote {
+  margin: 1.1em 0;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 30%, var(--transparent));
+  border-left: 3px solid color-mix(in oklab, var(--color-pulse) 78%, white 4%);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 12%, var(--transparent)), color-mix(in oklab, var(--color-sky) 7%, var(--transparent))),
+    color-mix(in oklab, var(--color-text) 4%, var(--transparent));
+  padding: 13px 15px;
+}
+
+.ai-response-markdown hr {
+  margin: 1.3em 0;
+}
+
+.ai-response-markdown a {
+  color: color-mix(in oklab, var(--color-sky) 78%, var(--color-text));
+  text-decoration: none;
+}
+
+.ai-response-markdown a:hover {
+  text-decoration: underline;
+}
+
+.ai-response-markdown p code,
+.ai-response-markdown li code,
+.ai-response-markdown table code,
+.ai-response-markdown blockquote code {
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 22%, var(--transparent));
+  border-radius: 7px;
+  background: color-mix(in oklab, var(--color-text) 7%, var(--transparent));
+  padding: 0.16em 0.44em;
+  color: color-mix(in oklab, var(--color-gold) 86%, white 4%);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.9em;
+}
+
+.ai-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  margin: 1.05em 0 1.25em;
+  border: 1px solid color-mix(in oklab, var(--color-text) 12%, var(--transparent));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-bg) 54%, var(--transparent));
+}
+
+.ai-table-scroll table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 0.94em;
+}
+
+.ai-table-scroll th,
+.ai-table-scroll td {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ai-table-scroll th {
+  background: color-mix(in oklab, var(--color-pulse) 14%, var(--transparent));
+  color: var(--color-text);
+  font-weight: 820;
+}
+
+.ai-table-scroll tr:last-child td {
+  border-bottom: 0;
+}
+
+.ai-code-block {
+  overflow: hidden;
+  margin: 1.05em 0 1.3em;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 44%, var(--transparent));
+  border-radius: 10px;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-bg) 92%, black), color-mix(in oklab, var(--color-ink) 78%, var(--color-pulse) 8%));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 8%, var(--transparent)),
+    0 0 28px color-mix(in oklab, var(--color-pulse) 16%, var(--transparent));
+}
+
+.ai-code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-pulse) 22%, var(--transparent));
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  padding: 9px 11px;
+  color: color-mix(in oklab, var(--color-text) 56%, var(--color-muted));
+  font-size: 12px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.ai-code-toolbar button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, var(--color-text) 12%, var(--transparent));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  color: color-mix(in oklab, var(--color-text) 72%, var(--color-muted));
+  opacity: 0;
+  transition:
+    opacity 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.ai-code-block:hover .ai-code-toolbar button,
+.ai-code-toolbar button:focus-visible {
+  opacity: 1;
+}
+
+.ai-code-toolbar button:hover {
+  border-color: color-mix(in oklab, var(--color-pulse) 55%, var(--transparent));
+  background: color-mix(in oklab, var(--color-pulse) 16%, var(--transparent));
+  color: var(--color-text);
+}
+
+.ai-code-block pre {
+  overflow-x: auto;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 17px 18px;
+  box-shadow: none;
+}
+
+.ai-code-block code {
+  display: block;
+  min-width: max-content;
+  color: color-mix(in oklab, var(--color-text) 86%, white 4%);
+  font-family: "SFMono-Regular", "Cascadia Code", Consolas, "Liberation Mono", monospace;
+  font-size: 13.5px;
+  line-height: 1.65;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.ai-code-block .hljs-keyword,
+.ai-code-block .hljs-selector-tag,
+.ai-code-block .hljs-title.function_ {
+  color: #c792ea;
+}
+
+.ai-code-block .hljs-string,
+.ai-code-block .hljs-attr,
+.ai-code-block .hljs-symbol {
+  color: #c3e88d;
+}
+
+.ai-code-block .hljs-number,
+.ai-code-block .hljs-literal {
+  color: #f78c6c;
+}
+
+.ai-code-block .hljs-comment {
+  color: #697098;
+  font-style: italic;
+}
+
+.ai-code-block .hljs-title,
+.ai-code-block .hljs-name,
+.ai-code-block .hljs-property {
+  color: #82aaff;
+}
+
+.message-shell footer {
+  margin-top: clamp(14px, 1.4vw, 22px);
+}
+
+.message-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.synapse-thinking {
+  position: relative;
+  overflow: hidden;
+  width: min(420px, 100%);
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 24%, var(--transparent));
+  border-radius: 10px;
+  background:
+    linear-gradient(90deg, color-mix(in oklab, var(--color-text) 4%, var(--transparent)), color-mix(in oklab, var(--color-pulse) 10%, var(--transparent)), color-mix(in oklab, var(--color-text) 4%, var(--transparent)));
+  background-size: 220% 100%;
+  padding: 13px 15px;
+  animation: synapse-thinking-shimmer 1.9s ease-in-out infinite;
+}
+
+@keyframes synapse-thinking-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .synapse-message.from-ai {
+    width: 100%;
+  }
+
+  .synapse-message.from-ai .message-shell {
+    padding: 17px;
+  }
+
+  .ai-response-markdown {
+    max-width: none;
+    font-size: 15px;
+    line-height: 1.72;
+  }
+
+  .ai-response-markdown h1 {
+    font-size: 22px;
+  }
+
+  .ai-response-markdown h2 {
+    font-size: 19px;
+  }
+
+  .message-actions {
+    gap: 6px;
+  }
+
+  .message-actions button {
+    width: 28px;
+    height: 28px;
+  }
+}
