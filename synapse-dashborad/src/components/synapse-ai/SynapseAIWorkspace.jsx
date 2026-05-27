@@ -425,6 +425,7 @@ function VoiceModeOrb({
   transcript,
   interimTranscript,
   error,
+  noticeDismissed,
   onToggle,
   onStop
 }) {
@@ -441,7 +442,9 @@ function VoiceModeOrb({
 
   return (
     <motion.div
-      className={`voice-mode-orb is-${status} ${active ? "is-active" : ""} ${error ? "has-error" : ""}`}
+      className={`voice-mode-orb is-${status} ${active ? "is-active" : ""} ${error ? "has-error" : ""} ${
+        noticeDismissed ? "is-notice-dismissed" : ""
+      }`}
       initial={{ opacity: 0, y: 18, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
@@ -707,6 +710,7 @@ export default function SynapseAIWorkspace() {
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [voiceInterimTranscript, setVoiceInterimTranscript] = useState("");
   const [voiceError, setVoiceError] = useState("");
+  const [voiceNoticeDismissed, setVoiceNoticeDismissed] = useState(false);
   const streamRef = useRef(null);
   const textareaRef = useRef(null);
   const fileRef = useRef(null);
@@ -810,6 +814,24 @@ export default function SynapseAIWorkspace() {
   useEffect(() => {
     voiceStatusRef.current = voiceStatus;
   }, [voiceStatus]);
+
+  useEffect(() => {
+    if (voiceStatus !== "idle" || voiceError) {
+      setVoiceNoticeDismissed(false);
+    }
+  }, [voiceStatus, voiceError]);
+
+  useEffect(() => {
+    if (voiceStatus === "idle" && !voiceError) return undefined;
+
+    const dismissVoiceNotice = (event) => {
+      if (event.target?.closest?.(".voice-mode-orb")) return;
+      setVoiceNoticeDismissed(true);
+    };
+
+    window.addEventListener("pointerdown", dismissVoiceNotice);
+    return () => window.removeEventListener("pointerdown", dismissVoiceNotice);
+  }, [voiceStatus, voiceError]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return undefined;
@@ -938,6 +960,7 @@ export default function SynapseAIWorkspace() {
   const setVoiceFailure = (message) => {
     if (!message) return;
     setVoiceError(message);
+    setVoiceNoticeDismissed(false);
     updateVoiceStatus("idle");
     showToast(message);
   };
@@ -1031,6 +1054,7 @@ export default function SynapseAIWorkspace() {
     setVoiceTranscript("");
     setVoiceInterimTranscript("");
     setVoiceError("");
+    setVoiceNoticeDismissed(false);
     const voiceRunId = voiceRunIdRef.current;
 
     const recognition = new Recognition();
@@ -1644,6 +1668,7 @@ export default function SynapseAIWorkspace() {
                     transcript={voiceTranscript}
                     interimTranscript={voiceInterimTranscript}
                     error={voiceError}
+                    noticeDismissed={voiceNoticeDismissed}
                     onToggle={handleVoiceToggle}
                     onStop={stopVoiceMode}
                   />

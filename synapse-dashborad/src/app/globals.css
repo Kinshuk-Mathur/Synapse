@@ -9190,6 +9190,12 @@ textarea {
   transform: translateY(6px);
 }
 
+.voice-mode-orb.is-notice-dismissed .voice-orb-status {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+}
+
 .voice-orb-status strong {
   overflow: hidden;
   color: white;
