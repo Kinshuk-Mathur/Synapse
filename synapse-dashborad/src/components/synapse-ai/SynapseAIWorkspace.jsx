@@ -391,11 +391,17 @@ function cleanTextForSpeech(content) {
 
 function selectBestVoice(voices = []) {
   const englishVoices = voices.filter((voice) => /^en[-_]/i.test(voice.lang || ""));
+  const maleVoiceMatchers = [
+    /google.*(english).*male/i,
+    /microsoft.*(guy|david|mark|ryan|george|christopher|eric|brian|roger)/i,
+    /\b(alex|daniel|oliver|arthur|fred|tom|thomas|gordon|aaron|matthew|ryan|david|george|guy)\b/i,
+    /\bmale\b/i
+  ];
+  const femaleVoiceMatcher =
+    /\b(samantha|victoria|karen|moira|tessa|fiona|veena|zira|aria|jenny|susan|hazel|helen|sara|eva|joanna|kendra|kimberly|salli|ivy)\b/i;
   const preferredMatchers = [
-    /google.*us english/i,
-    /microsoft.*(aria|jenny|guy)/i,
+    ...maleVoiceMatchers,
     /natural/i,
-    /samantha/i,
     /english/i
   ];
 
@@ -404,7 +410,7 @@ function selectBestVoice(voices = []) {
     if (match) return match;
   }
 
-  return englishVoices[0] || voices[0] || null;
+  return englishVoices.find((voice) => !femaleVoiceMatcher.test(voice.name || "")) || englishVoices[0] || voices[0] || null;
 }
 
 function VoiceModeOrb({
@@ -419,12 +425,12 @@ function VoiceModeOrb({
   const visibleTranscript = transcript || interimTranscript;
   const statusText = error || VOICE_STATUS_COPY[status] || VOICE_IDLE_STATUS;
   const helperText = error
-    ? "Click the orb to try again."
+    ? "Click the mic to try again."
     : visibleTranscript
       ? visibleTranscript
       : active
         ? "Press Esc to stop."
-        : "Click to speak naturally.";
+        : "Click to speak.";
 
   return (
     <motion.div
@@ -1585,28 +1591,6 @@ export default function SynapseAIWorkspace() {
                 <span>{SUPPORTED_FILE_COPY}</span>
               </div>
 
-              <AnimatePresence>
-                {voiceStatus !== "idle" ? (
-                  <motion.div
-                    className="voice-orb-backdrop"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.22 }}
-                    aria-hidden="true"
-                  />
-                ) : null}
-              </AnimatePresence>
-
-              <VoiceModeOrb
-                status={voiceStatus}
-                transcript={voiceTranscript}
-                interimTranscript={voiceInterimTranscript}
-                error={voiceError}
-                onToggle={handleVoiceToggle}
-                onStop={stopVoiceMode}
-              />
-
               <motion.div
                 className="synapse-ai-composer"
                 initial={{ opacity: 0, y: 22 }}
@@ -1647,6 +1631,14 @@ export default function SynapseAIWorkspace() {
                     accept=".pdf,image/png,image/jpeg,.html,.htm,.txt,.md,.js,.jsx,.css,.json"
                     className="hidden-file-input"
                     onChange={(event) => handleFile(event.target.files?.[0])}
+                  />
+                  <VoiceModeOrb
+                    status={voiceStatus}
+                    transcript={voiceTranscript}
+                    interimTranscript={voiceInterimTranscript}
+                    error={voiceError}
+                    onToggle={handleVoiceToggle}
+                    onStop={stopVoiceMode}
                   />
                   <div className="attachment-plus-wrap" ref={attachmentMenuRef}>
                     <motion.button
