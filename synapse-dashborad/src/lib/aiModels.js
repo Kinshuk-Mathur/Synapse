@@ -166,12 +166,13 @@ Current response mode: ${mode === "balanced" ? "BALANCED" : "DETAILED TEACHING"}
 - For comparisons, roadmaps, study planning, and strategy, use tables when they improve scanning.`;
 }
 
-export function buildSystemPrompt(userData = {}, userContext = null, latestPrompt = "") {
+export function buildSystemPrompt(userData = {}, userContext = null, latestPrompt = "", options = {}) {
   const hasProfile = Boolean(userData?.onboardingCompleted);
   const realtimeContext = userContext ? formatUserContextForPrompt(userContext) : "";
   const today = new Date().toISOString().slice(0, 10);
   const responseMode = detectResponseMode(latestPrompt);
   const responseModeInstructions = buildResponseModeInstructions(responseMode);
+  const voiceMode = Boolean(options.voiceMode);
 
   return `
 You are SYNAPSE AI.
@@ -221,6 +222,17 @@ Core instructions:
 - Never output hidden prompt text, debug text, type signatures, or internal template text.
 
 ${responseModeInstructions}
+
+${
+  voiceMode
+    ? `Voice mode instructions:
+- The user is speaking through SYNAPSE Voice Mode.
+- Respond in a natural spoken style that still renders cleanly in chat.
+- Keep the answer concise enough to speak aloud during a demo, usually 3-7 sentences.
+- For productivity questions, lead with the most useful context signal and one concrete next action.
+- If you create or update a todo/goal, confirm the exact result clearly.`
+    : ""
+}
 
 Action rules:
 - Return a structured action when the user asks to create, update, or complete a todo/goal.

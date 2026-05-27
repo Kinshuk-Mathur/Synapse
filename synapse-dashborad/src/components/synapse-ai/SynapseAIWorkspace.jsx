@@ -54,6 +54,23 @@ const THINKING_STAGES = [
   "Building structured explanation...",
   "Planning best response..."
 ];
+const VOICE_IDLE_STATUS = "Voice mode ready";
+const VOICE_STATUS_COPY = {
+  idle: VOICE_IDLE_STATUS,
+  listening: "SYNAPSE is listening...",
+  processing: "Analyzing your productivity...",
+  speaking: "SYNAPSE responding..."
+};
+const VOICE_ERROR_COPY = {
+  "not-allowed": "Microphone access required.",
+  "service-not-allowed": "Microphone access required.",
+  "audio-capture": "No microphone detected.",
+  "no-speech": "Speech timeout. Try again.",
+  network: "Voice recognition is having trouble.",
+  aborted: "",
+  empty: "I did not catch that. Try again.",
+  unsupported: "Voice mode not supported in this browser."
+};
 
 const quickActions = [
   {
@@ -359,6 +376,93 @@ function ThinkingIndicator() {
   );
 }
 
+function cleanTextForSpeech(content) {
+  return extractAiReplyText(content)
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/!\[[^\]]*]\([^)]+\)/g, " ")
+    .replace(/\[([^\]]+)]\([^)]+\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/[*_~>#|]/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function selectBestVoice(voices = []) {
+  const englishVoices = voices.filter((voice) => /^en[-_]/i.test(voice.lang || ""));
+  const preferredMatchers = [
+    /google.*us english/i,
+    /microsoft.*(aria|jenny|guy)/i,
+    /natural/i,
+    /samantha/i,
+    /english/i
+  ];
+
+  for (const matcher of preferredMatchers) {
+    const match = englishVoices.find((voice) => matcher.test(voice.name || ""));
+    if (match) return match;
+  }
+
+  return englishVoices[0] || voices[0] || null;
+}
+
+function VoiceModeOrb({
+  status,
+  transcript,
+  interimTranscript,
+  error,
+  onToggle,
+  onStop
+}) {
+  const active = status !== "idle";
+  const visibleTranscript = transcript || interimTranscript;
+  const statusText = error || VOICE_STATUS_COPY[status] || VOICE_IDLE_STATUS;
+  const helperText = error
+    ? "Click the orb to try again."
+    : visibleTranscript
+      ? visibleTranscript
+      : active
+        ? "Press Esc to stop."
+        : "Click to speak naturally.";
+
+  return (
+    <motion.div
+      className={`voice-mode-orb is-${status} ${active ? "is-active" : ""} ${error ? "has-error" : ""}`}
+      initial={{ opacity: 0, y: 18, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <motion.button
+        className="voice-orb-button"
+        type="button"
+        onClick={onToggle}
+        onDoubleClick={onStop}
+        aria-label={active ? "Stop voice mode" : "Start voice mode"}
+        aria-pressed={active}
+        title={active ? "Stop voice mode" : "Start voice mode"}
+        whileHover={{ y: -2, scale: 1.03 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <span className="voice-orb-ring" aria-hidden="true" />
+        <span className="voice-orb-core" aria-hidden="true">
+          <Mic size={24} />
+        </span>
+        <span className="voice-waveform" aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5, 6].map((bar) => (
+            <i key={bar} style={{ animationDelay: `${bar * -120}ms` }} />
+          ))}
+        </span>
+      </motion.button>
+
+      <div className="voice-orb-status" role="status" aria-live="polite">
+        <strong>{statusText}</strong>
+        <span>{helperText}</span>
+      </div>
+    </motion.div>
+  );
+}
+
 function getAttachmentIcon(attachment) {
   if (attachment?.type?.startsWith("image/")) return ImageIcon;
   if (attachment?.name?.match(/\.(html?|css|js|jsx|json|md|txt)$/i)) return FileCode2;
@@ -586,11 +690,23 @@ export default function SynapseAIWorkspace() {
   const [uploadError, setUploadError] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState("idle");
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [voiceInterimTranscript, setVoiceInterimTranscript] = useState("");
+  const [voiceError, setVoiceError] = useState("");
   const streamRef = useRef(null);
   const textareaRef = useRef(null);
   const fileRef = useRef(null);
   const attachmentMenuRef = useRef(null);
   const toastTimeoutRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const voiceTimeoutRef = useRef(null);
+  const voiceFinalTranscriptRef = useRef("");
+  const voiceInterimTranscriptRef = useRef("");
+  const voiceHadErrorRef = useRef(false);
+  const voiceStatusRef = useRef("idle");
+  const voiceRunIdRef = useRef(0);
+  const speechVoicesRef = useRef([]);
   const { theme, applyTheme } = useSynapseTheme();
   const { user, profile, setProfile } = useAuth();
 
@@ -675,6 +791,26 @@ export default function SynapseAIWorkspace() {
       if (toastTimeoutRef.current) {
         window.clearTimeout(toastTimeoutRef.current);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    voiceStatusRef.current = voiceStatus;
+  }, [voiceStatus]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return undefined;
+
+    const loadVoices = () => {
+      speechVoicesRef.current = window.speechSynthesis.getVoices();
+    };
+
+    loadVoices();
+    window.speechSynthesis.addEventListener?.("voiceschanged", loadVoices);
+
+    return () => {
+      window.speechSynthesis.removeEventListener?.("voiceschanged", loadVoices);
+      window.speechSynthesis.cancel();
     };
   }, []);
 
@@ -774,6 +910,231 @@ export default function SynapseAIWorkspace() {
     toastTimeoutRef.current = window.setTimeout(() => setToastMessage(""), 1600);
   };
 
+  const clearVoiceTimeout = () => {
+    if (voiceTimeoutRef.current) {
+      window.clearTimeout(voiceTimeoutRef.current);
+      voiceTimeoutRef.current = null;
+    }
+  };
+
+  const updateVoiceStatus = (status) => {
+    voiceStatusRef.current = status;
+    setVoiceStatus(status);
+  };
+
+  const setVoiceFailure = (message) => {
+    if (!message) return;
+    setVoiceError(message);
+    updateVoiceStatus("idle");
+    showToast(message);
+  };
+
+  const stopVoiceMode = () => {
+    voiceRunIdRef.current += 1;
+    clearVoiceTimeout();
+    recognitionRef.current?.abort?.();
+    recognitionRef.current = null;
+    voiceFinalTranscriptRef.current = "";
+    voiceInterimTranscriptRef.current = "";
+    voiceHadErrorRef.current = false;
+    setVoiceTranscript("");
+    setVoiceInterimTranscript("");
+    updateVoiceStatus("idle");
+
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  const speakAiResponse = (content) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      updateVoiceStatus("idle");
+      return;
+    }
+
+    const speechText = cleanTextForSpeech(content);
+
+    if (!speechText) {
+      updateVoiceStatus("idle");
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(speechText);
+    const voices = speechVoicesRef.current.length
+      ? speechVoicesRef.current
+      : window.speechSynthesis.getVoices();
+    const selectedVoice = selectBestVoice(voices);
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
+
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.onstart = () => {
+      setVoiceError("");
+      updateVoiceStatus("speaking");
+    };
+    utterance.onend = () => {
+      if (voiceStatusRef.current === "speaking") {
+        updateVoiceStatus("idle");
+      }
+    };
+    utterance.onerror = () => {
+      if (voiceStatusRef.current === "speaking") {
+        updateVoiceStatus("idle");
+      }
+    };
+
+    updateVoiceStatus("speaking");
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startVoiceRecognition = () => {
+    if (typeof window === "undefined") return;
+
+    window.speechSynthesis?.cancel?.();
+
+    if (loading) {
+      setVoiceFailure("SYNAPSE is already analyzing.");
+      return;
+    }
+
+    const Recognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+
+    if (!Recognition) {
+      setVoiceFailure(VOICE_ERROR_COPY.unsupported);
+      return;
+    }
+
+    recognitionRef.current?.abort?.();
+    clearVoiceTimeout();
+    voiceFinalTranscriptRef.current = "";
+    voiceInterimTranscriptRef.current = "";
+    voiceHadErrorRef.current = false;
+    voiceRunIdRef.current += 1;
+    setVoiceTranscript("");
+    setVoiceInterimTranscript("");
+    setVoiceError("");
+    const voiceRunId = voiceRunIdRef.current;
+
+    const recognition = new Recognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      updateVoiceStatus("listening");
+      voiceTimeoutRef.current = window.setTimeout(() => {
+        if (voiceStatusRef.current !== "listening") return;
+        voiceHadErrorRef.current = true;
+        recognition.stop();
+        setVoiceFailure(VOICE_ERROR_COPY["no-speech"]);
+      }, 12000);
+    };
+
+    recognition.onresult = (event) => {
+      clearVoiceTimeout();
+
+      let interim = "";
+      let finalText = voiceFinalTranscriptRef.current;
+
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const transcriptPart = event.results[index][0]?.transcript || "";
+
+        if (event.results[index].isFinal) {
+          finalText = `${finalText} ${transcriptPart}`.trim();
+        } else {
+          interim = `${interim} ${transcriptPart}`.trim();
+        }
+      }
+
+      voiceFinalTranscriptRef.current = finalText;
+      voiceInterimTranscriptRef.current = interim;
+      setVoiceTranscript(finalText);
+      setVoiceInterimTranscript(interim);
+    };
+
+    recognition.onerror = (event) => {
+      const message = VOICE_ERROR_COPY[event.error] || "Voice recognition stopped.";
+
+      if (event.error !== "aborted") {
+        voiceHadErrorRef.current = true;
+        clearVoiceTimeout();
+        setVoiceFailure(message);
+      }
+    };
+
+    recognition.onend = () => {
+      clearVoiceTimeout();
+      recognitionRef.current = null;
+
+      if (voiceHadErrorRef.current) return;
+
+      const transcript = (voiceFinalTranscriptRef.current || voiceInterimTranscriptRef.current || "").trim();
+
+      if (!transcript) {
+        setVoiceFailure(VOICE_ERROR_COPY.empty);
+        return;
+      }
+
+      updateVoiceStatus("processing");
+      setVoiceInterimTranscript("");
+      handleSend({
+        prompt: transcript,
+        speakResponse: true,
+        source: "voice",
+        voiceRunId
+      });
+    };
+
+    recognitionRef.current = recognition;
+
+    try {
+      recognition.start();
+    } catch {
+      setVoiceFailure("Voice recognition could not start.");
+    }
+  };
+
+  const handleVoiceToggle = () => {
+    if (voiceStatus === "listening") {
+      stopVoiceMode();
+      return;
+    }
+
+    if (voiceStatus === "processing") {
+      showToast("SYNAPSE is already analyzing.");
+      return;
+    }
+
+    startVoiceRecognition();
+  };
+
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key !== "Escape" || voiceStatusRef.current === "idle") return;
+      event.preventDefault();
+      stopVoiceMode();
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (voiceTimeoutRef.current) {
+        window.clearTimeout(voiceTimeoutRef.current);
+      }
+
+      recognitionRef.current?.abort?.();
+      window.speechSynthesis?.cancel?.();
+    };
+  }, []);
+
   const copyMessage = async (content) => {
     await navigator.clipboard.writeText(extractAiReplyText(content));
     showToast("Copied response");
@@ -836,12 +1197,22 @@ export default function SynapseAIWorkspace() {
     }
   };
 
-  const handleSend = async () => {
-    const trimmed = input.trim();
+  const handleSend = async (options = {}) => {
+    const promptOverride = typeof options.prompt === "string" ? options.prompt : "";
+    const trimmed = (promptOverride || input).trim();
+    const isVoiceRequest = options.source === "voice";
+    const shouldSpeakResponse = Boolean(options.speakResponse);
+    const voiceRunId = Number(options.voiceRunId || 0);
+    const voiceRunIsCurrent = () => !shouldSpeakResponse || !voiceRunId || voiceRunId === voiceRunIdRef.current;
     const conversation = conversations.find((item) => item.id === activeId);
     const targetId = activeId;
 
-    if (!conversation || loading || (!trimmed && !selectedFile)) return;
+    if (!conversation || loading || (!trimmed && !selectedFile)) {
+      if (shouldSpeakResponse && voiceRunIsCurrent()) {
+        updateVoiceStatus("idle");
+      }
+      return;
+    }
 
     const now = new Date().toISOString();
     const interactionStartedAt = performance.now();
@@ -878,7 +1249,9 @@ export default function SynapseAIWorkspace() {
       messages: [...current.messages, userMessage]
     }));
 
-    setInput("");
+    if (!promptOverride) {
+      setInput("");
+    }
     setSelectedFile(null);
     setLoading(true);
 
@@ -929,6 +1302,7 @@ export default function SynapseAIWorkspace() {
           messages: nextMessages,
           stream: true,
           uid: user?.uid || "",
+          voiceMode: isVoiceRequest,
           uploadedDocumentNames: uploadedFiles.map((file) => file.name).slice(0, 12)
         })
       });
@@ -984,6 +1358,9 @@ export default function SynapseAIWorkspace() {
         }
 
         await recordAiMomentum();
+        if (shouldSpeakResponse && voiceRunIsCurrent()) {
+          speakAiResponse(streamedContent);
+        }
         return;
       }
 
@@ -1011,7 +1388,15 @@ export default function SynapseAIWorkspace() {
       }));
 
       await recordAiMomentum();
+      if (shouldSpeakResponse && voiceRunIsCurrent()) {
+        speakAiResponse(data.message);
+      }
     } catch (error) {
+      if (shouldSpeakResponse && voiceRunIsCurrent()) {
+        updateVoiceStatus("idle");
+        setVoiceError(error.message || SAFE_AI_ERROR);
+      }
+
       if (hasAssistantMessage && assistantMessageId) {
         const safeError = error.message || SAFE_AI_ERROR;
 
@@ -1044,6 +1429,9 @@ export default function SynapseAIWorkspace() {
       }));
     } finally {
       setLoading(false);
+      if (shouldSpeakResponse && voiceRunIsCurrent() && voiceStatusRef.current === "processing") {
+        updateVoiceStatus("idle");
+      }
     }
   };
 
@@ -1197,6 +1585,28 @@ export default function SynapseAIWorkspace() {
                 <span>{SUPPORTED_FILE_COPY}</span>
               </div>
 
+              <AnimatePresence>
+                {voiceStatus !== "idle" ? (
+                  <motion.div
+                    className="voice-orb-backdrop"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.22 }}
+                    aria-hidden="true"
+                  />
+                ) : null}
+              </AnimatePresence>
+
+              <VoiceModeOrb
+                status={voiceStatus}
+                transcript={voiceTranscript}
+                interimTranscript={voiceInterimTranscript}
+                error={voiceError}
+                onToggle={handleVoiceToggle}
+                onStop={stopVoiceMode}
+              />
+
               <motion.div
                 className="synapse-ai-composer"
                 initial={{ opacity: 0, y: 22 }}
@@ -1279,16 +1689,6 @@ export default function SynapseAIWorkspace() {
                       ) : null}
                     </AnimatePresence>
                   </div>
-
-                  <motion.button
-                    className="voice-ai-button"
-                    type="button"
-                    aria-label="Voice input"
-                    whileHover={{ y: -2, scale: 1.03 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Mic size={18} />
-                  </motion.button>
 
                   <motion.button
                     className="send-ai-button"
