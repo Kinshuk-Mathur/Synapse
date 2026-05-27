@@ -4,26 +4,26 @@
 
 :root {
   color-scheme: dark;
-  --bg: #0d0d10;
-  --surface: rgba(22, 22, 28, 0.76);
-  --surface-strong: rgba(13, 13, 16, 0.92);
-  --border: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 0, 184, 0.34);
+  --bg: #101116;
+  --surface: rgba(24, 25, 32, 0.94);
+  --surface-strong: rgba(14, 15, 20, 0.96);
+  --border: rgba(255, 255, 255, 0.11);
+  --border-strong: rgba(255, 56, 184, 0.46);
   --text: #ffffff;
-  --muted: rgba(255, 255, 255, 0.62);
-  --purple: #4b0082;
-  --pink: #ff00b8;
+  --muted: rgba(255, 255, 255, 0.6);
+  --purple: #5b35d5;
+  --pink: #ff38b8;
   --gold: #ffc857;
-  --sky: #008fff;
+  --sky: #28c8d9;
   --danger: #ff4f69;
-  --shadow: 0 24px 80px rgba(0, 0, 0, 0.46);
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.36);
   --ring-size: 301.59;
 }
 
 html,
 body {
   width: 386px;
-  min-height: 600px;
+  min-height: 0;
   margin: 0;
   overflow: hidden;
   background: var(--bg);
@@ -50,28 +50,22 @@ input {
 }
 
 .focus-shell {
-  min-height: 600px;
-  padding: 14px;
-  background:
-    radial-gradient(circle at 78% 0%, rgba(255, 0, 184, 0.24), transparent 32%),
-    radial-gradient(circle at 12% 6%, rgba(75, 0, 130, 0.46), transparent 36%),
-    linear-gradient(145deg, #0d0d10, #16161c 58%, #0d0d10);
+  min-height: 0;
+  padding: 12px;
+  background: linear-gradient(180deg, #15161d 0%, #101116 100%);
 }
 
 .focus-hero,
-.panel,
-.today-strip {
+.panel {
   border: 1px solid var(--border);
   border-radius: 8px;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-    var(--surface);
+  background: var(--surface);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(20px) saturate(1.08);
+  backdrop-filter: blur(18px) saturate(1.04);
 }
 
 .focus-hero {
-  padding: 16px;
+  padding: 14px;
 }
 
 .brand-row {
@@ -82,13 +76,13 @@ input {
 
 .brand-mark {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   flex: none;
   place-items: center;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 16px 40px rgba(255, 0, 184, 0.25);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 12px 28px rgba(255, 56, 184, 0.2);
   overflow: hidden;
 }
 
@@ -128,25 +122,25 @@ input {
 }
 
 .status-pill.is-active {
-  border-color: rgba(255, 0, 184, 0.42);
+  border-color: rgba(255, 56, 184, 0.42);
   color: #fff;
-  background: rgba(255, 0, 184, 0.14);
+  background: rgba(255, 56, 184, 0.14);
 }
 
 .timer-stage {
   position: relative;
   display: grid;
-  width: 154px;
-  height: 154px;
-  margin: 18px auto 12px;
+  width: 148px;
+  height: 148px;
+  margin: 16px auto 10px;
   place-items: center;
 }
 
 .progress-ring {
   position: absolute;
   inset: 0;
-  width: 154px;
-  height: 154px;
+  width: 148px;
+  height: 148px;
   transform: rotate(-90deg);
 }
 
@@ -161,7 +155,6 @@ input {
 }
 
 .progress-value {
-  stroke: url("#ringGradient");
   stroke: var(--pink);
   stroke-linecap: round;
   stroke-dasharray: var(--ring-size);
@@ -193,9 +186,9 @@ input {
 
 .goal-chip {
   min-height: 36px;
-  border: 1px solid rgba(255, 0, 184, 0.18);
+  border: 1px solid rgba(255, 56, 184, 0.18);
   border-radius: 8px;
-  background: rgba(255, 0, 184, 0.09);
+  background: rgba(255, 56, 184, 0.08);
   padding: 10px 12px;
   color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
@@ -205,9 +198,9 @@ input {
 
 .panel {
   display: grid;
-  gap: 12px;
-  margin-top: 10px;
-  padding: 14px;
+  gap: 11px;
+  margin-top: 9px;
+  padding: 13px;
 }
 
 #active-state {
@@ -220,81 +213,55 @@ input {
 }
 
 .field span,
-.toggle-row small,
 .session-line span,
-.stats-grid span,
-.today-strip span {
+.stats-grid span {
   color: var(--muted);
   font-size: 11px;
 }
 
-.field input {
-  height: 42px;
+.field > input,
+.input-shell {
+  height: 44px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.22);
   padding: 0 12px;
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
-.field input:focus {
+.field > input:focus,
+.input-shell:focus-within {
   border-color: var(--border-strong);
-  box-shadow: 0 0 0 3px rgba(255, 0, 184, 0.12);
+  box-shadow: 0 0 0 3px rgba(255, 56, 184, 0.12);
 }
 
-.duration-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.input-shell {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.duration-preset {
-  min-height: 38px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.78);
-  font-weight: 750;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+.input-shell input {
+  height: 100%;
+  appearance: textfield;
+  background: transparent;
+  padding: 0;
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 18px;
+  font-weight: 800;
 }
 
-.duration-preset:hover,
-.duration-preset.is-active {
-  border-color: var(--border-strong);
-  background: rgba(255, 0, 184, 0.14);
-  transform: translateY(-1px);
+.input-shell input::-webkit-outer-spin-button,
+.input-shell input::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
 }
 
-.toggle-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.045);
-  padding: 11px;
-}
-
-.toggle-row input {
-  width: 17px;
-  height: 17px;
-  margin: 2px 0 0;
-  accent-color: var(--pink);
+.input-shell span {
   flex: none;
-}
-
-.toggle-row strong,
-.toggle-row small {
-  display: block;
-}
-
-.toggle-row strong {
+  color: var(--muted);
   font-size: 12px;
-}
-
-.toggle-row small {
-  margin-top: 3px;
-  line-height: 1.4;
+  font-weight: 800;
 }
 
 .primary-button,
@@ -309,7 +276,7 @@ input {
 
 .primary-button {
   background: linear-gradient(135deg, var(--purple), var(--pink));
-  box-shadow: 0 18px 44px rgba(255, 0, 184, 0.24);
+  box-shadow: 0 14px 34px rgba(255, 56, 184, 0.22);
 }
 
 .secondary-button {
@@ -360,18 +327,13 @@ input {
   white-space: nowrap;
 }
 
-.stats-grid,
-.today-strip {
+.stats-grid {
   display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
-.stats-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.stats-grid div,
-.today-strip div {
+.stats-grid div {
   display: grid;
   gap: 7px;
   border: 1px solid var(--border);
@@ -380,8 +342,7 @@ input {
   padding: 10px;
 }
 
-.stats-grid strong,
-.today-strip strong {
+.stats-grid strong {
   font-family: "SFMono-Regular", Menlo, Consolas, monospace;
   font-size: 18px;
 }
@@ -432,26 +393,8 @@ input {
   gap: 9px;
 }
 
-.today-strip {
-  grid-template-columns: repeat(4, 1fr);
-  margin-top: 10px;
-  padding: 8px;
-  box-shadow: none;
-}
-
-.today-strip div {
-  border: 0;
-  background: transparent;
-  padding: 6px;
-  text-align: center;
-}
-
-.today-strip strong {
-  font-size: 15px;
-}
-
 .sync-line {
-  margin: 10px 4px 0;
+  margin: 9px 4px 0;
   color: var(--muted);
   font-size: 11px;
   line-height: 1.4;

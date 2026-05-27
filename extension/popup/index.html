@@ -40,23 +40,12 @@
         <input id="focus-goal" type="text" maxlength="80" placeholder="Calculus lecture, mock test, revision..." />
       </label>
 
-      <div class="duration-grid" aria-label="Quick focus durations">
-        <button class="duration-preset" data-seconds="1500">25m</button>
-        <button class="duration-preset" data-seconds="3000">50m</button>
-        <button class="duration-preset is-active" data-seconds="7200">2h</button>
-      </div>
-
-      <label class="field">
+      <label class="field duration-field">
         <span>Session length</span>
-        <input id="duration-time" type="text" inputmode="numeric" placeholder="02:00:00" />
-      </label>
-
-      <label class="toggle-row" for="extreme-focus">
-        <input id="extreme-focus" type="checkbox" />
-        <span>
-          <strong>Extreme Focus</strong>
-          <small>Unlocks only when the countdown finishes.</small>
-        </span>
+        <div class="input-shell">
+          <input id="duration-time" type="number" min="1" step="1" inputmode="numeric" placeholder="120" />
+          <span>min</span>
+        </div>
       </label>
 
       <button class="primary-button" id="start-btn">Start Focus Session</button>
@@ -99,25 +88,6 @@
       <div class="button-stack">
         <button class="secondary-button" id="break-btn">Take 6 Minute Break</button>
         <button class="danger-button" id="unlock-btn">Stop Session</button>
-      </div>
-    </section>
-
-    <section class="today-strip">
-      <div>
-        <span>Today</span>
-        <strong id="today-focus">0m</strong>
-      </div>
-      <div>
-        <span>Completed</span>
-        <strong id="today-completed">0</strong>
-      </div>
-      <div>
-        <span>Blocked</span>
-        <strong id="today-blocked">0</strong>
-      </div>
-      <div>
-        <span>Focus Days</span>
-        <strong id="streak-count">0d</strong>
       </div>
     </section>
 

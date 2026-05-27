@@ -89,7 +89,6 @@ const defaultSession = () => ({
   startTime: null,
   durationSeconds: null,
   endTime: null,
-  extremeFocus: false,
   breaksAllowed: 0,
   breaksUsed: 0,
   onBreak: false,
@@ -829,7 +828,7 @@ function requestManualStop() {
 }
 
 function startBreak() {
-  if (!sessionData.active || sessionData.extremeFocus || sessionData.onBreak) {
+  if (!sessionData.active || sessionData.onBreak) {
     return { success: false, error: "Break is not available right now." };
   }
 
@@ -1019,7 +1018,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message?.type) return true;
 
   if (message.type === "START_SESSION") {
-    const { tabId, windowId, emergencyCode, title, url, durationSeconds, extremeFocus, focusGoal, platform } = message;
+    const { tabId, windowId, emergencyCode, title, url, durationSeconds, focusGoal, platform } = message;
 
     if (!isLockableUrl(url)) {
       sendResponse({ success: false, error: "Open a regular website or study page before starting Focus Lock." });
@@ -1047,8 +1046,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       startTime,
       durationSeconds: parsedDurationSeconds,
       endTime: parsedDurationSeconds ? startTime + parsedDurationSeconds * 1000 : null,
-      extremeFocus: Boolean(extremeFocus && parsedDurationSeconds),
-      breaksAllowed: Boolean(extremeFocus && parsedDurationSeconds) ? 0 : getAllowedBreaks(parsedDurationSeconds),
+      breaksAllowed: getAllowedBreaks(parsedDurationSeconds),
       lockedTitle: title || "Study session",
       lockedUrl: url || "",
       focusGoal: goal,

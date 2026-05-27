@@ -8,7 +8,6 @@ const progressValue = document.getElementById("progress-value");
 const activeGoalChip = document.getElementById("active-goal-chip");
 const focusGoalInput = document.getElementById("focus-goal");
 const durationInput = document.getElementById("duration-time");
-const extremeFocusInput = document.getElementById("extreme-focus");
 const startBtn = document.getElementById("start-btn");
 const dashboardBtn = document.getElementById("dashboard-btn");
 const sessionSite = document.getElementById("session-site");
@@ -21,12 +20,7 @@ const stopWarningEl = document.getElementById("stop-warning");
 const peakIntervalEl = document.getElementById("peak-interval");
 const breakBtn = document.getElementById("break-btn");
 const unlockBtn = document.getElementById("unlock-btn");
-const todayFocus = document.getElementById("today-focus");
-const todayCompleted = document.getElementById("today-completed");
-const todayBlocked = document.getElementById("today-blocked");
-const streakCount = document.getElementById("streak-count");
 const syncLine = document.getElementById("sync-line");
-const durationPresetButtons = [...document.querySelectorAll(".duration-preset")];
 
 const RING_SIZE = 301.59;
 const DEFAULT_DASHBOARD_URL = "https://synapse24.netlify.app";
@@ -152,21 +146,19 @@ function formatHms(totalSeconds) {
   return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
-function formatCompact(totalSeconds) {
-  const safeSeconds = Math.max(0, Math.floor(totalSeconds || 0));
-  const hours = Math.floor(safeSeconds / 3600);
-  const minutes = Math.floor((safeSeconds % 3600) / 60);
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-
-  return `${minutes}m`;
+function formatDurationInput(totalSeconds) {
+  const minutes = Math.max(1, Math.round(Math.max(0, Number(totalSeconds) || 0) / 60));
+  return String(minutes);
 }
 
 function parseDurationInput(value) {
   const trimmed = value.trim();
   if (!trimmed) return null;
+
+  if (/^\d+$/.test(trimmed)) {
+    const minutes = Number(trimmed);
+    return minutes > 0 ? minutes * 60 : null;
+  }
 
   const parts = trimmed.split(":");
   if (parts.length === 2) parts.unshift("0");
@@ -244,12 +236,6 @@ function updateStats(stats = currentStats) {
   currentStats = stats || currentStats;
   if (!currentStats) return;
 
-  const today = currentStats.daily?.[getDateKey()] || {};
-  todayFocus.textContent = formatCompact(today.focusSeconds || 0);
-  todayCompleted.textContent = String(today.sessionsCompleted || 0);
-  todayBlocked.textContent = String(today.blockedDistractions || 0);
-  streakCount.textContent = `${currentStats.currentStreak || 0}d`;
-
   if (currentStats.lastSyncedAt) {
     syncLine.textContent = `Synced with Synapse ${new Date(currentStats.lastSyncedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.`;
   } else {
@@ -264,7 +250,7 @@ function updateSummary(session) {
   violationCount.textContent = String(session.violations || 0);
   focusScore.textContent = String(session.focusScore ?? 100);
   milestoneCount.textContent = String(session.milestoneCount || 0);
-  breaksLeftEl.textContent = session.extremeFocus ? "Off" : String(breaksLeft);
+  breaksLeftEl.textContent = String(breaksLeft);
   sessionSite.textContent = session.lockedTitle || session.lockedUrl || "Current study page";
   activeGoalChip.textContent = session.focusGoal || "Deep study session";
   peakIntervalEl.textContent = topPeak?.count
@@ -295,7 +281,7 @@ function showActiveUI(session) {
   activeState.style.display = "grid";
   statusPill.textContent = "Active";
   statusPill.classList.add("is-active");
-  heroSubtitle.textContent = session.extremeFocus ? "Extreme Focus is guarding this session" : "FOCUSLOCK - powered by Synapse";
+  heroSubtitle.textContent = "FOCUSLOCK - powered by Synapse";
   dashboardBtn.disabled = true;
   updateSummary(session);
   updateTimer(session);
@@ -303,7 +289,7 @@ function showActiveUI(session) {
   const warningsUsed = Math.min(session.stopWarningCount || 0, 3);
   unlockBtn.disabled = false;
   unlockBtn.textContent = warningsUsed >= 3 ? "Stop Session" : `Stop Check ${warningsUsed}/3`;
-  breakBtn.disabled = Boolean(session.extremeFocus || session.onBreak || ((session.breaksAllowed || 0) - (session.breaksUsed || 0) <= 0));
+  breakBtn.disabled = Boolean(session.onBreak || ((session.breaksAllowed || 0) - (session.breaksUsed || 0) <= 0));
   breakBtn.textContent = session.onBreak ? "Break Running" : "Take 6 Minute Break";
 
   if (timerInterval) clearInterval(timerInterval);
@@ -346,10 +332,7 @@ function hydrateSettings(settings = {}) {
   activeGoalChip.textContent = goal;
 
   const duration = settings.defaultDurationSeconds || 7200;
-  durationInput.value = formatHms(duration);
-  durationPresetButtons.forEach((button) => {
-    button.classList.toggle("is-active", Number(button.dataset.seconds) === duration);
-  });
+  durationInput.value = formatDurationInput(duration);
 }
 
 async function loadState() {
@@ -397,18 +380,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 });
 
-durationPresetButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const seconds = Number(button.dataset.seconds);
-    durationInput.value = formatHms(seconds);
-    durationPresetButtons.forEach((item) => item.classList.toggle("is-active", item === button));
-    updateTimer(null);
-    saveSettingsSoon();
-  });
-});
-
 durationInput.addEventListener("input", () => {
-  durationPresetButtons.forEach((button) => button.classList.remove("is-active"));
   updateTimer(null);
   saveSettingsSoon();
 });
@@ -426,15 +398,9 @@ startBtn.addEventListener("click", async () => {
   if (!tab?.id) return;
 
   const durationSeconds = parseDurationInput(durationInput.value);
-  const extremeFocus = Boolean(extremeFocusInput.checked);
 
   if (!durationSeconds) {
-    syncLine.textContent = "Use a session length like 02:00:00.";
-    return;
-  }
-
-  if (extremeFocus && !durationSeconds) {
-    syncLine.textContent = "Extreme Focus needs a countdown.";
+    syncLine.textContent = "Enter at least 1 minute.";
     return;
   }
 
@@ -447,7 +413,6 @@ startBtn.addEventListener("click", async () => {
     title: tab.title,
     url: tab.url,
     durationSeconds,
-    extremeFocus,
     focusGoal: focusGoalInput.value.trim() || "Deep study session",
     platform: getPlatformLabel()
   });
