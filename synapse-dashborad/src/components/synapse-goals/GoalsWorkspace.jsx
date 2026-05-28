@@ -2,7 +2,6 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Bell,
   LogOut,
   Menu,
   Plus,
@@ -17,6 +16,7 @@ import {
   getCurrentGoalMonth,
   getMonthName
 } from "../../services/monthlyGoals";
+import NotificationCenter from "../NotificationCenter";
 import ProfileAvatarMenu from "../ProfileAvatarMenu";
 import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 import GoalCard from "./GoalCard";
@@ -127,10 +127,7 @@ export default function GoalsWorkspace() {
               </button>
               <span className="goals-current-month">{monthTitle}</span>
               <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
-              <button className="icon-button notification" aria-label="Notifications" type="button">
-                <Bell size={20} />
-                <span>{selectedStats.inProgress}</span>
-              </button>
+              <NotificationCenter />
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}

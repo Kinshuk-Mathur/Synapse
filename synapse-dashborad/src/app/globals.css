@@ -695,6 +695,19 @@ textarea {
   position: relative;
 }
 
+.notification-center-shell {
+  position: relative;
+  z-index: 80;
+}
+
+.notification-trigger.is-unread {
+  border-color: color-mix(in oklab, var(--color-pulse) 56%, var(--transparent));
+  color: var(--color-text);
+  box-shadow:
+    var(--shadow-glow),
+    0 0 22px color-mix(in oklab, var(--color-sky) 18%, var(--transparent));
+}
+
 .notification span {
   position: absolute;
   top: -4px;
@@ -708,6 +721,269 @@ textarea {
   color: var(--color-text);
   font-size: 11px;
   font-weight: 800;
+}
+
+.notification-trigger.is-unread .notification-badge {
+  animation: notificationBadgePulse 1.8s ease-in-out infinite;
+}
+
+.notification-panel {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  display: grid;
+  width: min(430px, calc(100vw - 28px));
+  max-height: min(680px, 76vh);
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--border-strong) 84%, var(--transparent));
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in oklab, var(--color-pulse) 20%, var(--transparent)), var(--transparent) 34%),
+    linear-gradient(145deg, color-mix(in oklab, var(--color-surface) 92%, var(--transparent)), color-mix(in oklab, var(--color-bg) 92%, var(--transparent))),
+    var(--panel-strong);
+  box-shadow:
+    0 0 38px color-mix(in oklab, var(--color-pulse) 24%, var(--transparent)),
+    0 26px 80px color-mix(in oklab, var(--color-ink) 62%, var(--transparent));
+  backdrop-filter: blur(24px);
+}
+
+.notification-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+  padding: 16px;
+}
+
+.notification-panel-header div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.notification-panel-header span {
+  color: color-mix(in oklab, var(--color-pulse) 80%, var(--color-text));
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.notification-panel-header strong {
+  font-size: 16px;
+}
+
+.notification-panel-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.notification-panel-actions button,
+.notification-card-footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in oklab, var(--color-text) 12%, var(--transparent));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 7%, var(--transparent));
+  color: var(--color-muted);
+  transition:
+    border-color 200ms ease,
+    color 200ms ease,
+    background 200ms ease,
+    transform 200ms ease;
+}
+
+.notification-panel-actions button {
+  width: 34px;
+  height: 34px;
+}
+
+.notification-panel-actions button:hover,
+.notification-card-footer button:hover {
+  border-color: var(--border-strong);
+  background: color-mix(in oklab, var(--color-pulse) 12%, var(--transparent));
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+.notification-panel-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+  transform: none;
+}
+
+.notification-panel-body {
+  display: grid;
+  max-height: calc(min(680px, 76vh) - 68px);
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.notification-group {
+  display: grid;
+  gap: 8px;
+}
+
+.notification-group + .notification-group {
+  margin-top: 14px;
+}
+
+.notification-group-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.notification-group-title small {
+  display: grid;
+  min-width: 22px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-text) 6%, var(--transparent));
+  color: var(--color-text);
+  font-size: 11px;
+}
+
+.notification-list {
+  display: grid;
+  gap: 9px;
+}
+
+.notification-card {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-text) 11%, var(--transparent));
+  border-left-color: color-mix(in oklab, var(--color-sky) 54%, var(--transparent));
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-text) 7%, var(--transparent)), color-mix(in oklab, var(--color-bg) 18%, var(--transparent))),
+    color-mix(in oklab, var(--panel) 88%, var(--transparent));
+  padding: 12px;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-text) 7%, var(--transparent));
+  transition:
+    border-color 220ms ease,
+    background 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.notification-card.priority-high {
+  border-left-color: color-mix(in oklab, var(--color-pulse) 76%, var(--color-gold));
+}
+
+.notification-card.priority-medium {
+  border-left-color: color-mix(in oklab, var(--color-sky) 70%, var(--color-pulse));
+}
+
+.notification-card.is-unread {
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in oklab, var(--color-pulse) 14%, var(--transparent)), var(--transparent) 40%),
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 8%, var(--transparent)), color-mix(in oklab, var(--color-surface) 86%, var(--transparent)));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--color-text) 10%, var(--transparent)),
+    0 0 24px color-mix(in oklab, var(--color-pulse) 12%, var(--transparent));
+  animation: notificationUnreadPulse 2.8s ease-in-out infinite;
+}
+
+.notification-card:hover {
+  border-color: color-mix(in oklab, var(--border-strong) 90%, var(--transparent));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--color-text) 9%, var(--transparent)),
+    0 0 28px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
+}
+
+.notification-card-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 26%, var(--transparent));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-pulse) 12%, var(--transparent));
+  color: color-mix(in oklab, var(--color-pulse) 80%, var(--color-text));
+  box-shadow: 0 0 20px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
+}
+
+.notification-card-copy {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.notification-card-topline,
+.notification-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notification-card-topline span,
+.notification-card-topline time {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.notification-card strong {
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.notification-card p {
+  margin: 0;
+  color: color-mix(in oklab, var(--color-text) 72%, var(--color-bg));
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.notification-card-footer {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.notification-card-footer button {
+  min-height: 30px;
+  gap: 6px;
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.notification-card-footer button:first-child {
+  color: var(--color-text);
+}
+
+.notification-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 138px;
+  gap: 10px;
+  border: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  padding: 18px;
+  color: var(--color-muted);
+  text-align: center;
+  font-size: 13px;
+}
+
+.notification-empty.is-error {
+  border-color: color-mix(in oklab, var(--chart-red) 42%, var(--transparent));
+  color: color-mix(in oklab, var(--chart-red) 72%, var(--color-text));
 }
 
 .profile-chip {
@@ -4631,6 +4907,26 @@ textarea {
   }
 }
 
+@keyframes notificationBadgePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-pulse) 42%, var(--transparent));
+  }
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in oklab, var(--color-pulse) 0%, var(--transparent));
+  }
+}
+
+@keyframes notificationUnreadPulse {
+  0%,
+  100% {
+    border-color: color-mix(in oklab, var(--color-text) 11%, var(--transparent));
+  }
+  50% {
+    border-color: color-mix(in oklab, var(--color-pulse) 36%, var(--transparent));
+  }
+}
+
 @keyframes loadingSweep {
   0%,
   100% {
@@ -4886,6 +5182,28 @@ textarea {
     right: auto;
     left: 0;
     width: min(284px, calc(100vw - 28px));
+  }
+
+  .notification-center-shell {
+    position: static;
+  }
+
+  .notification-panel {
+    position: fixed;
+    top: 76px;
+    right: 14px;
+    left: 14px;
+    width: auto;
+    max-height: calc(100vh - 96px);
+  }
+
+  .notification-panel-body {
+    max-height: calc(100vh - 174px);
+  }
+
+  .notification-card {
+    grid-template-columns: 34px minmax(0, 1fr);
+    padding: 10px;
   }
 
   .momentum-timeline {
@@ -6751,6 +7069,13 @@ textarea {
   box-shadow: 0 0 18px color-mix(in oklab, var(--color-pulse) 16%, var(--transparent));
 }
 
+.focus-hero-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+}
+
 .focus-extension-button {
   display: inline-flex;
   min-height: 42px;
@@ -7072,6 +7397,11 @@ textarea {
   .focus-hero-title-row {
     max-width: none;
     width: 100%;
+  }
+
+  .focus-hero-actions {
+    width: 100%;
+    flex-wrap: wrap;
   }
 
   .focus-kpi-grid {

@@ -23,6 +23,7 @@ import {
   Trophy,
   X
 } from "lucide-react";
+import NotificationCenter from "../../components/NotificationCenter";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import { useAuth } from "../../context/AuthContext";
 import { useSynapseFocus } from "../../hooks/useSynapseFocus";
@@ -418,10 +419,13 @@ export default function FocusPage() {
                   ) : null}
                 </div>
               </div>
-              <button className="focus-extension-button" type="button">
-                <ShieldCheck size={18} />
-                <span>Get Focus Lock Extension</span>
-              </button>
+              <div className="focus-hero-actions">
+                <NotificationCenter />
+                <button className="focus-extension-button" type="button">
+                  <ShieldCheck size={18} />
+                  <span>Get Focus Lock Extension</span>
+                </button>
+              </div>
             </header>
 
             {error ? <p className="topbar-error">{error}</p> : null}

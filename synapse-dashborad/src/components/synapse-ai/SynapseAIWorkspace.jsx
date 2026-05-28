@@ -49,6 +49,7 @@ import {
   normalizePdfTitle,
   PDF_LIMITS
 } from "../../utils/pdfParser";
+import NotificationCenter from "../NotificationCenter";
 import ProfileAvatarMenu from "../ProfileAvatarMenu";
 import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 import AIMessageRenderer, { extractAiReplyText } from "./AIMessageRenderer";
@@ -1815,6 +1816,7 @@ export default function SynapseAIWorkspace() {
                 <ChevronRight size={14} />
               </div>
               <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
+              <NotificationCenter />
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}

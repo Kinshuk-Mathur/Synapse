@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 import CalendarHeatmap from "react-calendar-heatmap";
 import {
   BarChart3,
-  Bell,
   BrainCircuit,
   CalendarDays,
   Check,
@@ -54,6 +53,7 @@ import {
   getUserAnalyticsStartDate
 } from "../../services/analytics";
 import { formatDateKey, parseDateKey } from "../../services/todos";
+import NotificationCenter from "../NotificationCenter";
 import ProfileAvatarMenu from "../ProfileAvatarMenu";
 import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 
@@ -431,10 +431,7 @@ export default function AnalyticsWorkspace() {
 
             <div className="analytics-top-actions">
               <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
-              <button className="icon-button notification" aria-label="Notifications" type="button">
-                <Bell size={20} />
-                <span>{insights.length}</span>
-              </button>
+              <NotificationCenter />
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}

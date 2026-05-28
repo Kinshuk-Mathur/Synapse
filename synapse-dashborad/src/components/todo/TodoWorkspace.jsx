@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import {
-  Bell,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -15,6 +14,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
 import { useTodos } from "../../hooks/useTodos";
 import { formatDateKey, isDateLocked, parseDateKey } from "../../services/todos";
+import NotificationCenter from "../NotificationCenter";
 import ProfileAvatarMenu from "../ProfileAvatarMenu";
 import MotivationPanel from "./MotivationPanel";
 import QuickAddTask from "./QuickAddTask";
@@ -146,10 +146,7 @@ export default function TodoWorkspace() {
 
             <div className="todo-top-actions">
               <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
-              <button className="icon-button notification" aria-label="Notifications" type="button">
-                <Bell size={20} />
-                <span>{pendingCarryovers.length}</span>
-              </button>
+              <NotificationCenter />
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}

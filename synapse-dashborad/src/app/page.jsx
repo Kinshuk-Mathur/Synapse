@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart3,
-  Bell,
   BrainCircuit,
   Check,
   CheckSquare,
@@ -47,6 +46,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import NotificationCenter from "../components/NotificationCenter";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
 import { useMonthlyGoals } from "../hooks/useMonthlyGoals";
@@ -972,10 +972,7 @@ export default function Home() {
 
             <div className="top-actions">
               <ThemeSwitcher theme={theme} onChange={applyTheme} />
-              <button className="icon-button notification" aria-label="Notifications">
-                <Bell size={20} />
-                <span>3</span>
-              </button>
+              <NotificationCenter />
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}
