@@ -1,15 +1,10 @@
 import {
   collection,
-  deleteDoc,
   doc,
-  onSnapshot,
-  orderBy,
-  query,
   serverTimestamp,
   setDoc
 } from "firebase/firestore";
 import {
-  deleteObject,
   getDownloadURL,
   ref,
   uploadBytesResumable
@@ -32,45 +27,22 @@ function getDocumentsCollection(uid) {
   return collection(getFirebaseDb(), "users", uid, PDF_DOCUMENTS_COLLECTION);
 }
 
-export function subscribeToPdfDocuments(uid, onNext, onError) {
-  if (!uid) {
-    onNext([]);
-    return () => {};
-  }
-
-  const documentsQuery = query(getDocumentsCollection(uid), orderBy("createdAt", "desc"));
-
-  return onSnapshot(
-    documentsQuery,
-    (snapshot) => {
-      onNext(
-        snapshot.docs.map((documentSnapshot) => ({
-          id: documentSnapshot.id,
-          ...documentSnapshot.data()
-        }))
-      );
-    },
-    onError
-  );
-}
-
-export async function extractPdfFromStorage({ fileUrl, fileName, fileSize, idToken }) {
-  const headers = {
-    "Content-Type": "application/json"
-  };
+export async function extractPdfFile({ file, idToken }) {
+  const headers = {};
 
   if (idToken) {
     headers.Authorization = `Bearer ${idToken}`;
   }
 
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("fileName", file.name);
+  formData.append("fileSize", String(file.size));
+
   const response = await fetch("/api/pdf/extract", {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      fileUrl,
-      fileName,
-      fileSize
-    })
+    body: formData
   });
   const data = await response.json().catch(() => ({}));
 
@@ -95,6 +67,16 @@ export async function uploadPdfDocument({ uid, file, getIdToken, onProgress }) {
   const documentId = createDocumentId();
   const storagePath = `pdfs/${uid}/${documentId}.pdf`;
   const storageReference = ref(getFirebaseStorage(), storagePath);
+  const idTokenPromise = Promise.resolve(getIdToken?.() || "").catch(() => "");
+  const extractionPromise = idTokenPromise
+    .then((idToken) =>
+      extractPdfFile({
+        file,
+        idToken
+      })
+    )
+    .catch((error) => error);
+  let fileUrl = "";
 
   onProgress?.({
     stage: "uploading",
@@ -124,7 +106,7 @@ export async function uploadPdfDocument({ uid, file, getIdToken, onProgress }) {
 
         onProgress?.({
           stage: "uploading",
-          progress: Math.max(4, Math.min(64, progress)),
+          progress: Math.max(4, Math.min(76, progress + 12)),
           message: `Uploading PDF... ${Math.min(100, percent)}%`
         });
       },
@@ -133,27 +115,25 @@ export async function uploadPdfDocument({ uid, file, getIdToken, onProgress }) {
     );
   });
 
-  const fileUrl = await getDownloadURL(storageReference);
+  fileUrl = await getDownloadURL(storageReference);
 
   onProgress?.({
-    stage: "extracting",
-    progress: 70,
-    message: "Extracting clean study text..."
+    stage: "analyzing",
+    progress: 84,
+    message: "Reading PDF intelligence..."
   });
 
   try {
-    const idToken = getIdToken ? await getIdToken() : "";
-    const extraction = await extractPdfFromStorage({
-      fileUrl,
-      fileName: file.name,
-      fileSize: file.size,
-      idToken
-    });
+    const extraction = await extractionPromise;
+
+    if (extraction instanceof Error) {
+      throw extraction;
+    }
 
     onProgress?.({
       stage: "saving",
       progress: 90,
-      message: "Saving intelligence layer..."
+      message: "Preparing AI context..."
     });
 
     const documentPayload = {
@@ -172,7 +152,9 @@ export async function uploadPdfDocument({ uid, file, getIdToken, onProgress }) {
       uid
     };
 
-    await setDoc(doc(getDocumentsCollection(uid), documentId), documentPayload);
+    setDoc(doc(getDocumentsCollection(uid), documentId), documentPayload).catch((error) => {
+      console.warn("SYNAPSE PDF Firestore save failed:", error?.message || error);
+    });
 
     onProgress?.({
       stage: "complete",
@@ -187,20 +169,7 @@ export async function uploadPdfDocument({ uid, file, getIdToken, onProgress }) {
       updatedAt: new Date().toISOString()
     };
   } catch (error) {
-    await deleteObject(storageReference).catch(() => {});
     throw error;
-  }
-}
-
-export async function deletePdfDocument(uid, documentData) {
-  if (!uid || !documentData?.id) {
-    throw new Error("A PDF document id is required.");
-  }
-
-  await deleteDoc(doc(getDocumentsCollection(uid), documentData.id));
-
-  if (documentData.storagePath) {
-    await deleteObject(ref(getFirebaseStorage(), documentData.storagePath)).catch(() => {});
   }
 }
 

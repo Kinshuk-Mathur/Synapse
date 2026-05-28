@@ -32,6 +32,37 @@ async function readJsonBody(req) {
   }
 }
 
+async function readRequestPayload(req) {
+  const contentType = req.headers.get("content-type") || "";
+
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await req.formData();
+    const file = formData.get("file");
+
+    if (!file || typeof file.arrayBuffer !== "function") {
+      throw new Error("Choose a valid PDF file.");
+    }
+
+    const fileSize = Number(formData.get("fileSize") || file.size || 0);
+    assertPdfSize(fileSize, file.size);
+
+    return {
+      fileName: String(formData.get("fileName") || file.name || "Study PDF.pdf"),
+      fileSize,
+      buffer: Buffer.from(await file.arrayBuffer())
+    };
+  }
+
+  const body = await readJsonBody(req);
+  assertPdfSize(body.fileSize, 0);
+
+  return {
+    fileName: body.fileName,
+    fileSize: body.fileSize,
+    buffer: await fetchPdfBuffer(body.fileUrl, body.fileSize)
+  };
+}
+
 function assertPdfSize(fileSize, headerSize) {
   const declaredSize = Number(fileSize || 0);
   const detectedSize = Number(headerSize || 0);
@@ -71,10 +102,8 @@ async function fetchPdfBuffer(fileUrl, fileSize) {
 
 export async function POST(req) {
   try {
-    const body = await readJsonBody(req);
-    assertPdfSize(body.fileSize, 0);
-
-    const buffer = await fetchPdfBuffer(body.fileUrl, body.fileSize);
+    const payload = await readRequestPayload(req);
+    const buffer = payload.buffer;
     const parser = new PDFParse({ data: buffer });
 
     try {
@@ -108,7 +137,7 @@ export async function POST(req) {
       const metadataTitle = info?.info?.Title && String(info.info.Title).trim();
 
       return jsonResponse({
-        title: metadataTitle || normalizePdfTitle(body.fileName),
+        title: metadataTitle || normalizePdfTitle(payload.fileName),
         extractedText: stored.text,
         textTruncated: stored.truncated,
         pageCount,
