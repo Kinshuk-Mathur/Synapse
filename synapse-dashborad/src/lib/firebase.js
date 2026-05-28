@@ -1,6 +1,7 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { browserLocalPersistence, getAuth, GoogleAuthProvider, setPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseEnv = {
   NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -32,6 +33,7 @@ function createFirebaseServices() {
       app: null,
       auth: null,
       db: null,
+      storage: null,
       googleProvider: null
     };
   }
@@ -39,6 +41,7 @@ function createFirebaseServices() {
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const storage = getStorage(app);
   const googleProvider = new GoogleAuthProvider();
 
   googleProvider.setCustomParameters({
@@ -49,6 +52,7 @@ function createFirebaseServices() {
     app,
     auth,
     db,
+    storage,
     googleProvider
   };
 }
@@ -58,6 +62,7 @@ const services = createFirebaseServices();
 export const firebaseApp = services.app;
 export const auth = services.auth;
 export const db = services.db;
+export const storage = services.storage;
 export const googleProvider = services.googleProvider;
 
 export function assertFirebaseConfig() {
@@ -76,6 +81,11 @@ export function getFirebaseAuth() {
 export function getFirebaseDb() {
   assertFirebaseConfig();
   return db;
+}
+
+export function getFirebaseStorage() {
+  assertFirebaseConfig();
+  return storage;
 }
 
 export function getGoogleProvider() {

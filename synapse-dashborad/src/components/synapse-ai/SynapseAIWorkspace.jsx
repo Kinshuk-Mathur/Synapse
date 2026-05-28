@@ -5,24 +5,34 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Brain,
   BookMarked,
   Check,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
   Copy,
+  ExternalLink,
   FileCode2,
+  FileQuestion,
   FileText,
+  Files,
   GraduationCap,
   Home,
   History,
   ImageIcon,
+  LibraryBig,
+  LoaderCircle,
   Menu,
   MessageSquareText,
   Mic,
+  NotebookPen,
   Paperclip,
   Plus,
   RefreshCw,
+  Search,
   Send,
+  Sigma,
   Sparkles,
   ListTodo,
   Target,
@@ -35,8 +45,19 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
+import {
+  deletePdfDocument,
+  PDF_LIMITS,
+  subscribeToPdfDocuments,
+  uploadPdfDocument
+} from "../../services/pdfDocuments";
 import { recordMeaningfulAiUsage } from "../../services/analytics";
 import { updateMomentumProgress } from "../../services/userStats";
+import {
+  formatPdfFileSize,
+  isPdfFile,
+  normalizePdfTitle
+} from "../../utils/pdfParser";
 import ProfileAvatarMenu from "../ProfileAvatarMenu";
 import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 import AIMessageRenderer, { extractAiReplyText } from "./AIMessageRenderer";
@@ -74,9 +95,9 @@ const VOICE_ERROR_COPY = {
 
 const quickActions = [
   {
-    label: "Summarize PDF",
-    icon: FileText,
-    prompt: "Summarize this PDF into key points, formulas, definitions, and a revision checklist."
+    label: "Ask PDF",
+    icon: Search,
+    prompt: "Ask a precise question about the active PDF:"
   },
   {
     label: "Solve Doubt",
@@ -97,6 +118,65 @@ const quickActions = [
     label: "Productivity Help",
     icon: Zap,
     prompt: "Help me plan a calm, productive day with priorities, breaks, and focus sessions."
+  }
+];
+
+const pdfQuickActions = [
+  {
+    key: "summarize",
+    label: "Summarize",
+    shortLabel: "Summary",
+    icon: FileText,
+    prompt: "Summarize this PDF into key points, formulas, definitions, and a revision checklist.",
+    loading: "Summarizing PDF intelligence..."
+  },
+  {
+    key: "notes",
+    label: "Generate Notes",
+    shortLabel: "Notes",
+    icon: NotebookPen,
+    prompt: "Generate premium revision notes from this PDF.",
+    loading: "Generating revision notes..."
+  },
+  {
+    key: "quiz",
+    label: "Quiz Me",
+    shortLabel: "Quiz",
+    icon: FileQuestion,
+    prompt: "Create a quiz from this PDF with answers and explanations.",
+    loading: "Creating quiz questions..."
+  },
+  {
+    key: "concepts",
+    label: "Key Concepts",
+    shortLabel: "Concepts",
+    icon: Brain,
+    prompt: "Extract the key concepts from this PDF and explain why they matter.",
+    loading: "Extracting key concepts..."
+  },
+  {
+    key: "formulas",
+    label: "Formulas",
+    shortLabel: "Formulas",
+    icon: Sigma,
+    prompt: "Extract important formulas, equations, and laws from this PDF.",
+    loading: "Scanning formulas and equations..."
+  },
+  {
+    key: "simple",
+    label: "Explain Simply",
+    shortLabel: "Simple",
+    icon: Sparkles,
+    prompt: "Explain the hardest ideas in this PDF in simple language.",
+    loading: "Simplifying difficult topics..."
+  },
+  {
+    key: "flashcards",
+    label: "Flashcards",
+    shortLabel: "Cards",
+    icon: ClipboardList,
+    prompt: "Create active-recall flashcards from this PDF.",
+    loading: "Creating flashcards..."
   }
 ];
 
@@ -133,6 +213,51 @@ function fileSize(bytes = 0) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getPdfAction(actionKey) {
+  return pdfQuickActions.find((action) => action.key === actionKey) || pdfQuickActions[0];
+}
+
+function toDate(value) {
+  if (!value) return null;
+  if (typeof value?.toDate === "function") return value.toDate();
+  if (typeof value === "string" || typeof value === "number") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  if (typeof value === "object" && value.seconds) {
+    return new Date(value.seconds * 1000);
+  }
+  return null;
+}
+
+function formatDocumentDate(value) {
+  const date = toDate(value);
+  if (!date) return "Just now";
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  }).format(date);
+}
+
+function serializePdfDocument(documentData) {
+  if (!documentData) return null;
+
+  return {
+    id: documentData.id,
+    title: documentData.title || normalizePdfTitle(documentData.fileName),
+    fileName: documentData.fileName || documentData.title || "Study PDF",
+    fileUrl: documentData.fileUrl || "",
+    extractedText: documentData.extractedText || "",
+    pageCount: documentData.pageCount || 0,
+    fileSize: documentData.fileSize || 0,
+    fileSizeLabel: documentData.fileSizeLabel || formatPdfFileSize(documentData.fileSize || 0),
+    chunkCount: documentData.chunkCount || 0,
+    textTruncated: Boolean(documentData.textTruncated)
+  };
 }
 
 async function safelyReadChatJson(response) {
@@ -357,21 +482,28 @@ function TypingDots() {
   );
 }
 
-function ThinkingIndicator() {
+function ThinkingIndicator({ label = "" }) {
   const [stageIndex, setStageIndex] = useState(0);
+  const stages = useMemo(
+    () =>
+      label
+        ? [label, "Searching document context...", "Composing mentor answer..."]
+        : THINKING_STAGES,
+    [label]
+  );
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      setStageIndex((current) => (current + 1) % THINKING_STAGES.length);
+      setStageIndex((current) => (current + 1) % stages.length);
     }, 1250);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [stages.length]);
 
   return (
     <div className="synapse-thinking">
       <div className="synapse-thinking-copy">
-        <span>{THINKING_STAGES[stageIndex]}</span>
+        <span>{stages[stageIndex] || stages[0]}</span>
         <TypingDots />
       </div>
       <div className="synapse-thinking-bars" aria-hidden="true">
@@ -673,6 +805,190 @@ function ChatSidebar({
   );
 }
 
+function PdfUploadDropzone({ uploadState, uploadError, onOpenPicker, onUploadFile }) {
+  const busy = uploadState?.stage && !["idle", "complete", "error"].includes(uploadState.stage);
+  const progress = Number(uploadState?.progress || 0);
+
+  return (
+    <motion.div
+      className={`pdf-upload-card ${busy ? "is-busy" : ""}`}
+      whileHover={{ y: busy ? 0 : -3 }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onUploadFile(event.dataTransfer.files?.[0]);
+      }}
+    >
+      <span className="pdf-upload-orbit" aria-hidden="true">
+        {busy ? <LoaderCircle size={26} /> : <Upload size={26} />}
+      </span>
+      <div>
+        <strong>Upload Study PDF</strong>
+        <span>
+          Drag a PDF here, max {formatPdfFileSize(PDF_LIMITS.maxFileSizeBytes)} and {PDF_LIMITS.maxPages} pages.
+        </span>
+      </div>
+      <button type="button" onClick={onOpenPicker} disabled={busy}>
+        <Upload size={16} />
+        Upload
+      </button>
+      {busy || progress > 0 ? (
+        <div className="pdf-upload-progress" aria-label="PDF upload progress">
+          <i style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
+        </div>
+      ) : null}
+      {uploadState?.message ? <small>{uploadState.message}</small> : null}
+      {uploadError ? <em>{uploadError}</em> : null}
+    </motion.div>
+  );
+}
+
+function PdfDocumentCard({ documentData, active, onSelect, onAction, onDelete, onOpenFile }) {
+  const title = documentData.title || normalizePdfTitle(documentData.fileName);
+  const sizeLabel = documentData.fileSizeLabel || formatPdfFileSize(documentData.fileSize || 0);
+
+  return (
+    <motion.article
+      className={`pdf-document-card ${active ? "is-active" : ""}`}
+      layout
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.2 }}
+    >
+      <button className="pdf-document-main" type="button" onClick={() => onSelect(documentData)}>
+        <span className="pdf-document-icon" aria-hidden="true">
+          <FileText size={22} />
+        </span>
+        <span>
+          <strong>{title}</strong>
+          <small>
+            {formatDocumentDate(documentData.createdAt)} • {documentData.pageCount || "?"} pages • {sizeLabel}
+          </small>
+        </span>
+      </button>
+
+      <div className="pdf-document-actions">
+        <button type="button" onClick={() => onOpenFile(documentData)} title="Open PDF" aria-label={`Open ${title}`}>
+          <ExternalLink size={15} />
+        </button>
+        <button type="button" onClick={() => onSelect(documentData, true)} title="Ask AI" aria-label={`Ask AI about ${title}`}>
+          <MessageSquareText size={15} />
+        </button>
+        {["summarize", "notes", "quiz"].map((actionKey) => {
+          const action = getPdfAction(actionKey);
+          const Icon = action.icon;
+
+          return (
+            <button
+              key={action.key}
+              type="button"
+              onClick={() => onAction(documentData, action)}
+              title={action.label}
+              aria-label={`${action.label} for ${title}`}
+            >
+              <Icon size={15} />
+            </button>
+          );
+        })}
+        <button type="button" onClick={() => onDelete(documentData)} title="Delete PDF" aria-label={`Delete ${title}`}>
+          <Trash2 size={15} />
+        </button>
+      </div>
+    </motion.article>
+  );
+}
+
+function PdfDocumentsPanel({
+  documents,
+  activeDocument,
+  activeDocumentId,
+  uploadState,
+  uploadError,
+  onOpenPicker,
+  onUploadFile,
+  onSelect,
+  onAction,
+  onDelete,
+  onOpenFile
+}) {
+  return (
+    <aside className="pdf-intelligence-panel">
+      <div className="pdf-panel-header">
+        <span>
+          <LibraryBig size={18} />
+          Study Documents
+        </span>
+        <b>{documents.length}</b>
+      </div>
+
+      <PdfUploadDropzone
+        uploadState={uploadState}
+        uploadError={uploadError}
+        onOpenPicker={onOpenPicker}
+        onUploadFile={onUploadFile}
+      />
+
+      {activeDocument ? (
+        <section className="active-pdf-console">
+          <div>
+            <span>Active PDF</span>
+            <strong>{activeDocument.title || normalizePdfTitle(activeDocument.fileName)}</strong>
+            <small>
+              {activeDocument.pageCount || "?"} pages • {activeDocument.chunkCount || 0} AI chunks
+            </small>
+          </div>
+          {activeDocument.textTruncated ? (
+            <p>Stored text was trimmed to fit Firestore. Ask targeted questions for best results.</p>
+          ) : null}
+          <div className="pdf-power-actions">
+            {pdfQuickActions.map((action) => {
+              const Icon = action.icon;
+
+              return (
+                <button
+                  key={action.key}
+                  type="button"
+                  onClick={() => onAction(activeDocument, action)}
+                  aria-label={action.label}
+                  title={action.label}
+                >
+                  <Icon size={15} />
+                  <span>{action.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      <div className="pdf-document-list">
+        {documents.length ? (
+          documents.map((documentData) => (
+            <PdfDocumentCard
+              key={documentData.id}
+              documentData={documentData}
+              active={documentData.id === activeDocumentId}
+              onSelect={onSelect}
+              onAction={onAction}
+              onDelete={onDelete}
+              onOpenFile={onOpenFile}
+            />
+          ))
+        ) : (
+          <div className="pdf-empty-state">
+            <Files size={24} />
+            <strong>No PDFs yet</strong>
+            <span>Upload a study PDF to unlock summaries, notes, quizzes, formulas, and grounded chat.</span>
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}
+
 function getFileMeta(file) {
   return {
     id: `${file.name}-${file.size}-${file.lastModified || Date.now()}`,
@@ -702,6 +1018,15 @@ export default function SynapseAIWorkspace() {
   const [dragging, setDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [activeDocumentId, setActiveDocumentId] = useState("");
+  const [documentError, setDocumentError] = useState("");
+  const [pdfUploadState, setPdfUploadState] = useState({
+    stage: "idle",
+    progress: 0,
+    message: ""
+  });
+  const [aiStatusText, setAiStatusText] = useState("");
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [toastMessage, setToastMessage] = useState("");
@@ -714,6 +1039,7 @@ export default function SynapseAIWorkspace() {
   const streamRef = useRef(null);
   const textareaRef = useRef(null);
   const fileRef = useRef(null);
+  const pdfFileRef = useRef(null);
   const attachmentMenuRef = useRef(null);
   const toastTimeoutRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -729,6 +1055,7 @@ export default function SynapseAIWorkspace() {
 
   const studentName = profile?.name || user?.displayName?.split(" ")[0] || "Student";
   const activeConversation = conversations.find((conversation) => conversation.id === activeId);
+  const activeDocument = documents.find((documentData) => documentData.id === activeDocumentId) || null;
   const SelectedFileIcon = getAttachmentIcon(
     selectedFile
       ? {
@@ -762,6 +1089,33 @@ export default function SynapseAIWorkspace() {
       setUploadedFiles([]);
     }
   }, []);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setDocuments([]);
+      setActiveDocumentId("");
+      return undefined;
+    }
+
+    return subscribeToPdfDocuments(
+      user.uid,
+      (nextDocuments) => {
+        setDocuments(nextDocuments);
+        setDocumentError("");
+        setActiveDocumentId((currentId) => {
+          if (currentId && nextDocuments.some((documentData) => documentData.id === currentId)) {
+            return currentId;
+          }
+
+          return nextDocuments[0]?.id || "";
+        });
+      },
+      (error) => {
+        const message = error?.message || "Unable to load Study Documents.";
+        setDocumentError(message);
+      }
+    );
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -889,8 +1243,75 @@ export default function SynapseAIWorkspace() {
     setInput(prompt);
   };
 
+  const handlePdfUpload = async (file) => {
+    if (!file) return;
+
+    if (!isPdfFile(file)) {
+      setUploadError("Upload a PDF study document.");
+      return;
+    }
+
+    if (!user?.uid) {
+      setUploadError("Sign in before uploading study PDFs.");
+      return;
+    }
+
+    setUploadError("");
+    setDocumentError("");
+    setSelectedFile(null);
+    setAttachmentMenuOpen(false);
+    setPdfUploadState({
+      stage: "uploading",
+      progress: 2,
+      message: "Preparing secure upload..."
+    });
+
+    try {
+      const uploadedDocument = await uploadPdfDocument({
+        uid: user.uid,
+        file,
+        getIdToken: () => user.getIdToken?.(),
+        onProgress: setPdfUploadState
+      });
+
+      setActiveDocumentId(uploadedDocument.id);
+      setUploadedFiles((current) => {
+        const nextFile = {
+          ...getFileMeta(file),
+          id: uploadedDocument.id,
+          name: uploadedDocument.title || file.name,
+          fileUrl: uploadedDocument.fileUrl
+        };
+        const withoutDuplicate = current.filter((item) => item.id !== nextFile.id);
+        return [nextFile, ...withoutDuplicate].slice(0, 12);
+      });
+      showToast("PDF intelligence ready");
+      window.setTimeout(() => {
+        setPdfUploadState({
+          stage: "idle",
+          progress: 0,
+          message: ""
+        });
+      }, 1400);
+    } catch (error) {
+      const message = error?.message || "SYNAPSE could not process this PDF.";
+      setUploadError(message);
+      setDocumentError(message);
+      setPdfUploadState({
+        stage: "error",
+        progress: 0,
+        message
+      });
+    }
+  };
+
   const handleFile = (file) => {
     if (!file) return;
+
+    if (isPdfFile(file)) {
+      handlePdfUpload(file);
+      return;
+    }
 
     const allowedExtensions = /\.(pdf|jpe?g|png|html?|txt|md|js|jsx|css|json)$/i;
     const allowedTypes = [
@@ -927,6 +1348,47 @@ export default function SynapseAIWorkspace() {
     fileRef.current.accept = accept;
     fileRef.current.click();
     setAttachmentMenuOpen(false);
+  };
+
+  const openPdfPicker = () => {
+    pdfFileRef.current?.click();
+  };
+
+  const handleSelectDocument = (documentData, focusComposer = false) => {
+    if (!documentData?.id) return;
+
+    setActiveDocumentId(documentData.id);
+    setSelectedFile(null);
+
+    if (focusComposer) {
+      textareaRef.current?.focus();
+      showToast("PDF context activated");
+    }
+  };
+
+  const handleOpenPdfFile = (documentData) => {
+    if (!documentData?.fileUrl) {
+      showToast("PDF link unavailable");
+      return;
+    }
+
+    window.open(documentData.fileUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleDeleteDocument = async (documentData) => {
+    if (!user?.uid || !documentData?.id) return;
+
+    try {
+      await deletePdfDocument(user.uid, documentData);
+      if (documentData.id === activeDocumentId) {
+        setActiveDocumentId("");
+      }
+      showToast("PDF deleted");
+    } catch (error) {
+      const message = error?.message || "Unable to delete this PDF.";
+      setDocumentError(message);
+      showToast(message);
+    }
   };
 
   const handleDrop = (event) => {
@@ -1234,9 +1696,28 @@ export default function SynapseAIWorkspace() {
     }
   };
 
+  const handlePdfAction = (documentData, action) => {
+    if (!documentData?.id) {
+      showToast("Upload or select a PDF first");
+      return;
+    }
+
+    setActiveDocumentId(documentData.id);
+    handleSend({
+      prompt: action.prompt,
+      pdfAction: action.key,
+      document: documentData,
+      loadingLabel: action.loading,
+      titleHint: `${action.shortLabel} • ${documentData.title || normalizePdfTitle(documentData.fileName)}`
+    });
+  };
+
   const handleSend = async (options = {}) => {
     const promptOverride = typeof options.prompt === "string" ? options.prompt : "";
     const trimmed = (promptOverride || input).trim();
+    const documentForRequest = options.document || activeDocument;
+    const pdfDocumentPayload = documentForRequest ? serializePdfDocument(documentForRequest) : null;
+    const isPdfChat = Boolean(pdfDocumentPayload?.extractedText);
     const isVoiceRequest = options.source === "voice";
     const shouldSpeakResponse = Boolean(options.speakResponse);
     const voiceRunId = Number(options.voiceRunId || 0);
@@ -1244,7 +1725,7 @@ export default function SynapseAIWorkspace() {
     const conversation = conversations.find((item) => item.id === activeId);
     const targetId = activeId;
 
-    if (!conversation || loading || (!trimmed && !selectedFile)) {
+    if (!conversation || loading || (!trimmed && !selectedFile && !isPdfChat)) {
       if (shouldSpeakResponse && voiceRunIsCurrent()) {
         updateVoiceStatus("idle");
       }
@@ -1253,16 +1734,25 @@ export default function SynapseAIWorkspace() {
 
     const now = new Date().toISOString();
     const interactionStartedAt = performance.now();
-    const hadAttachment = Boolean(selectedFile);
+    const hadAttachment = Boolean(selectedFile || isPdfChat);
     const attachmentText = selectedFile
       ? `\n\nAttached file: ${selectedFile.name} (${selectedFile.type || "unknown type"}, ${fileSize(selectedFile.size)}).`
+      : "";
+    const pdfContextText = isPdfChat
+      ? `\n\nActive PDF: ${pdfDocumentPayload.title} (${pdfDocumentPayload.pageCount || "?"} pages, ${pdfDocumentPayload.fileSizeLabel}).`
       : "";
     const userMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      content: `${trimmed || "Please summarize this PDF."}${attachmentText}`,
+      content: `${trimmed || "Please summarize this PDF."}${attachmentText}${pdfContextText}`,
       createdAt: now,
-      attachment: selectedFile
+      attachment: isPdfChat
+        ? {
+            name: pdfDocumentPayload.title,
+            size: pdfDocumentPayload.fileSize,
+            type: "application/pdf"
+          }
+        : selectedFile
         ? {
             name: selectedFile.name,
             size: selectedFile.size,
@@ -1281,7 +1771,10 @@ export default function SynapseAIWorkspace() {
 
     updateConversation(targetId, (current) => ({
       ...current,
-      title: current.title === "New Chat" ? makeTitle(trimmed || selectedFile?.name || "PDF Summary") : current.title,
+      title:
+        current.title === "New Chat"
+          ? makeTitle(options.titleHint || trimmed || selectedFile?.name || pdfDocumentPayload?.title || "PDF Summary")
+          : current.title,
       updatedAt: now,
       messages: [...current.messages, userMessage]
     }));
@@ -1291,6 +1784,7 @@ export default function SynapseAIWorkspace() {
     }
     setSelectedFile(null);
     setLoading(true);
+    setAiStatusText(options.loadingLabel || (isPdfChat ? "Analyzing PDF context..." : ""));
 
     let assistantMessageId = "";
     let hasAssistantMessage = false;
@@ -1332,16 +1826,27 @@ export default function SynapseAIWorkspace() {
         headers.Authorization = `Bearer ${idToken}`;
       }
 
-      const response = await fetch("/api/chat", {
+      const endpoint = isPdfChat ? "/api/pdf/chat" : "/api/chat";
+      const requestBody = isPdfChat
+        ? {
+            messages: nextMessages,
+            stream: true,
+            uid: user?.uid || "",
+            action: options.pdfAction || "",
+            document: pdfDocumentPayload
+          }
+        : {
+            messages: nextMessages,
+            stream: true,
+            uid: user?.uid || "",
+            voiceMode: isVoiceRequest,
+            uploadedDocumentNames: uploadedFiles.map((file) => file.name).slice(0, 12)
+          };
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          messages: nextMessages,
-          stream: true,
-          uid: user?.uid || "",
-          voiceMode: isVoiceRequest,
-          uploadedDocumentNames: uploadedFiles.map((file) => file.name).slice(0, 12)
-        })
+        body: JSON.stringify(requestBody)
       });
       const responseType = response.headers.get("content-type") || "";
 
@@ -1466,6 +1971,7 @@ export default function SynapseAIWorkspace() {
       }));
     } finally {
       setLoading(false);
+      setAiStatusText("");
       if (shouldSpeakResponse && voiceRunIsCurrent() && voiceStatusRef.current === "processing") {
         updateVoiceStatus("idle");
       }
@@ -1548,6 +2054,16 @@ export default function SynapseAIWorkspace() {
           </header>
 
           <div className="synapse-ai-layout">
+            <input
+              ref={pdfFileRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              className="hidden-file-input"
+              onChange={(event) => {
+                handlePdfUpload(event.target.files?.[0]);
+                event.target.value = "";
+              }}
+            />
             <section className="synapse-chat-panel">
               <div className="workspace-quick-actions">
                 {quickActions.map((action, index) => {
@@ -1610,7 +2126,7 @@ export default function SynapseAIWorkspace() {
                       />
                     </span>
                     <div className="message-shell">
-                      <ThinkingIndicator />
+                      <ThinkingIndicator label={aiStatusText} />
                     </div>
                   </motion.div>
                 ) : null}
@@ -1649,7 +2165,7 @@ export default function SynapseAIWorkspace() {
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask anything..."
+                    placeholder={activeDocument ? `Ask about ${activeDocument.title || "your PDF"}...` : "Ask anything..."}
                     rows={1}
                     aria-label="Ask SYNAPSE AI"
                   />
@@ -1718,7 +2234,7 @@ export default function SynapseAIWorkspace() {
                     className="send-ai-button"
                     type="button"
                     onClick={handleSend}
-                    disabled={loading || (!input.trim() && !selectedFile)}
+                    disabled={loading || (!input.trim() && !selectedFile && !activeDocument)}
                     whileHover={{ y: -2, scale: 1.03 }}
                     whileTap={{ scale: 0.95 }}
                     aria-label="Send message"
@@ -1733,6 +2249,19 @@ export default function SynapseAIWorkspace() {
               </p>
             </section>
 
+            <PdfDocumentsPanel
+              documents={documents}
+              activeDocument={activeDocument}
+              activeDocumentId={activeDocumentId}
+              uploadState={pdfUploadState}
+              uploadError={documentError || uploadError}
+              onOpenPicker={openPdfPicker}
+              onUploadFile={handlePdfUpload}
+              onSelect={handleSelectDocument}
+              onAction={handlePdfAction}
+              onDelete={handleDeleteDocument}
+              onOpenFile={handleOpenPdfFile}
+            />
           </div>
         </section>
       </div>
