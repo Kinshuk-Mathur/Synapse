@@ -2,7 +2,6 @@ const MOTIVATION_ALARM = "synapse-focus-motivation";
 const SESSION_END_ALARM = "synapse-focus-session-end";
 const BREAK_END_ALARM = "synapse-focus-break-end";
 const SYNC_REMINDER_ALARM = "synapse-focus-sync-reminder";
-const GROQ_CHAT_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const SYNAPSE_AI_MODEL = "llama-3.1-8b-instant";
 
 const STORAGE_KEYS = {
@@ -10,8 +9,7 @@ const STORAGE_KEYS = {
   legacySession: "focusSession",
   stats: "synapseFocusStats",
   settings: "synapseFocusSettings",
-  dashboardBridge: "synapseFocusDashboardBridge",
-  aiApiKey: "synapseExtensionGroqApiKey"
+  dashboardBridge: "synapseFocusDashboardBridge"
 };
 
 const DEFAULT_SETTINGS = {
@@ -143,7 +141,6 @@ let focusStats = defaultStats();
 let focusSettings = { ...DEFAULT_SETTINGS };
 let dashboardBridge = null;
 let dashboardAuth = null;
-let extensionGroqApiKey = "";
 let guardIntervalId = null;
 let popupInteractionUntil = 0;
 let lastNotificationAt = 0;
@@ -413,15 +410,11 @@ function saveDashboardBridge() {
   chrome.storage.local.set({ [STORAGE_KEYS.dashboardBridge]: dashboardBridge });
 }
 
-function saveAiApiKey() {
-  chrome.storage.local.set({ [STORAGE_KEYS.aiApiKey]: extensionGroqApiKey });
-}
-
 function publicAiStatus() {
   return {
     enabled: Boolean(focusSettings.aiCompanionEnabled),
-    hasApiKey: Boolean(extensionGroqApiKey),
     model: SYNAPSE_AI_MODEL,
+    endpoint: `${(focusSettings.dashboardUrl || DEFAULT_SETTINGS.dashboardUrl).replace(/\/$/, "")}/api/focus-ai`,
     position: focusSettings.aiButtonPosition || null,
     session: sessionData.active ? sessionData : null,
     dashboardConnected: Boolean(dashboardBridge?.uid),
@@ -552,21 +545,6 @@ function buildLocalAiSummary(session = {}, focusSeconds = 0) {
   };
 }
 
-function buildAiSystemPrompt(session = {}, pageContext = {}) {
-  const sessionGoal = session.focusGoal || DEFAULT_SETTINGS.focusGoal;
-  const pageTitle = pageContext.title || session.lockedTitle || "current study page";
-
-  return [
-    "You are SYNAPSE AI Companion, a silent study mentor inside a FocusLock session.",
-    "Be concise, calm, premium, and useful. Write clean Markdown only.",
-    "Act like an intelligent teacher, study mentor, and productivity coach.",
-    "Use short sections, bullets, formulas, and examples when helpful.",
-    "Avoid raw JSON, giant essays, filler, and robotic wording.",
-    `Current focus goal: ${sessionGoal}.`,
-    `Current study page: ${pageTitle}.`
-  ].join("\n");
-}
-
 function buildRecentAiMessages(sessionId, limit = 5) {
   const sourceSession = sessionData.sessionId === sessionId
     ? sessionData
@@ -582,18 +560,28 @@ function buildRecentAiMessages(sessionId, limit = 5) {
   return messages;
 }
 
-async function callGroq(messages, { maxTokens = 700, temperature = 0.6 } = {}) {
-  const response = await fetch(GROQ_CHAT_ENDPOINT, {
+function getSynapseAiEndpoint() {
+  return `${(focusSettings.dashboardUrl || DEFAULT_SETTINGS.dashboardUrl).replace(/\/$/, "")}/api/focus-ai`;
+}
+
+async function callSynapseAiBackend(payload = {}) {
+  const response = await fetch(getSynapseAiEndpoint(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${extensionGroqApiKey}`
+      ...(dashboardAuth?.idToken ? { Authorization: `Bearer ${dashboardAuth.idToken}` } : {})
     },
     body: JSON.stringify({
-      model: SYNAPSE_AI_MODEL,
-      messages,
-      temperature,
-      max_tokens: maxTokens
+      uid: dashboardBridge?.uid || "",
+      sessionId: payload.sessionId || sessionData.sessionId || "",
+      session: payload.session || null,
+      pageContext: payload.pageContext || {},
+      prompt: payload.prompt || "",
+      recentMessages: payload.recentMessages || [],
+      chats: payload.chats || [],
+      focusSeconds: payload.focusSeconds || 0,
+      reason: payload.reason || "",
+      mode: payload.mode || "chat"
     })
   });
 
@@ -605,11 +593,11 @@ async function callGroq(messages, { maxTokens = 700, temperature = 0.6 } = {}) {
     } catch (_) {
       detail = await response.text().catch(() => "");
     }
-    throw new Error(detail || `Groq request failed with ${response.status}.`);
+    throw new Error(detail || `SYNAPSE AI request failed with ${response.status}.`);
   }
 
   const data = await response.json();
-  const reply = data?.choices?.[0]?.message?.content?.trim();
+  const reply = data?.message?.trim();
   if (!reply) throw new Error("SYNAPSE AI returned an empty answer.");
   return reply;
 }
@@ -685,35 +673,18 @@ function upsertSessionAiSummary(sessionId, summary) {
 
 async function generateAndStoreAiSummary(session, reason, focusSeconds) {
   const chats = getSessionAiChats(session);
-  if (!chats.length || !extensionGroqApiKey) return;
+  if (!chats.length) return;
 
   try {
     const localSummary = buildLocalAiSummary(session, focusSeconds);
-    const messages = [
-      {
-        role: "system",
-        content: [
-          "Create a concise FocusLock study-session summary in clean Markdown.",
-          "Include: Topics Covered, Questions Asked, Weak Areas, Key Concepts, Suggested Revision.",
-          "Do not output JSON. Keep it actionable and short."
-        ].join("\n")
-      },
-      {
-        role: "user",
-        content: [
-          `Focus goal: ${session.focusGoal || DEFAULT_SETTINGS.focusGoal}`,
-          `Duration: ${Math.round(focusSeconds / 60)} minutes`,
-          `End reason: ${reason}`,
-          `Detected topics: ${localSummary.topicsCovered.join(", ") || "none"}`,
-          "AI chat transcript:",
-          ...chats.slice(-18).map((chat, index) => [
-            `Q${index + 1}: ${chat.userMessage}`,
-            `A${index + 1}: ${chat.aiResponse}`
-          ].join("\n"))
-        ].join("\n\n")
-      }
-    ];
-    const markdown = await callGroq(messages, { maxTokens: 620, temperature: 0.45 });
+    const markdown = await callSynapseAiBackend({
+      mode: "summary",
+      sessionId: session.sessionId,
+      session,
+      chats: chats.slice(-18),
+      focusSeconds,
+      reason
+    });
     upsertSessionAiSummary(session.sessionId, {
       ...localSummary,
       generatedAt: Date.now(),
@@ -731,10 +702,6 @@ async function handleAiChatRequest(message = {}, sender = {}) {
     return { success: false, error: "SYNAPSE AI Companion is turned off." };
   }
 
-  if (!extensionGroqApiKey) {
-    return { success: false, error: "Add the extension Groq API key in the Focus Lock popup." };
-  }
-
   const prompt = cleanText(message.prompt || "", 5000);
   if (!prompt) return { success: false, error: "Ask a study question first." };
 
@@ -745,18 +712,14 @@ async function handleAiChatRequest(message = {}, sender = {}) {
   };
   const sessionId = message.sessionId || sessionData.sessionId || `ambient_${getDateKey()}`;
   const sourceSession = sessionData.sessionId === sessionId ? sessionData : getHistoryRecord(sessionId) || sessionData;
-  const messages = [
-    { role: "system", content: buildAiSystemPrompt(sourceSession, pageContext) },
-    ...buildRecentAiMessages(sessionId),
-    {
-      role: "user",
-      content: [
-        pageContext.selection ? `Selected lecture text:\n${pageContext.selection}` : "",
-        `Question:\n${prompt}`
-      ].filter(Boolean).join("\n\n")
-    }
-  ];
-  const aiResponse = await callGroq(messages);
+  const aiResponse = await callSynapseAiBackend({
+    mode: "chat",
+    sessionId,
+    session: sourceSession,
+    pageContext,
+    prompt,
+    recentMessages: buildRecentAiMessages(sessionId)
+  });
   const chat = storeAiChat({
     id: message.chatId || randomId("chat"),
     userId: dashboardBridge?.uid || "",
@@ -1473,13 +1436,12 @@ function handleDashboardConnected(message) {
 }
 
 chrome.storage.local.get(
-  [STORAGE_KEYS.session, STORAGE_KEYS.legacySession, STORAGE_KEYS.stats, STORAGE_KEYS.settings, STORAGE_KEYS.dashboardBridge, STORAGE_KEYS.aiApiKey],
+  [STORAGE_KEYS.session, STORAGE_KEYS.legacySession, STORAGE_KEYS.stats, STORAGE_KEYS.settings, STORAGE_KEYS.dashboardBridge],
   (result) => {
     sessionData = { ...defaultSession(), ...(result[STORAGE_KEYS.session] || result[STORAGE_KEYS.legacySession] || {}) };
     focusStats = { ...defaultStats(), ...(result[STORAGE_KEYS.stats] || {}) };
     focusSettings = { ...DEFAULT_SETTINGS, ...(result[STORAGE_KEYS.settings] || {}) };
     dashboardBridge = result[STORAGE_KEYS.dashboardBridge] || null;
-    extensionGroqApiKey = result[STORAGE_KEYS.aiApiKey] || "";
     updateActionState();
 
     if (sessionData.active) {
@@ -1576,8 +1538,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "GET_AI_STATUS") {
     sendResponse({
       success: true,
-      ...publicAiStatus(),
-      apiKey: message.includeSecret ? extensionGroqApiKey : undefined
+      ...publicAiStatus()
     });
     return true;
   }
@@ -1594,18 +1555,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         : nextSettings.aiButtonPosition
     };
 
-    if (typeof message.apiKey === "string") {
-      extensionGroqApiKey = message.apiKey.trim();
-      saveAiApiKey();
-    }
-
     saveSettings();
     broadcastDashboardSync();
     sendResponse({
       success: true,
       settings: focusSettings,
-      aiStatus: publicAiStatus(),
-      apiKey: message.includeSecret ? extensionGroqApiKey : undefined
+      aiStatus: publicAiStatus()
     });
     return true;
   }

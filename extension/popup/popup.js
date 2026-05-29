@@ -22,7 +22,6 @@ const breakBtn = document.getElementById("break-btn");
 const unlockBtn = document.getElementById("unlock-btn");
 const syncLine = document.getElementById("sync-line");
 const aiCompanionToggle = document.getElementById("ai-companion-toggle");
-const aiApiKeyInput = document.getElementById("ai-api-key");
 const aiSettingsCard = document.querySelector(".ai-settings-card");
 
 const RING_SIZE = 301.59;
@@ -333,7 +332,6 @@ function hydrateSettings(settings = {}) {
 function hydrateAiStatus(status = {}) {
   aiCompanionToggle.checked = Boolean(status.enabled);
   aiSettingsCard.classList.toggle("is-enabled", aiCompanionToggle.checked);
-  if (typeof status.apiKey === "string") aiApiKeyInput.value = status.apiKey;
 }
 
 async function loadState() {
@@ -342,7 +340,7 @@ async function loadState() {
   updateStats(response?.stats || null);
   applySession(response?.session || null);
 
-  const aiStatus = await sendMessage({ type: "GET_AI_STATUS", includeSecret: true });
+  const aiStatus = await sendMessage({ type: "GET_AI_STATUS" });
   if (aiStatus?.success) hydrateAiStatus(aiStatus);
 }
 
@@ -369,13 +367,12 @@ function saveAiSettingsSoon() {
     aiSettingsCard.classList.toggle("is-enabled", enabled);
     sendMessage({
       type: "UPDATE_AI_SETTINGS",
-      apiKey: aiApiKeyInput.value.trim(),
       settings: {
         aiCompanionEnabled: enabled
       }
     }).then((response) => {
       if (response?.settings) currentSettings = response.settings;
-      if (response?.aiStatus) hydrateAiStatus({ ...response.aiStatus, apiKey: aiApiKeyInput.value.trim() });
+      if (response?.aiStatus) hydrateAiStatus(response.aiStatus);
     });
   }, 260);
 }
@@ -414,7 +411,6 @@ focusGoalInput.addEventListener("input", () => {
 });
 
 aiCompanionToggle.addEventListener("change", saveAiSettingsSoon);
-aiApiKeyInput.addEventListener("input", saveAiSettingsSoon);
 
 startBtn.addEventListener("click", async () => {
   const tabs = await new Promise((resolve) => {
