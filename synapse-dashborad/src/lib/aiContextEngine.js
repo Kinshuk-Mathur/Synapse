@@ -987,7 +987,6 @@ async function writeGoal(uid, idToken, data, requestId) {
 
 async function markProgressPillar(uid, idToken, pillar, requestId) {
   const todayKey = formatDateKey();
-  const yesterdayKey = formatDateKey(addDays(parseDateKey(todayKey), -1));
   const userPath = `users/${uid}`;
   const progressPath = `users/${uid}/dailyProgress/${todayKey}`;
   const [userDoc, progressDoc] = await Promise.all([
@@ -1027,15 +1026,14 @@ async function markProgressPillar(uid, idToken, pillar, requestId) {
     nextStats.totalGoalsUpdated += 1;
   }
 
-  const productiveDayComplete = nextProgress.completedFocus;
+  const productiveDayComplete =
+    nextProgress.completedFocus && (nextProgress.completedTask || nextProgress.completedGoalUpdate);
 
   if (productiveDayComplete && !previousProgress.momentumCompleted) {
     const currentMomentum =
       nextStats.lastCompletedDate === todayKey
         ? Math.max(nextStats.currentMomentum, 1)
-        : nextStats.lastCompletedDate === yesterdayKey
-          ? nextStats.currentMomentum + 1
-          : 1;
+        : nextStats.currentMomentum + 1;
 
     nextProgress.momentumCompleted = true;
     nextStats.currentMomentum = currentMomentum;

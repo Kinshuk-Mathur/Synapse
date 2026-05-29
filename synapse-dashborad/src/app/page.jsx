@@ -58,6 +58,7 @@ import {
   getCurrentGoalMonth
 } from "../services/monthlyGoals";
 import { carryForwardPastTodos, formatDateKey, listenToUserTodos, lockPastTodos } from "../services/todos";
+import { updateMomentumProgress } from "../services/userStats";
 
 const todoAppUrl = "/todo";
 const goalsAppUrl = "/goals";
@@ -258,6 +259,7 @@ function buildAiDailyBriefing({
   const completedFocus =
     Boolean(progress.completedFocus) ||
     (Number(focusSummary.sessionsCompletedToday || 0) > 0 && Number(focusSummary.focusSecondsToday || 0) >= 900);
+  const completedTaskOrGoal = Boolean(progress.completedTask) || Boolean(progress.completedGoalUpdate);
   const sortedPending = pendingTodos
     .slice()
     .sort((a, b) => {
@@ -288,15 +290,16 @@ function buildAiDailyBriefing({
 
   const stillNeed = [];
   if (!completedFocus) stillNeed.push("1 Focus Lock session of 15+ minutes");
+  if (!completedTaskOrGoal) stillNeed.push("1 completed task or goal update");
 
   const nextTodo = urgentTodos[0] || sortedPending[0];
   const nextGoal = upcomingGoals[0] || activeGoals.sort((a, b) => Number(a.progress || 0) - Number(b.progress || 0))[0];
   const recommendation = nextTodo
     ? `Start a 45-minute focus session for ${nextTodo.task || nextTodo.title}.`
-    : nextGoal
-      ? `Move ${nextGoal.title} forward with one focused progress update.`
-      : completedFocus
-        ? "Close the loop by finishing one meaningful task."
+      : nextGoal
+        ? `Move ${nextGoal.title} forward with one focused progress update.`
+      : completedFocus && completedTaskOrGoal
+        ? "Momentum loop is covered for today."
         : "Start a 25-minute focus session and protect the next block.";
 
   return {
@@ -474,9 +477,10 @@ function MomentumExplainerModal({ open, onClose }) {
             <span>To maintain Momentum daily:</span>
             <ul>
               <li>Complete one 15+ minute Focus Lock session</li>
-              <li>Open SYNAPSE so the extension can sync the session</li>
+              <li>Finish one task or update a goal</li>
+              <li>Open SYNAPSE so realtime progress can sync</li>
             </ul>
-            <p className="momentum-reset-line">Miss a 15+ minute Focus Lock session and Momentum resets.</p>
+            <p className="momentum-reset-line">Missed days stay unmarked. Your next productive day adds to Momentum.</p>
             <strong>Consistency builds discipline.</strong>
           </motion.article>
         </motion.div>
@@ -695,6 +699,38 @@ export default function Home() {
       }
     );
   }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user?.uid || focusLoading || focusError) return;
+
+    const focusMinutesToday = Math.floor(Number(focusSummary.focusSecondsToday || 0) / 60);
+
+    if (focusMinutesToday < 15) return;
+
+    updateMomentumProgress(user.uid, {
+      pillar: "focus",
+      focusMinutes: focusMinutesToday,
+      dateKey: formatDateKey()
+    }).catch((momentumError) => {
+      console.warn("Unable to sync Focus Lock Momentum progress:", momentumError);
+    });
+  }, [focusError, focusLoading, focusSummary.focusSecondsToday, user?.uid]);
+
+  useEffect(() => {
+    if (!user?.uid || dashboardTodoLoading) return;
+
+    const todayKey = formatDateKey();
+    const completedTaskToday = dashboardTodos.some((item) => item.selectedDate === todayKey && item.completed);
+
+    if (!completedTaskToday) return;
+
+    updateMomentumProgress(user.uid, {
+      pillar: "task",
+      dateKey: todayKey
+    }).catch((momentumError) => {
+      console.warn("Unable to sync task Momentum progress:", momentumError);
+    });
+  }, [dashboardTodoLoading, dashboardTodos, user?.uid]);
 
   const dashboardPendingTodos = useMemo(
     () =>
@@ -945,7 +981,7 @@ export default function Home() {
                 <Flame size={34} />
                 <b>{userStatsLoading ? "--" : userStats.currentMomentum || 0}</b>
               </strong>
-              <p>{userStatsError ? "Momentum sync unavailable" : "15+ min Focus Lock session."}</p>
+              <p>{userStatsError ? "Momentum sync unavailable" : "15+ min focus + task/goal."}</p>
               <em>Longest: {userStatsLoading ? "--" : userStats.longestMomentum || 0} days</em>
             </motion.button>
 

@@ -241,7 +241,6 @@ export async function updateMomentumProgress(uid, options = {}) {
   const db = getFirebaseDb();
   const userRef = getUserRef(db, uid);
   const progressRef = getDailyProgressRef(db, uid, todayKey);
-  const yesterdayKey = formatDateKey(addDays(parseDateKey(todayKey), -1));
 
   return runTransaction(db, async (transaction) => {
     const userSnapshot = await transaction.get(userRef);
@@ -291,7 +290,8 @@ export async function updateMomentumProgress(uid, options = {}) {
       nextProgress.aiPromptFingerprint = fingerprint || previousProgress.aiPromptFingerprint || "attachment";
     }
 
-    const productiveDayComplete = nextProgress.completedFocus;
+    const productiveDayComplete =
+      nextProgress.completedFocus && (nextProgress.completedTask || nextProgress.completedGoalUpdate);
 
     if (productiveDayComplete && !previousProgress.momentumCompleted) {
       const previousMomentum = nextStats.currentMomentum || 0;
@@ -299,9 +299,7 @@ export async function updateMomentumProgress(uid, options = {}) {
       const nextMomentum =
         lastCompletedDate === todayKey
           ? Math.max(previousMomentum, 1)
-          : lastCompletedDate === yesterdayKey
-            ? previousMomentum + 1
-            : 1;
+          : previousMomentum + 1;
 
       nextProgress.momentumCompleted = true;
       nextStats.currentMomentum = nextMomentum;
