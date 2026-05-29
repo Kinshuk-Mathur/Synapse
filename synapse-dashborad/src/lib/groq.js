@@ -28,7 +28,7 @@ export const GROQ_MODELS = [
 ];
 
 export function createGroqClient(options = {}) {
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = options.apiKey || process.env.GROQ_API_KEY;
 
   if (!apiKey) {
     return null;

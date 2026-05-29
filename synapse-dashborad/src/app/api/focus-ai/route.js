@@ -139,9 +139,11 @@ export async function POST(req) {
     globalThis.crypto?.randomUUID?.() || `focus-ai-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   try {
-    const groq = createGroqClient();
+    const groq = createGroqClient({
+      apiKey: process.env.FOCUS_AI_GROQ_API_KEY || process.env.GROQ_API_KEY
+    });
     if (!groq) {
-      return jsonResponse({ message: "SYNAPSE AI is not configured on the server." }, 503);
+      return jsonResponse({ message: "SYNAPSE Focus AI is not configured on the server." }, 503);
     }
 
     const body = await readJsonBody(req);
