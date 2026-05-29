@@ -62,6 +62,7 @@ const monthNames = Array.from({ length: 12 }, (_, month) =>
   new Date(2026, month, 1).toLocaleDateString(undefined, { month: "short" })
 );
 const focusLockEmptyMessage = "Get extension from Focus Lock";
+const focusLockExtensionUrl = "https://chromewebstore.google.com/detail/jhpjhjineokfnnfladlgboalcdoegobj?utm_source=item-share-cb";
 
 function getCurrentFocusPeriod() {
   const today = new Date();
@@ -421,10 +422,15 @@ export default function FocusPage() {
               </div>
               <div className="focus-hero-actions">
                 <NotificationCenter />
-                <button className="focus-extension-button" type="button">
-                  <ShieldCheck size={18} />
-                  <span>Get Focus Lock Extension</span>
-                </button>
+              <a
+                className="focus-extension-button"
+                href={focusLockExtensionUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <ShieldCheck size={18} />
+                <span>Get Focus Lock Extension</span>
+              </a>
               </div>
             </header>
 
