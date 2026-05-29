@@ -21,6 +21,9 @@ const peakIntervalEl = document.getElementById("peak-interval");
 const breakBtn = document.getElementById("break-btn");
 const unlockBtn = document.getElementById("unlock-btn");
 const syncLine = document.getElementById("sync-line");
+const aiCompanionToggle = document.getElementById("ai-companion-toggle");
+const aiApiKeyInput = document.getElementById("ai-api-key");
+const aiSettingsCard = document.querySelector(".ai-settings-card");
 
 const RING_SIZE = 301.59;
 const DEFAULT_DASHBOARD_URL = "https://synapse24.netlify.app";
@@ -29,6 +32,7 @@ let currentSession = null;
 let currentStats = null;
 let currentSettings = null;
 let settingsSaveTimer = null;
+let aiSettingsSaveTimer = null;
 
 function ignoreRuntimeError() {
   void chrome.runtime.lastError;
@@ -322,6 +326,14 @@ function hydrateSettings(settings = {}) {
 
   const duration = settings.defaultDurationSeconds || 7200;
   durationInput.value = formatHms(duration);
+  aiCompanionToggle.checked = Boolean(settings.aiCompanionEnabled);
+  aiSettingsCard.classList.toggle("is-enabled", aiCompanionToggle.checked);
+}
+
+function hydrateAiStatus(status = {}) {
+  aiCompanionToggle.checked = Boolean(status.enabled);
+  aiSettingsCard.classList.toggle("is-enabled", aiCompanionToggle.checked);
+  if (typeof status.apiKey === "string") aiApiKeyInput.value = status.apiKey;
 }
 
 async function loadState() {
@@ -329,6 +341,9 @@ async function loadState() {
   hydrateSettings(response?.settings || {});
   updateStats(response?.stats || null);
   applySession(response?.session || null);
+
+  const aiStatus = await sendMessage({ type: "GET_AI_STATUS", includeSecret: true });
+  if (aiStatus?.success) hydrateAiStatus(aiStatus);
 }
 
 function saveSettingsSoon() {
@@ -345,6 +360,24 @@ function saveSettingsSoon() {
       if (response?.settings) currentSettings = response.settings;
     });
   }, 300);
+}
+
+function saveAiSettingsSoon() {
+  if (aiSettingsSaveTimer) clearTimeout(aiSettingsSaveTimer);
+  aiSettingsSaveTimer = setTimeout(() => {
+    const enabled = Boolean(aiCompanionToggle.checked);
+    aiSettingsCard.classList.toggle("is-enabled", enabled);
+    sendMessage({
+      type: "UPDATE_AI_SETTINGS",
+      apiKey: aiApiKeyInput.value.trim(),
+      settings: {
+        aiCompanionEnabled: enabled
+      }
+    }).then((response) => {
+      if (response?.settings) currentSettings = response.settings;
+      if (response?.aiStatus) hydrateAiStatus({ ...response.aiStatus, apiKey: aiApiKeyInput.value.trim() });
+    });
+  }, 260);
 }
 
 chrome.runtime.sendMessage({ type: "POPUP_OPENED" }, ignoreRuntimeError);
@@ -366,6 +399,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
   if (changes.synapseFocusSettings) {
     currentSettings = changes.synapseFocusSettings.newValue || currentSettings;
+    hydrateSettings(currentSettings || {});
   }
 });
 
@@ -378,6 +412,9 @@ focusGoalInput.addEventListener("input", () => {
   activeGoalChip.textContent = focusGoalInput.value || "Deep study session";
   saveSettingsSoon();
 });
+
+aiCompanionToggle.addEventListener("change", saveAiSettingsSoon);
+aiApiKeyInput.addEventListener("input", saveAiSettingsSoon);
 
 startBtn.addEventListener("click", async () => {
   const tabs = await new Promise((resolve) => {

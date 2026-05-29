@@ -45,13 +45,18 @@ export function useSynapseFocus(user) {
 
     let cancelled = false;
 
-    const announceDashboard = () => {
+    const announceDashboard = async () => {
+      const idToken = user.getIdToken ? await user.getIdToken().catch(() => "") : "";
       window.postMessage(
         {
           source: "SYNAPSE_DASHBOARD",
           type: "DASHBOARD_READY",
           uid: user.uid,
-          origin: window.location.origin
+          origin: window.location.origin,
+          idToken,
+          firebaseProjectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+          firebaseApiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
+          firestoreBaseUrl: "https://firestore.googleapis.com/v1"
         },
         window.location.origin
       );
@@ -86,6 +91,8 @@ export function useSynapseFocus(user) {
             item.endedAt,
             item.focusScore,
             item.stopWarningCount,
+            item.aiChatCount || item.aiChats?.length || 0,
+            item.aiSummary?.generatedAt || 0,
             item.distractionAttempts?.length || 0,
             item.distractionIntervals?.map((interval) => [interval.intervalKey, interval.count]) || []
           ])
@@ -132,7 +139,9 @@ export function useSynapseFocus(user) {
 
     window.addEventListener("message", handleMessage);
     announceDashboard();
-    const announceTimer = window.setInterval(announceDashboard, 5000);
+    const announceTimer = window.setInterval(() => {
+      announceDashboard();
+    }, 5000);
 
     return () => {
       cancelled = true;

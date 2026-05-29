@@ -2,13 +2,16 @@ const MOTIVATION_ALARM = "synapse-focus-motivation";
 const SESSION_END_ALARM = "synapse-focus-session-end";
 const BREAK_END_ALARM = "synapse-focus-break-end";
 const SYNC_REMINDER_ALARM = "synapse-focus-sync-reminder";
+const GROQ_CHAT_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+const SYNAPSE_AI_MODEL = "llama-3.1-8b-instant";
 
 const STORAGE_KEYS = {
   session: "synapseFocusSession",
   legacySession: "focusSession",
   stats: "synapseFocusStats",
   settings: "synapseFocusSettings",
-  dashboardBridge: "synapseFocusDashboardBridge"
+  dashboardBridge: "synapseFocusDashboardBridge",
+  aiApiKey: "synapseExtensionGroqApiKey"
 };
 
 const DEFAULT_SETTINGS = {
@@ -17,6 +20,8 @@ const DEFAULT_SETTINGS = {
   sameOriginLock: true,
   fullscreenProtection: true,
   blockDistractingSites: true,
+  aiCompanionEnabled: false,
+  aiButtonPosition: null,
   dashboardUrl: "https://synapse24.netlify.app",
   restrictedHosts: [
     "instagram.com",
@@ -108,7 +113,11 @@ const defaultSession = () => ({
   focusScore: 100,
   stopWarningCount: 0,
   recentSwitches: [],
-  lastViolationAt: null
+  lastViolationAt: null,
+  aiChats: [],
+  aiSummary: null,
+  aiTopics: [],
+  aiQuestionCount: 0
 });
 
 const defaultStats = () => ({
@@ -133,6 +142,8 @@ let sessionData = defaultSession();
 let focusStats = defaultStats();
 let focusSettings = { ...DEFAULT_SETTINGS };
 let dashboardBridge = null;
+let dashboardAuth = null;
+let extensionGroqApiKey = "";
 let guardIntervalId = null;
 let popupInteractionUntil = 0;
 let lastNotificationAt = 0;
@@ -400,6 +411,441 @@ function saveSettings() {
 
 function saveDashboardBridge() {
   chrome.storage.local.set({ [STORAGE_KEYS.dashboardBridge]: dashboardBridge });
+}
+
+function saveAiApiKey() {
+  chrome.storage.local.set({ [STORAGE_KEYS.aiApiKey]: extensionGroqApiKey });
+}
+
+function publicAiStatus() {
+  return {
+    enabled: Boolean(focusSettings.aiCompanionEnabled),
+    hasApiKey: Boolean(extensionGroqApiKey),
+    model: SYNAPSE_AI_MODEL,
+    position: focusSettings.aiButtonPosition || null,
+    session: sessionData.active ? sessionData : null,
+    dashboardConnected: Boolean(dashboardBridge?.uid),
+    firebaseWritable: Boolean(dashboardBridge?.uid && dashboardAuth?.idToken && dashboardAuth?.firebaseProjectId)
+  };
+}
+
+function cleanText(value = "", maxLength = 8000) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function normalizeAiChat(chat = {}) {
+  return {
+    id: chat.id || randomId("chat"),
+    userId: chat.userId || dashboardBridge?.uid || "",
+    sessionId: chat.sessionId || sessionData.sessionId || "",
+    timestamp: Number(chat.timestamp || Date.now()),
+    userMessage: cleanText(chat.userMessage || chat.prompt || "", 5000),
+    aiResponse: String(chat.aiResponse || chat.response || "").trim(),
+    topic: cleanText(chat.topic || detectTopic(`${chat.userMessage || ""} ${chat.aiResponse || ""}`), 80),
+    model: chat.model || SYNAPSE_AI_MODEL,
+    pageTitle: cleanText(chat.pageTitle || "", 180),
+    pageUrl: cleanText(chat.pageUrl || "", 1000)
+  };
+}
+
+function normalizeAiChats(chats = []) {
+  return (Array.isArray(chats) ? chats : [])
+    .map(normalizeAiChat)
+    .filter((chat) => chat.userMessage || chat.aiResponse)
+    .slice(-80);
+}
+
+function getSessionAiChats(session = {}) {
+  return normalizeAiChats(session.aiChats || []);
+}
+
+function getHistoryRecord(sessionId) {
+  return (focusStats.sessionHistory || []).find((item) => item.id === sessionId) || null;
+}
+
+function extractTopicsFromChats(chats = []) {
+  const seen = new Set();
+  const topics = [];
+
+  chats.forEach((chat) => {
+    const topic = cleanText(chat.topic || detectTopic(`${chat.userMessage} ${chat.aiResponse}`), 80);
+    if (!topic || seen.has(topic.toLowerCase())) return;
+    seen.add(topic.toLowerCase());
+    topics.push(topic);
+  });
+
+  return topics.slice(0, 8);
+}
+
+function detectTopic(text = "") {
+  const value = cleanText(text, 900).toLowerCase();
+  const topicSignals = [
+    ["Electrostatics", /\b(electrostatics?|electric field|coulomb|capacitance|potential difference)\b/],
+    ["Capacitance", /\b(capacitance|capacitor|dielectric|charge storage)\b/],
+    ["Calculus", /\b(calculus|derivative|integral|limit|differentiation|integration)\b/],
+    ["Physics numericals", /\b(numerical|formula|velocity|acceleration|force|work energy|momentum)\b/],
+    ["Chemistry", /\b(chemical|mole concept|organic|inorganic|reaction|equilibrium|acid|base)\b/],
+    ["Biology", /\b(biology|cell|genetics|photosynthesis|respiration|anatomy)\b/],
+    ["Mathematics", /\b(algebra|trigonometry|geometry|probability|matrix|vector)\b/],
+    ["Programming", /\b(code|bug|javascript|python|react|firebase|api|function|component|algorithm)\b/],
+    ["Business Studies", /\b(business|organisation|management|marketing|finance|enterprise)\b/],
+    ["History", /\b(history|civics|politics|geography|constitution)\b/]
+  ];
+  const match = topicSignals.find(([, pattern]) => pattern.test(value));
+  if (match) return match[0];
+
+  const words = value
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 3 && !["what", "when", "where", "which", "should", "could", "would", "explain", "please", "this", "that", "with", "from", "about"].includes(word));
+
+  return words.slice(0, 3).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") || "Study question";
+}
+
+function getWeakAreas(chats = []) {
+  const weakSignals = /\b(confused|weak|wrong|mistake|stuck|doubt|hard|difficult|numerical|error|derive|derivation|formula)\b/i;
+  const areas = chats
+    .filter((chat) => weakSignals.test(`${chat.userMessage} ${chat.aiResponse}`))
+    .map((chat) => chat.topic || detectTopic(chat.userMessage));
+
+  return [...new Set(areas)].slice(0, 5);
+}
+
+function buildLocalAiSummary(session = {}, focusSeconds = 0) {
+  const chats = getSessionAiChats(session);
+  const topics = extractTopicsFromChats(chats);
+  const weakAreas = getWeakAreas(chats);
+  const goal = session.focusGoal || DEFAULT_SETTINGS.focusGoal;
+  const durationMinutes = Math.max(0, Math.round(focusSeconds / 60));
+  const revision = weakAreas.length
+    ? weakAreas.map((area) => `Review ${area} with 3-5 focused practice questions.`)
+    : ["Revisit the main notes from this session and solve a short recall set."];
+  const markdown = [
+    "# Session Summary",
+    `- **Focus Goal:** ${goal}`,
+    `- **Duration:** ${durationMinutes} min`,
+    `- **Questions Asked:** ${chats.length}`,
+    "",
+    "## Topics Covered",
+    ...(topics.length ? topics.map((topic) => `- ${topic}`) : ["- No AI topics recorded."]),
+    "",
+    "## Weak Areas",
+    ...(weakAreas.length ? weakAreas.map((area) => `- ${area}`) : ["- No clear weak area detected yet."]),
+    "",
+    "## Suggested Revision",
+    ...revision.map((item) => `- ${item}`)
+  ].join("\n");
+
+  return {
+    generatedAt: Date.now(),
+    source: "local",
+    model: chats.length ? "synapse-local-summary" : "",
+    topicsCovered: topics,
+    questionsAsked: chats.length,
+    weakAreas,
+    keyConcepts: topics.slice(0, 5),
+    recommendedRevision: revision,
+    markdown
+  };
+}
+
+function buildAiSystemPrompt(session = {}, pageContext = {}) {
+  const sessionGoal = session.focusGoal || DEFAULT_SETTINGS.focusGoal;
+  const pageTitle = pageContext.title || session.lockedTitle || "current study page";
+
+  return [
+    "You are SYNAPSE AI Companion, a silent study mentor inside a FocusLock session.",
+    "Be concise, calm, premium, and useful. Write clean Markdown only.",
+    "Act like an intelligent teacher, study mentor, and productivity coach.",
+    "Use short sections, bullets, formulas, and examples when helpful.",
+    "Avoid raw JSON, giant essays, filler, and robotic wording.",
+    `Current focus goal: ${sessionGoal}.`,
+    `Current study page: ${pageTitle}.`
+  ].join("\n");
+}
+
+function buildRecentAiMessages(sessionId, limit = 5) {
+  const sourceSession = sessionData.sessionId === sessionId
+    ? sessionData
+    : getHistoryRecord(sessionId) || {};
+  const chats = getSessionAiChats(sourceSession).slice(-limit);
+  const messages = [];
+
+  chats.forEach((chat) => {
+    if (chat.userMessage) messages.push({ role: "user", content: chat.userMessage });
+    if (chat.aiResponse) messages.push({ role: "assistant", content: chat.aiResponse });
+  });
+
+  return messages;
+}
+
+async function callGroq(messages, { maxTokens = 700, temperature = 0.6 } = {}) {
+  const response = await fetch(GROQ_CHAT_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${extensionGroqApiKey}`
+    },
+    body: JSON.stringify({
+      model: SYNAPSE_AI_MODEL,
+      messages,
+      temperature,
+      max_tokens: maxTokens
+    })
+  });
+
+  if (!response.ok) {
+    let detail = "";
+    try {
+      const errorBody = await response.json();
+      detail = errorBody?.error?.message || errorBody?.message || "";
+    } catch (_) {
+      detail = await response.text().catch(() => "");
+    }
+    throw new Error(detail || `Groq request failed with ${response.status}.`);
+  }
+
+  const data = await response.json();
+  const reply = data?.choices?.[0]?.message?.content?.trim();
+  if (!reply) throw new Error("SYNAPSE AI returned an empty answer.");
+  return reply;
+}
+
+function storeAiChat(chat) {
+  const normalized = normalizeAiChat(chat);
+  if (!normalized.sessionId) return normalized;
+
+  let changed = false;
+
+  if (sessionData.active && sessionData.sessionId === normalized.sessionId) {
+    const chats = getSessionAiChats(sessionData).filter((item) => item.id !== normalized.id);
+    chats.push(normalized);
+    sessionData.aiChats = chats.slice(-80);
+    sessionData.aiQuestionCount = sessionData.aiChats.length;
+    sessionData.aiTopics = extractTopicsFromChats(sessionData.aiChats);
+    saveSession();
+    changed = true;
+  }
+
+  const historyRecord = getHistoryRecord(normalized.sessionId);
+  if (historyRecord) {
+    const chats = getSessionAiChats(historyRecord).filter((item) => item.id !== normalized.id);
+    chats.push(normalized);
+    historyRecord.aiChats = chats.slice(-80);
+    historyRecord.aiChatCount = historyRecord.aiChats.length;
+    historyRecord.aiTopics = extractTopicsFromChats(historyRecord.aiChats);
+    saveStats();
+    changed = true;
+  }
+
+  if (changed) scheduleDashboardSync();
+  persistAiChatToFirestore(normalized).catch(() => {});
+  return normalized;
+}
+
+function upsertSessionAiSummary(sessionId, summary) {
+  if (!sessionId || !summary) return;
+
+  const normalizedSummary = {
+    generatedAt: Number(summary.generatedAt || Date.now()),
+    source: summary.source || "groq",
+    model: summary.model || SYNAPSE_AI_MODEL,
+    topicsCovered: Array.isArray(summary.topicsCovered) ? summary.topicsCovered : [],
+    questionsAsked: Number(summary.questionsAsked || 0),
+    weakAreas: Array.isArray(summary.weakAreas) ? summary.weakAreas : [],
+    keyConcepts: Array.isArray(summary.keyConcepts) ? summary.keyConcepts : [],
+    recommendedRevision: Array.isArray(summary.recommendedRevision) ? summary.recommendedRevision : [],
+    markdown: String(summary.markdown || "").trim()
+  };
+
+  if (sessionData.active && sessionData.sessionId === sessionId) {
+    sessionData.aiSummary = normalizedSummary;
+    sessionData.aiTopics = normalizedSummary.topicsCovered.length
+      ? normalizedSummary.topicsCovered
+      : sessionData.aiTopics || [];
+    saveSession();
+  }
+
+  const historyRecord = getHistoryRecord(sessionId);
+  if (historyRecord) {
+    historyRecord.aiSummary = normalizedSummary;
+    historyRecord.aiTopics = normalizedSummary.topicsCovered.length
+      ? normalizedSummary.topicsCovered
+      : historyRecord.aiTopics || [];
+    historyRecord.notes = normalizedSummary.markdown;
+    saveStats();
+    scheduleDashboardSync();
+  }
+
+  persistAiSummaryToFirestore(sessionId, normalizedSummary).catch(() => {});
+}
+
+async function generateAndStoreAiSummary(session, reason, focusSeconds) {
+  const chats = getSessionAiChats(session);
+  if (!chats.length || !extensionGroqApiKey) return;
+
+  try {
+    const localSummary = buildLocalAiSummary(session, focusSeconds);
+    const messages = [
+      {
+        role: "system",
+        content: [
+          "Create a concise FocusLock study-session summary in clean Markdown.",
+          "Include: Topics Covered, Questions Asked, Weak Areas, Key Concepts, Suggested Revision.",
+          "Do not output JSON. Keep it actionable and short."
+        ].join("\n")
+      },
+      {
+        role: "user",
+        content: [
+          `Focus goal: ${session.focusGoal || DEFAULT_SETTINGS.focusGoal}`,
+          `Duration: ${Math.round(focusSeconds / 60)} minutes`,
+          `End reason: ${reason}`,
+          `Detected topics: ${localSummary.topicsCovered.join(", ") || "none"}`,
+          "AI chat transcript:",
+          ...chats.slice(-18).map((chat, index) => [
+            `Q${index + 1}: ${chat.userMessage}`,
+            `A${index + 1}: ${chat.aiResponse}`
+          ].join("\n"))
+        ].join("\n\n")
+      }
+    ];
+    const markdown = await callGroq(messages, { maxTokens: 620, temperature: 0.45 });
+    upsertSessionAiSummary(session.sessionId, {
+      ...localSummary,
+      generatedAt: Date.now(),
+      source: "groq",
+      model: SYNAPSE_AI_MODEL,
+      markdown
+    });
+  } catch (_) {
+    // The local summary is already saved, so failed AI summarization stays quiet.
+  }
+}
+
+async function handleAiChatRequest(message = {}, sender = {}) {
+  if (!focusSettings.aiCompanionEnabled) {
+    return { success: false, error: "SYNAPSE AI Companion is turned off." };
+  }
+
+  if (!extensionGroqApiKey) {
+    return { success: false, error: "Add the extension Groq API key in the Focus Lock popup." };
+  }
+
+  const prompt = cleanText(message.prompt || "", 5000);
+  if (!prompt) return { success: false, error: "Ask a study question first." };
+
+  const pageContext = {
+    title: cleanText(message.pageContext?.title || sender.tab?.title || "", 180),
+    url: cleanText(message.pageContext?.url || sender.tab?.url || "", 1000),
+    selection: cleanText(message.pageContext?.selection || "", 1200)
+  };
+  const sessionId = message.sessionId || sessionData.sessionId || `ambient_${getDateKey()}`;
+  const sourceSession = sessionData.sessionId === sessionId ? sessionData : getHistoryRecord(sessionId) || sessionData;
+  const messages = [
+    { role: "system", content: buildAiSystemPrompt(sourceSession, pageContext) },
+    ...buildRecentAiMessages(sessionId),
+    {
+      role: "user",
+      content: [
+        pageContext.selection ? `Selected lecture text:\n${pageContext.selection}` : "",
+        `Question:\n${prompt}`
+      ].filter(Boolean).join("\n\n")
+    }
+  ];
+  const aiResponse = await callGroq(messages);
+  const chat = storeAiChat({
+    id: message.chatId || randomId("chat"),
+    userId: dashboardBridge?.uid || "",
+    sessionId,
+    timestamp: Date.now(),
+    userMessage: prompt,
+    aiResponse,
+    topic: detectTopic(`${prompt} ${aiResponse}`),
+    model: SYNAPSE_AI_MODEL,
+    pageTitle: pageContext.title,
+    pageUrl: pageContext.url
+  });
+
+  return { success: true, chat, aiStatus: publicAiStatus() };
+}
+
+function toFirestoreValue(value) {
+  if (value === null || value === undefined) return { nullValue: null };
+  if (Array.isArray(value)) {
+    return { arrayValue: { values: value.map(toFirestoreValue) } };
+  }
+  if (typeof value === "boolean") return { booleanValue: value };
+  if (typeof value === "number") {
+    return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
+  }
+  if (typeof value === "object") {
+    return {
+      mapValue: {
+        fields: Object.fromEntries(
+          Object.entries(value)
+            .filter(([, child]) => child !== undefined)
+            .map(([key, child]) => [key, toFirestoreValue(child)])
+        )
+      }
+    };
+  }
+  return { stringValue: String(value) };
+}
+
+async function patchFirestoreDocument(documentPath, data = {}) {
+  if (!dashboardBridge?.uid || !dashboardAuth?.idToken || !dashboardAuth?.firebaseProjectId) return false;
+
+  const fields = Object.fromEntries(
+    Object.entries(data)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => [key, toFirestoreValue(value)])
+  );
+  const updateMask = Object.keys(fields)
+    .map((key) => `updateMask.fieldPaths=${encodeURIComponent(key)}`)
+    .join("&");
+  const url = `${dashboardAuth.firestoreBaseUrl || "https://firestore.googleapis.com/v1"}/projects/${dashboardAuth.firebaseProjectId}/databases/(default)/documents/${documentPath}${updateMask ? `?${updateMask}` : ""}`;
+
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${dashboardAuth.idToken}`
+    },
+    body: JSON.stringify({ fields })
+  });
+
+  return response.ok;
+}
+
+async function persistAiChatToFirestore(chat) {
+  if (!chat?.sessionId || !dashboardBridge?.uid) return false;
+  const sessionDocId = `${dashboardBridge.uid}_${chat.sessionId}`;
+
+  await patchFirestoreDocument(`focusSessions/${sessionDocId}/chats/${chat.id}`, {
+    ...chat,
+    uid: dashboardBridge.uid,
+    updatedAt: Date.now()
+  });
+
+  return true;
+}
+
+async function persistAiSummaryToFirestore(sessionId, summary) {
+  if (!sessionId || !dashboardBridge?.uid) return false;
+  const sessionDocId = `${dashboardBridge.uid}_${sessionId}`;
+
+  await patchFirestoreDocument(`focusSessions/${sessionDocId}/summaries/session`, {
+    uid: dashboardBridge.uid,
+    sessionId,
+    summary,
+    updatedAt: Date.now()
+  });
+
+  return true;
 }
 
 function updateActionState() {
@@ -717,6 +1163,9 @@ function recordSessionStats(session, reason, focusSeconds) {
   const focusScore = computeSessionFocusScore(session);
   const distractionAttempts = session.distractionAttempts || [];
   const distractionIntervals = Object.values(session.distractionIntervals || {}).sort((a, b) => a.intervalIndex - b.intervalIndex);
+  const aiChats = getSessionAiChats(session);
+  const aiSummary = session.aiSummary || (aiChats.length ? buildLocalAiSummary(session, focusSeconds) : null);
+  const aiTopics = aiSummary?.topicsCovered?.length ? aiSummary.topicsCovered : extractTopicsFromChats(aiChats);
   const historyRecord = {
     id: session.sessionId,
     dateKey,
@@ -736,7 +1185,12 @@ function recordSessionStats(session, reason, focusSeconds) {
     distractionIntervals,
     distractionPeaks: session.distractionPeaks || [],
     focusScore,
-    stopWarningCount: session.stopWarningCount || 0
+    stopWarningCount: session.stopWarningCount || 0,
+    aiChats,
+    aiChatCount: aiChats.length,
+    aiTopics,
+    aiSummary,
+    notes: aiSummary?.markdown || ""
   };
 
   focusStats.totalFocusSeconds += focusSeconds;
@@ -769,10 +1223,20 @@ function endSession(reason = "manual") {
   if (!sessionData.active) return;
 
   const lockedTabId = sessionData.lockedTabId;
-  const completedSession = { ...sessionData, sessionDistractions: { ...sessionData.sessionDistractions } };
+  const completedSession = {
+    ...sessionData,
+    sessionDistractions: { ...sessionData.sessionDistractions },
+    aiChats: getSessionAiChats(sessionData)
+  };
   const focusSeconds = computeFocusSeconds(completedSession);
+  if (completedSession.aiChats.length && !completedSession.aiSummary) {
+    completedSession.aiSummary = buildLocalAiSummary(completedSession, focusSeconds);
+    completedSession.aiTopics = completedSession.aiSummary.topicsCovered || [];
+    completedSession.aiQuestionCount = completedSession.aiChats.length;
+  }
 
   recordSessionStats(completedSession, reason, focusSeconds);
+  generateAndStoreAiSummary(completedSession, reason, focusSeconds);
   clearMotivationAlarm();
   clearSessionEndAlarm();
   clearBreakEndAlarm();
@@ -995,17 +1459,27 @@ function handleDashboardConnected(message) {
     connectedAt: Date.now(),
     lastAckAt: dashboardBridge?.lastAckAt || null
   };
+  if (message.idToken && message.firebaseProjectId) {
+    dashboardAuth = {
+      idToken: message.idToken,
+      firebaseProjectId: message.firebaseProjectId,
+      firebaseApiKey: message.firebaseApiKey || "",
+      firestoreBaseUrl: message.firestoreBaseUrl || "https://firestore.googleapis.com/v1",
+      receivedAt: Date.now()
+    };
+  }
   saveDashboardBridge();
   return { success: true, payload: buildSyncPayload() };
 }
 
 chrome.storage.local.get(
-  [STORAGE_KEYS.session, STORAGE_KEYS.legacySession, STORAGE_KEYS.stats, STORAGE_KEYS.settings, STORAGE_KEYS.dashboardBridge],
+  [STORAGE_KEYS.session, STORAGE_KEYS.legacySession, STORAGE_KEYS.stats, STORAGE_KEYS.settings, STORAGE_KEYS.dashboardBridge, STORAGE_KEYS.aiApiKey],
   (result) => {
     sessionData = { ...defaultSession(), ...(result[STORAGE_KEYS.session] || result[STORAGE_KEYS.legacySession] || {}) };
     focusStats = { ...defaultStats(), ...(result[STORAGE_KEYS.stats] || {}) };
     focusSettings = { ...DEFAULT_SETTINGS, ...(result[STORAGE_KEYS.settings] || {}) };
     dashboardBridge = result[STORAGE_KEYS.dashboardBridge] || null;
+    extensionGroqApiKey = result[STORAGE_KEYS.aiApiKey] || "";
     updateActionState();
 
     if (sessionData.active) {
@@ -1096,6 +1570,64 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     focusSettings = { ...focusSettings, ...(message.settings || {}) };
     saveSettings();
     sendResponse({ success: true, settings: focusSettings });
+    return true;
+  }
+
+  if (message.type === "GET_AI_STATUS") {
+    sendResponse({
+      success: true,
+      ...publicAiStatus(),
+      apiKey: message.includeSecret ? extensionGroqApiKey : undefined
+    });
+    return true;
+  }
+
+  if (message.type === "UPDATE_AI_SETTINGS") {
+    const nextSettings = message.settings || {};
+    focusSettings = {
+      ...focusSettings,
+      aiCompanionEnabled: nextSettings.aiCompanionEnabled === undefined
+        ? Boolean(focusSettings.aiCompanionEnabled)
+        : Boolean(nextSettings.aiCompanionEnabled),
+      aiButtonPosition: nextSettings.aiButtonPosition === undefined
+        ? focusSettings.aiButtonPosition || null
+        : nextSettings.aiButtonPosition
+    };
+
+    if (typeof message.apiKey === "string") {
+      extensionGroqApiKey = message.apiKey.trim();
+      saveAiApiKey();
+    }
+
+    saveSettings();
+    broadcastDashboardSync();
+    sendResponse({
+      success: true,
+      settings: focusSettings,
+      aiStatus: publicAiStatus(),
+      apiKey: message.includeSecret ? extensionGroqApiKey : undefined
+    });
+    return true;
+  }
+
+  if (message.type === "SAVE_AI_WIDGET_POSITION") {
+    const position = message.position || {};
+    const x = Number(position.x);
+    const y = Number(position.y);
+    if (Number.isFinite(x) && Number.isFinite(y)) {
+      focusSettings.aiButtonPosition = { x, y };
+      saveSettings();
+    }
+    sendResponse({ success: true, aiStatus: publicAiStatus() });
+    return true;
+  }
+
+  if (message.type === "SYNAPSE_AI_CHAT") {
+    handleAiChatRequest(message, sender)
+      .then(sendResponse)
+      .catch((error) => {
+        sendResponse({ success: false, error: error?.message || "SYNAPSE AI could not answer right now." });
+      });
     return true;
   }
 

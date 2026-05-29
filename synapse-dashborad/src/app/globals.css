@@ -7148,6 +7148,7 @@ textarea {
 .focus-week-panel,
 .focus-distractions-panel,
 .focus-history-panel {
+  position: relative;
   min-height: 280px;
 }
 
@@ -7263,11 +7264,23 @@ textarea {
 
 .focus-history-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 16px;
   min-height: 70px;
   padding: 12px 14px;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+.focus-history-item:hover,
+.focus-history-item.is-selected {
+  border-color: color-mix(in oklab, var(--color-pulse) 42%, var(--transparent));
+  background: color-mix(in oklab, var(--color-pulse) 10%, var(--color-text) 5%);
+  transform: translateY(-1px);
 }
 
 .focus-history-item div {
@@ -7291,6 +7304,163 @@ textarea {
 
 .focus-history-item small {
   white-space: nowrap;
+}
+
+.focus-session-detail {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 20;
+  display: grid;
+  width: min(620px, calc(100% - 36px));
+  max-height: min(680px, calc(100vh - 120px));
+  gap: 14px;
+  overflow: auto;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 36%, var(--border));
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-text) 7%, var(--transparent)), color-mix(in oklab, var(--panel) 86%, var(--transparent))),
+    var(--panel);
+  box-shadow: 0 28px 110px color-mix(in oklab, var(--color-ink) 54%, var(--transparent));
+  padding: 16px;
+  backdrop-filter: blur(24px) saturate(1.08);
+}
+
+.focus-session-detail-header,
+.focus-session-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.focus-session-detail-header div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.focus-session-detail-header span,
+.focus-session-detail-stats span,
+.focus-session-section-title span,
+.focus-session-question span,
+.focus-session-answer span,
+.focus-session-no-chat {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.focus-session-detail-header h3 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-text);
+  font-size: 18px;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-session-detail-header button,
+.focus-session-section-title button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 6%, var(--transparent));
+  color: var(--color-muted);
+  padding: 8px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.focus-session-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.focus-session-detail-stats div,
+.focus-session-summary,
+.focus-session-chat-pair {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+}
+
+.focus-session-detail-stats div {
+  display: grid;
+  gap: 6px;
+  padding: 11px;
+}
+
+.focus-session-detail-stats strong {
+  color: var(--color-text);
+  font-size: 18px;
+}
+
+.focus-session-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.focus-session-topics span {
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 26%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-pulse) 11%, var(--transparent));
+  color: color-mix(in oklab, var(--color-text) 84%, var(--color-pulse));
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.focus-session-summary {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+}
+
+.focus-session-summary.is-empty p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.focus-session-chat {
+  display: grid;
+  gap: 10px;
+}
+
+.focus-session-chat-pair {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.focus-session-question,
+.focus-session-answer {
+  display: grid;
+  gap: 6px;
+}
+
+.focus-session-question p {
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.55;
+}
+
+.focus-session-answer {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.focus-session-detail .ai-response-markdown {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.focus-session-detail .ai-code-block {
+  margin-block: 4px;
 }
 
 .focus-empty {

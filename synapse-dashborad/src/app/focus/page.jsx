@@ -10,6 +10,7 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
+  Copy,
   FolderOpen,
   HelpCircle,
   LayoutDashboard,
@@ -25,6 +26,7 @@ import {
 } from "lucide-react";
 import NotificationCenter from "../../components/NotificationCenter";
 import ProtectedRoute from "../../components/ProtectedRoute";
+import AIMessageRenderer from "../../components/synapse-ai/AIMessageRenderer";
 import { useAuth } from "../../context/AuthContext";
 import { useSynapseFocus } from "../../hooks/useSynapseFocus";
 import { buildFocusSummary } from "../../services/focusSessions";
@@ -111,6 +113,121 @@ function formatDayLabel(dateKey) {
     month: "short",
     day: "numeric"
   });
+}
+
+function getSessionChats(session = {}) {
+  return Array.isArray(session.aiChats) ? session.aiChats.filter((chat) => chat.userMessage || chat.aiResponse) : [];
+}
+
+function getSessionTopics(session = {}) {
+  const summaryTopics = Array.isArray(session.aiSummary?.topicsCovered) ? session.aiSummary.topicsCovered : [];
+  const sessionTopics = Array.isArray(session.aiTopics) ? session.aiTopics : [];
+  return [...new Set([...summaryTopics, ...sessionTopics].filter(Boolean))];
+}
+
+async function copySessionText(session = {}) {
+  const chats = getSessionChats(session);
+  const summary = session.aiSummary?.markdown || session.notes || "";
+  const transcript = chats
+    .map((chat, index) => [
+      `Question ${index + 1}: ${chat.userMessage || ""}`,
+      `Answer ${index + 1}: ${chat.aiResponse || ""}`
+    ].join("\n"))
+    .join("\n\n");
+
+  await navigator.clipboard.writeText([
+    session.goal || session.lockedTitle || "FocusLock session",
+    summary,
+    transcript
+  ].filter(Boolean).join("\n\n"));
+}
+
+function FocusSessionDetail({ session, onClose }) {
+  if (!session) return null;
+
+  const chats = getSessionChats(session);
+  const topics = getSessionTopics(session);
+  const summary = session.aiSummary;
+
+  return (
+    <motion.aside
+      className="focus-session-detail"
+      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+      transition={{ duration: 0.18 }}
+    >
+      <div className="focus-session-detail-header">
+        <div>
+          <span>Session detail</span>
+          <h3>{session.goal || session.lockedTitle || "Study session"}</h3>
+        </div>
+        <button type="button" aria-label="Close session detail" onClick={onClose}>
+          <X size={17} />
+        </button>
+      </div>
+
+      <div className="focus-session-detail-stats">
+        <div>
+          <span>Duration</span>
+          <strong>{formatDuration(session.focusSeconds)}</strong>
+        </div>
+        <div>
+          <span>AI questions</span>
+          <strong>{chats.length}</strong>
+        </div>
+        <div>
+          <span>Blocked</span>
+          <strong>{session.violations || 0}</strong>
+        </div>
+      </div>
+
+      <div className="focus-session-topics">
+        {topics.length ? topics.map((topic) => <span key={topic}>{topic}</span>) : <span>No topics detected</span>}
+      </div>
+
+      {summary?.markdown ? (
+        <section className="focus-session-summary">
+          <div className="focus-session-section-title">
+            <strong>Session summary</strong>
+            <button type="button" onClick={() => copySessionText(session).catch(() => {})}>
+              <Copy size={14} />
+              Copy
+            </button>
+          </div>
+          <AIMessageRenderer content={summary.markdown} compact />
+        </section>
+      ) : (
+        <section className="focus-session-summary is-empty">
+          <strong>Session summary</strong>
+          <p>No AI summary was generated for this session.</p>
+        </section>
+      )}
+
+      <section className="focus-session-chat">
+        <div className="focus-session-section-title">
+          <strong>AI chat history</strong>
+          <span>{chats.length} questions</span>
+        </div>
+        {chats.length ? (
+          chats.map((chat, index) => (
+            <article className="focus-session-chat-pair" key={chat.id || `${session.id}-${index}`}>
+              <div className="focus-session-question">
+                <span>Question {index + 1}</span>
+                <p>{chat.userMessage}</p>
+              </div>
+              <div className="focus-session-answer">
+                <span>SYNAPSE answer</span>
+                <AIMessageRenderer content={chat.aiResponse} compact />
+              </div>
+            </article>
+          ))
+        ) : (
+          <p className="focus-session-no-chat">No AI chats were saved in this FocusLock session.</p>
+        )}
+      </section>
+    </motion.aside>
+  );
 }
 
 function FocusPeriodPicker({
@@ -230,6 +347,7 @@ export default function FocusPage() {
   const [pickerStep, setPickerStep] = useState("months");
   const [pickerYear, setPickerYear] = useState(() => getCurrentFocusPeriod().year);
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState("");
   const [draftMonth, setDraftMonth] = useState(() => {
     const currentPeriod = getCurrentFocusPeriod();
     return { year: currentPeriod.year, month: currentPeriod.month };
@@ -268,6 +386,10 @@ export default function FocusPage() {
   const weeklyData = weekSummary.weeklyData || [];
   const maxWeeklyHours = Math.max(...weeklyData.map((item) => item.hours), 1);
   const recentSessions = visibleSummary.recentSessions || [];
+  const selectedSession = useMemo(
+    () => recentSessions.find((session) => session.id === selectedSessionId) || null,
+    [recentSessions, selectedSessionId]
+  );
   const selectedRangeLabel = formatDateRange(selectedWeek.startDateKey, selectedWeek.endDateKey);
   const periodLabel = selectedDateKey
     ? formatDayLabel(selectedDateKey)
@@ -294,6 +416,25 @@ export default function FocusPage() {
     };
   }, [periodPickerOpen]);
 
+  useEffect(() => {
+    if (!selectedSessionId) return undefined;
+
+    const closeDetail = (event) => {
+      if (event.target.closest(".focus-session-detail") || event.target.closest(".focus-history-item")) return;
+      setSelectedSessionId("");
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setSelectedSessionId("");
+    };
+
+    window.addEventListener("pointerdown", closeDetail);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("pointerdown", closeDetail);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [selectedSessionId]);
+
   const togglePeriodPicker = () => {
     setPeriodPickerOpen((open) => {
       const nextOpen = !open;
@@ -309,11 +450,13 @@ export default function FocusPage() {
   const selectPeriodWeek = (nextPeriod) => {
     setSelectedPeriod(nextPeriod);
     setSelectedDateKey("");
+    setSelectedSessionId("");
     setPeriodPickerOpen(false);
   };
 
   const selectDay = (dateKey) => {
     setSelectedDateKey((currentDateKey) => (currentDateKey === dateKey ? "" : dateKey));
+    setSelectedSessionId("");
   };
 
   return (
@@ -511,19 +654,37 @@ export default function FocusPage() {
               <div className="focus-history-list">
                 {recentSessions.length ? (
                   recentSessions.map((session) => (
-                    <article className="focus-history-item" key={session.id}>
+                    <article
+                      className={`focus-history-item ${selectedSessionId === session.id ? "is-selected" : ""}`}
+                      key={session.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedSessionId((currentId) => (currentId === session.id ? "" : session.id))}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedSessionId((currentId) => (currentId === session.id ? "" : session.id));
+                        }
+                      }}
+                    >
                       <div>
                         <strong>{session.goal || session.lockedTitle || "Study session"}</strong>
                         <span>{formatTimestamp(session.startedAt)} - {session.platform || "desktop"}</span>
                       </div>
                       <em>{formatDuration(session.focusSeconds)}</em>
                       <small>{session.violations || 0} blocked</small>
+                      <small>{getSessionChats(session).length} AI</small>
                     </article>
                   ))
                 ) : (
                   <div className="focus-empty">{emptyPeriodMessage}</div>
                 )}
               </div>
+              <AnimatePresence>
+                {selectedSession ? (
+                  <FocusSessionDetail session={selectedSession} onClose={() => setSelectedSessionId("")} />
+                ) : null}
+              </AnimatePresence>
             </section>
           </section>
         </div>

@@ -310,6 +310,11 @@ function normalizeSessionRecord(uid, record) {
     distractionPeaks: record.distractionPeaks || [],
     focusScore: Number.isFinite(focusScore) ? focusScore : null,
     stopWarningCount: Number(record.stopWarningCount || 0),
+    aiChats: Array.isArray(record.aiChats) ? record.aiChats : [],
+    aiChatCount: Number(record.aiChatCount || record.aiChats?.length || 0),
+    aiTopics: Array.isArray(record.aiTopics) ? record.aiTopics : [],
+    aiSummary: record.aiSummary || null,
+    notes: record.notes || record.aiSummary?.markdown || "",
     source: "focus-lock-extension",
     updatedAt: serverTimestamp()
   };
@@ -343,7 +348,12 @@ function normalizeActiveSession(uid, activeSession) {
     distractionIntervals: Object.values(activeSession.distractionIntervals || {}),
     distractionPeaks: activeSession.distractionPeaks || [],
     focusScore: activeSession.focusScore,
-    stopWarningCount: activeSession.stopWarningCount || 0
+    stopWarningCount: activeSession.stopWarningCount || 0,
+    aiChats: activeSession.aiChats || [],
+    aiChatCount: activeSession.aiQuestionCount || activeSession.aiChats?.length || 0,
+    aiTopics: activeSession.aiTopics || [],
+    aiSummary: activeSession.aiSummary || null,
+    notes: activeSession.aiSummary?.markdown || ""
   });
 }
 
