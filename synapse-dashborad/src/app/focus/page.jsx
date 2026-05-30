@@ -124,24 +124,11 @@ function getSessionTopics(session = {}) {
   return [...new Set([...summaryTopics, ...sessionTopics].filter(Boolean))];
 }
 
-function getSessionKeyPoints(session = {}) {
-  const summary = session.aiSummary || {};
-  const candidates = [
-    ...(Array.isArray(summary.keyConcepts) ? summary.keyConcepts : []),
-    ...(Array.isArray(summary.recommendedRevision) ? summary.recommendedRevision : []),
-    ...getSessionTopics(session).map((topic) => `Reviewed ${topic}`),
-    ...getSessionChats(session).map((chat) => chat.topic).filter(Boolean)
-  ];
-
-  return [...new Set(candidates.map((item) => String(item || "").trim()).filter(Boolean))].slice(0, 5);
-}
-
 function FocusSessionDetail({ session, onClose }) {
   if (!session) return null;
 
   const chats = getSessionChats(session);
   const topics = getSessionTopics(session);
-  const keyPoints = getSessionKeyPoints(session);
 
   return (
     <motion.aside
@@ -164,22 +151,6 @@ function FocusSessionDetail({ session, onClose }) {
       <div className="focus-session-topics">
         {topics.length ? topics.map((topic) => <span key={topic}>{topic}</span>) : <span>No topics detected</span>}
       </div>
-
-      <section className="focus-session-keypoints">
-        <div className="focus-session-section-title">
-          <strong>Key points</strong>
-          <span>{keyPoints.length} items</span>
-        </div>
-        {keyPoints.length ? (
-          <ul>
-            {keyPoints.map((point) => (
-              <li key={point}>{point}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No key points were generated for this session yet.</p>
-        )}
-      </section>
 
       <section className="focus-session-chat">
         <div className="focus-session-section-title">

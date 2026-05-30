@@ -7385,7 +7385,6 @@ textarea {
   cursor: pointer;
 }
 
-.focus-session-keypoints,
 .focus-session-chat-pair {
   border: 1px solid color-mix(in oklab, var(--color-text) 13%, var(--transparent));
   border-radius: 10px;
@@ -7408,47 +7407,6 @@ textarea {
   padding: 7px 10px;
   font-size: 12px;
   font-weight: 800;
-}
-
-.focus-session-keypoints {
-  display: grid;
-  gap: 10px;
-  padding: 13px;
-}
-
-.focus-session-keypoints ul {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.focus-session-keypoints li {
-  position: relative;
-  padding-left: 18px;
-  color: color-mix(in oklab, var(--color-text) 88%, var(--color-muted));
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.focus-session-keypoints li::before {
-  position: absolute;
-  top: 0.65em;
-  left: 0;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--color-pulse);
-  box-shadow: 0 0 14px color-mix(in oklab, var(--color-pulse) 46%, var(--transparent));
-  content: "";
-}
-
-.focus-session-keypoints p {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 13px;
-  line-height: 1.5;
 }
 
 .focus-session-chat {
@@ -7727,8 +7685,7 @@ textarea {
     align-items: flex-start;
   }
 
-  .focus-session-chat-pair,
-  .focus-session-keypoints {
+  .focus-session-chat-pair {
     padding: 11px;
   }
 
