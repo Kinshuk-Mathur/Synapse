@@ -7308,22 +7308,36 @@ textarea {
 
 .focus-session-detail {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
+  top: 64px;
+  right: 16px;
+  bottom: 16px;
   z-index: 20;
   display: grid;
-  width: min(620px, calc(100% - 36px));
-  max-height: min(680px, calc(100vh - 120px));
+  align-content: start;
+  width: min(720px, calc(100% - 32px));
+  max-height: min(720px, calc(100vh - 120px));
   gap: 14px;
   overflow: auto;
-  border: 1px solid color-mix(in oklab, var(--color-pulse) 36%, var(--border));
-  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--color-pulse) 48%, var(--border));
+  border-radius: 12px;
   background:
-    linear-gradient(145deg, color-mix(in oklab, var(--color-text) 7%, var(--transparent)), color-mix(in oklab, var(--panel) 86%, var(--transparent))),
-    var(--panel);
-  box-shadow: 0 28px 110px color-mix(in oklab, var(--color-ink) 54%, var(--transparent));
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018)),
+    #171820;
+  box-shadow:
+    0 30px 110px color-mix(in oklab, var(--color-ink) 62%, var(--transparent)),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 0 48px color-mix(in oklab, var(--color-pulse) 12%, var(--transparent));
   padding: 16px;
   backdrop-filter: blur(24px) saturate(1.08);
+}
+
+.focus-session-detail::-webkit-scrollbar {
+  width: 8px;
+}
+
+.focus-session-detail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-pulse) 34%, var(--color-text) 12%);
 }
 
 .focus-session-detail-header,
@@ -7381,11 +7395,13 @@ textarea {
 }
 
 .focus-session-detail-stats div,
-.focus-session-summary,
+.focus-session-keypoints,
 .focus-session-chat-pair {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: color-mix(in oklab, var(--color-text) 5%, var(--transparent));
+  border: 1px solid color-mix(in oklab, var(--color-text) 13%, var(--transparent));
+  border-radius: 10px;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-text) 6%, var(--transparent)), rgba(0, 0, 0, 0.12)),
+    color-mix(in oklab, var(--color-text) 4%, var(--transparent));
 }
 
 .focus-session-detail-stats div {
@@ -7415,15 +7431,45 @@ textarea {
   font-weight: 800;
 }
 
-.focus-session-summary {
+.focus-session-keypoints {
   display: grid;
   gap: 10px;
   padding: 13px;
 }
 
-.focus-session-summary.is-empty p {
+.focus-session-keypoints ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.focus-session-keypoints li {
+  position: relative;
+  padding-left: 18px;
+  color: color-mix(in oklab, var(--color-text) 88%, var(--color-muted));
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.focus-session-keypoints li::before {
+  position: absolute;
+  top: 0.65em;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-pulse);
+  box-shadow: 0 0 14px color-mix(in oklab, var(--color-pulse) 46%, var(--transparent));
+  content: "";
+}
+
+.focus-session-keypoints p {
   margin: 0;
   color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .focus-session-chat {
@@ -7434,7 +7480,7 @@ textarea {
 .focus-session-chat-pair {
   display: grid;
   gap: 10px;
-  padding: 12px;
+  padding: 13px;
 }
 
 .focus-session-question,
@@ -7446,17 +7492,34 @@ textarea {
 .focus-session-question p {
   margin: 0;
   color: var(--color-text);
+  font-size: 14px;
+  font-weight: 750;
   line-height: 1.55;
 }
 
 .focus-session-answer {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid color-mix(in oklab, var(--color-text) 12%, var(--transparent));
   padding-top: 10px;
 }
 
 .focus-session-detail .ai-response-markdown {
+  gap: 8px;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.55;
+}
+
+.focus-session-detail .ai-response-markdown .ai-md-heading-main,
+.focus-session-detail .ai-response-markdown .ai-md-heading-section {
+  font-size: 15px;
+}
+
+.focus-session-detail .ai-response-markdown .ai-md-heading-subsection {
+  font-size: 14px;
+}
+
+.focus-session-detail .ai-response-markdown .ai-md-paragraph,
+.focus-session-detail .ai-response-markdown .ai-md-list-item {
+  color: color-mix(in oklab, var(--color-text) 84%, var(--color-muted));
 }
 
 .focus-session-detail .ai-code-block {
@@ -7565,6 +7628,18 @@ textarea {
     flex-direction: column;
   }
 
+  .focus-session-detail {
+    position: fixed;
+    inset: auto 12px 12px;
+    width: auto;
+    max-height: min(76vh, 680px);
+    padding: 14px;
+  }
+
+  .focus-session-detail-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .focus-hero-title-row {
     max-width: none;
     width: 100%;
@@ -7646,6 +7721,34 @@ textarea {
   .focus-history-item {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .focus-session-detail {
+    inset: 8px;
+    max-height: calc(100vh - 16px);
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .focus-session-detail-header {
+    align-items: flex-start;
+  }
+
+  .focus-session-detail-header h3 {
+    white-space: normal;
+  }
+
+  .focus-session-detail-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .focus-session-section-title {
+    align-items: flex-start;
+  }
+
+  .focus-session-chat-pair,
+  .focus-session-keypoints {
+    padding: 11px;
   }
 
   .ai-workspace-greeting span {

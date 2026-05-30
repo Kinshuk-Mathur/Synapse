@@ -125,9 +125,23 @@ function getSessionTopics(session = {}) {
   return [...new Set([...summaryTopics, ...sessionTopics].filter(Boolean))];
 }
 
+function getSessionKeyPoints(session = {}) {
+  const summary = session.aiSummary || {};
+  const candidates = [
+    ...(Array.isArray(summary.keyConcepts) ? summary.keyConcepts : []),
+    ...(Array.isArray(summary.recommendedRevision) ? summary.recommendedRevision : []),
+    ...getSessionTopics(session).map((topic) => `Reviewed ${topic}`),
+    ...getSessionChats(session).map((chat) => chat.topic).filter(Boolean)
+  ];
+
+  return [...new Set(candidates.map((item) => String(item || "").trim()).filter(Boolean))].slice(0, 5);
+}
+
 async function copySessionText(session = {}) {
   const chats = getSessionChats(session);
-  const summary = session.aiSummary?.markdown || session.notes || "";
+  const keyPoints = getSessionKeyPoints(session)
+    .map((point) => `- ${point}`)
+    .join("\n");
   const transcript = chats
     .map((chat, index) => [
       `Question ${index + 1}: ${chat.userMessage || ""}`,
@@ -137,7 +151,7 @@ async function copySessionText(session = {}) {
 
   await navigator.clipboard.writeText([
     session.goal || session.lockedTitle || "FocusLock session",
-    summary,
+    keyPoints ? `Key points:\n${keyPoints}` : "",
     transcript
   ].filter(Boolean).join("\n\n"));
 }
@@ -147,7 +161,7 @@ function FocusSessionDetail({ session, onClose }) {
 
   const chats = getSessionChats(session);
   const topics = getSessionTopics(session);
-  const summary = session.aiSummary;
+  const keyPoints = getSessionKeyPoints(session);
 
   return (
     <motion.aside
@@ -186,23 +200,24 @@ function FocusSessionDetail({ session, onClose }) {
         {topics.length ? topics.map((topic) => <span key={topic}>{topic}</span>) : <span>No topics detected</span>}
       </div>
 
-      {summary?.markdown ? (
-        <section className="focus-session-summary">
-          <div className="focus-session-section-title">
-            <strong>Session summary</strong>
-            <button type="button" onClick={() => copySessionText(session).catch(() => {})}>
-              <Copy size={14} />
-              Copy
-            </button>
-          </div>
-          <AIMessageRenderer content={summary.markdown} compact />
-        </section>
-      ) : (
-        <section className="focus-session-summary is-empty">
-          <strong>Session summary</strong>
-          <p>No AI summary was generated for this session.</p>
-        </section>
-      )}
+      <section className="focus-session-keypoints">
+        <div className="focus-session-section-title">
+          <strong>Key points</strong>
+          <button type="button" onClick={() => copySessionText(session).catch(() => {})}>
+            <Copy size={14} />
+            Copy
+          </button>
+        </div>
+        {keyPoints.length ? (
+          <ul>
+            {keyPoints.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>No key points were generated for this session yet.</p>
+        )}
+      </section>
 
       <section className="focus-session-chat">
         <div className="focus-session-section-title">
