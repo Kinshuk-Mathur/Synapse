@@ -27,6 +27,7 @@ let synapseAiPanelOpen = false;
 let synapseAiDragState = null;
 let synapseAiSpeechRecognition = null;
 let synapseAiInactivityTimer = null;
+let lastSynapseAiInteractionAt = 0;
 
 function hasRuntime() {
   try {
@@ -324,7 +325,7 @@ function ensureBaseStyles() {
       width: 46px;
       height: 46px;
       border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 14px;
+      border-radius: 15px;
       background:
         linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.04)),
         rgba(13, 13, 16, 0.66);
@@ -365,14 +366,14 @@ function ensureBaseStyles() {
       position: fixed;
       z-index: 2147483644;
       display: none;
-      width: min(350px, calc(100vw - 24px));
-      height: min(560px, calc(100vh - 28px));
+      width: min(340px, calc(100vw - 24px));
+      height: min(590px, calc(100vh - 28px));
       grid-template-rows: auto minmax(0, 1fr) auto;
       border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 8px;
+      border-radius: 14px;
       background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
-        rgba(12, 12, 16, 0.88);
+        linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.018)),
+        rgba(13, 13, 18, 0.92);
       box-shadow: 0 28px 96px rgba(0, 0, 0, 0.48), 0 0 44px rgba(255, 0, 184, 0.12);
       overflow: hidden;
       backdrop-filter: blur(26px) saturate(1.1);
@@ -388,16 +389,18 @@ function ensureBaseStyles() {
       display: flex;
       align-items: center;
       gap: 10px;
-      min-height: 58px;
+      min-height: 66px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 10px 12px;
-      background: rgba(255, 255, 255, 0.035);
+      padding: 12px 14px;
+      background:
+        linear-gradient(135deg, rgba(255, 0, 184, 0.08), rgba(90, 70, 255, 0.035)),
+        rgba(255, 255, 255, 0.035);
     }
 
     .synapse-ai-header img {
       width: 34px;
       height: 34px;
-      border-radius: 8px;
+      border-radius: 10px;
       object-fit: cover;
     }
 
@@ -410,7 +413,7 @@ function ensureBaseStyles() {
 
     .synapse-ai-title strong {
       color: #ffffff;
-      font-size: 13px;
+      font-size: 14px;
       line-height: 1.2;
       letter-spacing: 0;
     }
@@ -439,7 +442,7 @@ function ensureBaseStyles() {
       height: 30px;
       place-items: center;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
+      border-radius: 10px;
       background: rgba(255, 255, 255, 0.06);
       color: rgba(255, 255, 255, 0.72);
       cursor: pointer;
@@ -452,7 +455,7 @@ function ensureBaseStyles() {
       flex-direction: column;
       gap: 10px;
       overflow-y: auto;
-      padding: 12px;
+      padding: 14px;
       scroll-behavior: smooth;
     }
 
@@ -468,11 +471,12 @@ function ensureBaseStyles() {
     .synapse-ai-message {
       max-width: 94%;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 10px 11px;
+      border-radius: 12px;
+      padding: 11px 12px;
       color: rgba(255, 255, 255, 0.84);
-      font-size: 12.5px;
-      line-height: 1.55;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.58;
       overflow-wrap: anywhere;
     }
 
@@ -493,6 +497,7 @@ function ensureBaseStyles() {
       max-width: 100%;
       color: rgba(255, 255, 255, 0.62);
       font-size: 12px;
+      font-weight: 600;
     }
 
     .synapse-ai-message h1,
@@ -510,7 +515,8 @@ function ensureBaseStyles() {
     .synapse-ai-message h3 {
       margin-top: 4px;
       color: #ffffff;
-      font-size: 13px;
+      font-size: 14px;
+      font-weight: 850;
       line-height: 1.3;
     }
 
@@ -525,7 +531,7 @@ function ensureBaseStyles() {
     .synapse-ai-message ul,
     .synapse-ai-message ol {
       display: grid;
-      gap: 5px;
+      gap: 6px;
       padding-left: 18px;
     }
 
@@ -542,7 +548,7 @@ function ensureBaseStyles() {
       margin-top: 8px;
       overflow-x: auto;
       border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 8px;
+      border-radius: 10px;
       background: rgba(0, 0, 0, 0.46);
       padding: 10px;
     }
@@ -556,24 +562,28 @@ function ensureBaseStyles() {
 
     .synapse-ai-composer {
       display: grid;
-      grid-template-columns: 30px minmax(0, 1fr) 34px;
-      gap: 8px;
+      grid-template-columns: 42px minmax(0, 1fr) 46px;
+      align-items: end;
+      gap: 10px;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 10px;
-      background: rgba(0, 0, 0, 0.16);
+      padding: 12px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(0, 0, 0, 0.24)),
+        rgba(0, 0, 0, 0.18);
     }
 
     .synapse-ai-composer textarea {
-      min-height: 38px;
+      min-height: 46px;
       max-height: 110px;
       resize: none;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
+      border-radius: 10px;
       outline: none;
-      background: rgba(255, 255, 255, 0.055);
+      background: rgba(255, 255, 255, 0.06);
       color: #ffffff;
-      padding: 10px;
-      font: 500 12.5px/1.45 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 13px 12px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      font: 600 13px/1.45 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     .synapse-ai-composer textarea::placeholder {
@@ -582,10 +592,11 @@ function ensureBaseStyles() {
 
     .synapse-ai-icon-button {
       display: grid;
-      height: 38px;
+      width: 42px;
+      height: 46px;
       place-items: center;
       border: 1px solid rgba(255, 255, 255, 0.11);
-      border-radius: 8px;
+      border-radius: 12px;
       background: rgba(255, 255, 255, 0.065);
       color: rgba(255, 255, 255, 0.78);
       cursor: pointer;
@@ -603,6 +614,29 @@ function ensureBaseStyles() {
       cursor: not-allowed;
       opacity: 0.5;
       transform: none;
+    }
+
+    .synapse-ai-mic {
+      border-color: rgba(255, 255, 255, 0.16);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.025)),
+        rgba(14, 13, 22, 0.86);
+      box-shadow: 0 0 24px rgba(255, 0, 184, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .synapse-ai-send {
+      width: 46px;
+      height: 46px;
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ff35c8, #7d34ff);
+      color: #ffffff;
+      box-shadow: 0 14px 36px rgba(255, 0, 184, 0.34);
+    }
+
+    .synapse-ai-send:hover {
+      background: linear-gradient(135deg, #ff43d0, #8b45ff);
+      box-shadow: 0 18px 46px rgba(255, 0, 184, 0.42);
     }
 
     .synapse-ai-mic-icon {
@@ -841,6 +875,29 @@ function isBenignStudyControlActive() {
   return Date.now() < benignStudyControlUntil;
 }
 
+function markSynapseAiInteraction(duration = 4500) {
+  markBenignStudyControl(duration);
+
+  const now = Date.now();
+  if (now - lastSynapseAiInteractionAt < 900) return;
+  lastSynapseAiInteractionAt = now;
+  safeRuntimeSendMessage(
+    {
+      type: "SYNAPSE_AI_INTERACTION",
+      durationMs: duration
+    },
+    ignoreRuntimeError
+  );
+}
+
+function isSynapseAiEvent(event) {
+  const path = event.composedPath?.() || [];
+  return Boolean(
+    synapseAiWidgetEl && path.includes(synapseAiWidgetEl)
+    || synapseAiPanelEl && path.includes(synapseAiPanelEl)
+  );
+}
+
 function isYouTubeHost() {
   return location.hostname === "youtube.com" || location.hostname.endsWith(".youtube.com");
 }
@@ -994,6 +1051,10 @@ function handleBlockedShortcut(event) {
 
 document.addEventListener("keydown", (event) => {
   if (!isLocked) return;
+  if (isSynapseAiEvent(event)) {
+    markSynapseAiInteraction(7000);
+    return;
+  }
   if (shouldBlockShortcut(event)) {
     handleBlockedShortcut(event);
   }
@@ -1239,6 +1300,10 @@ function blockYouTubeNavigation() {
 
 function blockYTClicks(event) {
   if (!isLocked) return;
+  if (isSynapseAiEvent(event)) {
+    markSynapseAiInteraction(7000);
+    return;
+  }
 
   if (isYouTubeAdControl(event.target)) {
     markBenignStudyControl();
@@ -1351,8 +1416,27 @@ function renderInlineMarkdown(value = "") {
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 }
 
+function normalizeAiMarkdown(value = "") {
+  const parts = String(value || "")
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .split(/(```[\s\S]*?```)/g);
+
+  return parts.map((part, index) => {
+    if (index % 2 === 1) return part.trim();
+
+    return part
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/([^\n])\s+(#{1,4}\s+)/g, "$1\n\n$2")
+      .replace(/([^\n])\s+((?:[-*]\s+|\d+\.\s+)(?=[A-Z0-9(]))/g, "$1\n$2")
+      .replace(/(#{1,4}\s+[^#\n]+?)\s+(#{1,4}\s+)/g, "$1\n\n$2")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }).filter(Boolean).join("\n\n");
+}
+
 function renderMarkdown(value = "") {
-  const text = String(value || "").trim();
+  const text = normalizeAiMarkdown(value);
   if (!text) return "";
 
   const blocks = text.split(/(```[\s\S]*?```)/g).filter(Boolean);
@@ -1388,7 +1472,7 @@ function renderMarkdown(value = "") {
         return;
       }
 
-      const heading = /^(#{1,3})\s+(.+)$/.exec(trimmed);
+      const heading = /^(#{1,4})\s+(.+)$/.exec(trimmed);
       if (heading) {
         flushParagraph();
         closeList();
@@ -1468,8 +1552,8 @@ function positionAiPanel() {
   if (!synapseAiPanelEl || !synapseAiWidgetEl) return;
 
   const buttonRect = synapseAiWidgetEl.getBoundingClientRect();
-  const panelWidth = Math.min(350, window.innerWidth - 24);
-  const panelHeight = Math.min(560, window.innerHeight - 28);
+  const panelWidth = Math.min(340, window.innerWidth - 24);
+  const panelHeight = Math.min(590, window.innerHeight - 28);
   const opensLeft = buttonRect.left > window.innerWidth / 2;
   const left = opensLeft
     ? buttonRect.left - panelWidth - 10
@@ -1520,20 +1604,30 @@ function createAiPanel() {
   panel.querySelector(".synapse-ai-close")?.addEventListener("click", closeSynapseAiPanel);
   panel.querySelector("form")?.addEventListener("submit", (event) => {
     event.preventDefault();
+    markSynapseAiInteraction(6000);
     sendSynapseAiPrompt();
   });
   panel.querySelector(".synapse-ai-mic")?.addEventListener("click", toggleSynapseAiVoiceInput);
-  panel.addEventListener("pointerdown", resetAiInactivityTimer);
-  panel.addEventListener("keydown", resetAiInactivityTimer);
+  panel.addEventListener("pointerdown", () => {
+    markSynapseAiInteraction(6000);
+    resetAiInactivityTimer();
+  }, true);
+  panel.addEventListener("keydown", () => {
+    markSynapseAiInteraction(6000);
+    resetAiInactivityTimer();
+  }, true);
 
   synapseAiInputEl.addEventListener("input", () => {
-    synapseAiInputEl.style.height = "38px";
+    markSynapseAiInteraction(6000);
+    synapseAiInputEl.style.height = "46px";
     synapseAiInputEl.style.height = `${Math.min(110, synapseAiInputEl.scrollHeight)}px`;
     resetAiInactivityTimer();
   });
+  synapseAiInputEl.addEventListener("focus", () => markSynapseAiInteraction(7000));
   synapseAiInputEl.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
+      markSynapseAiInteraction(7000);
       sendSynapseAiPrompt();
     }
   });
@@ -1543,6 +1637,7 @@ function createAiPanel() {
 }
 
 function openSynapseAiPanel() {
+  markSynapseAiInteraction(7000);
   createAiPanel();
   synapseAiPanelOpen = true;
   synapseAiWidgetEl?.classList.add("is-open");
@@ -1573,9 +1668,10 @@ async function sendSynapseAiPrompt() {
   const prompt = synapseAiInputEl.value.trim();
   if (!prompt) return;
 
+  markSynapseAiInteraction(9000);
   synapseAiInFlight = true;
   synapseAiInputEl.value = "";
-  synapseAiInputEl.style.height = "38px";
+  synapseAiInputEl.style.height = "46px";
   appendAiMessage("user", prompt);
   const pending = appendAiMessage("assistant", "Thinking...", { pending: true });
   const sendButton = synapseAiPanelEl?.querySelector(".synapse-ai-send");
@@ -1615,6 +1711,7 @@ async function sendSynapseAiPrompt() {
 }
 
 function toggleSynapseAiVoiceInput() {
+  markSynapseAiInteraction(9000);
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const micButton = synapseAiPanelEl?.querySelector(".synapse-ai-mic");
 
@@ -1675,6 +1772,7 @@ function createSynapseAiWidget() {
 
   button.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
+    markSynapseAiInteraction(7000);
     const rect = button.getBoundingClientRect();
     synapseAiDragState = {
       startX: event.clientX,
@@ -1689,6 +1787,7 @@ function createSynapseAiWidget() {
 
   button.addEventListener("pointermove", (event) => {
     if (!synapseAiDragState) return;
+    markSynapseAiInteraction(7000);
     const dx = event.clientX - synapseAiDragState.startX;
     const dy = event.clientY - synapseAiDragState.startY;
     if (Math.abs(dx) + Math.abs(dy) > 4) synapseAiDragState.moved = true;
@@ -1702,6 +1801,7 @@ function createSynapseAiWidget() {
   });
 
   button.addEventListener("pointerup", (event) => {
+    markSynapseAiInteraction(7000);
     const wasDrag = synapseAiDragState?.moved;
     synapseAiDragState = null;
     button.releasePointerCapture?.(event.pointerId);
@@ -1732,7 +1832,7 @@ function removeSynapseAiCompanion() {
 
 function refreshSynapseAiCompanion(status = synapseAiStatus) {
   synapseAiStatus = { ...(synapseAiStatus || {}), ...(status || {}) };
-  if (!synapseAiStatus?.enabled) {
+  if (!synapseAiStatus?.enabled || !synapseAiStatus?.session?.active) {
     removeSynapseAiCompanion();
     return;
   }
@@ -1744,6 +1844,12 @@ function refreshSynapseAiCompanion(status = synapseAiStatus) {
       createAiPanel();
       positionAiPanel();
     }
+  });
+}
+
+function requestSynapseAiStatus() {
+  safeRuntimeSendMessage({ type: "GET_AI_STATUS" }, (response) => {
+    if (response?.success) refreshSynapseAiCompanion(response);
   });
 }
 
@@ -1811,6 +1917,7 @@ if (hasRuntime()) {
       if (message.type === "SESSION_STARTED" || message.type === "SESSION_RESYNC") {
         activateSessionUi(message.session);
         refreshSynapseAiCompanion({ session: message.session || null });
+        requestSynapseAiStatus();
         fullscreenWarningCount = 0;
 
         const tryFullscreen = () => {
@@ -1841,6 +1948,7 @@ if (hasRuntime()) {
       if (message.type === "MOTIVATION_MILESTONE") {
         activateSessionUi(message.session);
         refreshSynapseAiCompanion({ session: message.session || null });
+        requestSynapseAiStatus();
         const baseMessage = message.message || milestoneMessages[(message.milestoneCount - 1) % milestoneMessages.length];
         showCenterNotice(baseMessage, `${message.totalMinutes} focused minutes completed.`, 4200);
       }
@@ -1848,6 +1956,7 @@ if (hasRuntime()) {
       if (message.type === "STOP_WARNING") {
         activateSessionUi(message.session);
         refreshSynapseAiCompanion({ session: message.session || null });
+        requestSynapseAiStatus();
         showCenterNotice(
           `Stop check ${message.warningCount}/${message.warningsRequired}`,
           message.message || "Take one breath before ending the session.",
@@ -1869,12 +1978,14 @@ if (hasRuntime()) {
 
       if (message.type === "BREAK_STARTED") {
         deactivateSessionUi();
+        refreshSynapseAiCompanion({ session: null });
         showCenterNotice("Break started", "You have six minutes. Focus Lock will bring you back.", 3600);
       }
 
       if (message.type === "BREAK_ENDED") {
         activateSessionUi(message.session);
         refreshSynapseAiCompanion({ session: message.session || null });
+        requestSynapseAiStatus();
         showCenterNotice("Break complete", "Time to return to the session.", 3600);
       }
 
@@ -1893,9 +2004,7 @@ safeRuntimeSendMessage({ type: "GET_SESSION" }, (response) => {
   }
 });
 
-safeRuntimeSendMessage({ type: "GET_AI_STATUS" }, (response) => {
-  if (response?.success) refreshSynapseAiCompanion(response);
-});
+requestSynapseAiStatus();
 
 window.addEventListener("resize", () => {
   placeSynapseAiWidget();
@@ -1907,9 +2016,7 @@ try {
     if (areaName !== "local") return;
 
     if (changes.synapseFocusSettings || changes.synapseFocusSession) {
-      safeRuntimeSendMessage({ type: "GET_AI_STATUS" }, (response) => {
-        if (response?.success) refreshSynapseAiCompanion(response);
-      });
+      requestSynapseAiStatus();
     }
   });
 } catch (_) {

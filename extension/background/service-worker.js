@@ -702,6 +702,10 @@ async function handleAiChatRequest(message = {}, sender = {}) {
     return { success: false, error: "SYNAPSE AI Companion is turned off." };
   }
 
+  if (!sessionData.active || !sessionData.sessionId) {
+    return { success: false, error: "Start a FocusLock session before using SYNAPSE AI Companion." };
+  }
+
   const prompt = cleanText(message.prompt || "", 5000);
   if (!prompt) return { success: false, error: "Ask a study question first." };
 
@@ -710,7 +714,7 @@ async function handleAiChatRequest(message = {}, sender = {}) {
     url: cleanText(message.pageContext?.url || sender.tab?.url || "", 1000),
     selection: cleanText(message.pageContext?.selection || "", 1200)
   };
-  const sessionId = message.sessionId || sessionData.sessionId || `ambient_${getDateKey()}`;
+  const sessionId = message.sessionId || sessionData.sessionId;
   const sourceSession = sessionData.sessionId === sessionId ? sessionData : getHistoryRecord(sessionId) || sessionData;
   const aiResponse = await callSynapseAiBackend({
     mode: "chat",
@@ -1605,6 +1609,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === "POPUP_CLOSED") {
     popupInteractionUntil = 0;
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (message.type === "SYNAPSE_AI_INTERACTION") {
+    const durationMs = Math.max(1500, Math.min(9000, Number(message.durationMs || 4500)));
+    popupInteractionUntil = Math.max(popupInteractionUntil, Date.now() + durationMs);
     sendResponse({ success: true });
     return true;
   }
