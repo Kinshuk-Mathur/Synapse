@@ -7307,15 +7307,13 @@ textarea {
 }
 
 .focus-session-detail {
-  position: absolute;
-  top: 64px;
-  right: 16px;
-  bottom: 16px;
-  z-index: 20;
+  position: fixed;
+  inset: 28px 28px 28px 268px;
+  z-index: 120;
   display: grid;
   align-content: start;
-  width: min(720px, calc(100% - 32px));
-  max-height: min(720px, calc(100vh - 120px));
+  width: auto;
+  max-height: none;
   gap: 14px;
   overflow: auto;
   border: 1px solid color-mix(in oklab, var(--color-pulse) 48%, var(--border));
@@ -7374,6 +7372,13 @@ textarea {
   white-space: nowrap;
 }
 
+.focus-session-detail-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
 .focus-session-detail-header button,
 .focus-session-section-title button {
   display: inline-flex;
@@ -7386,6 +7391,13 @@ textarea {
   padding: 8px 10px;
   font: inherit;
   cursor: pointer;
+}
+
+.focus-session-detail-actions button:first-child {
+  border-color: color-mix(in oklab, var(--color-pulse) 38%, var(--border));
+  background: color-mix(in oklab, var(--color-pulse) 13%, var(--transparent));
+  color: var(--color-text);
+  font-weight: 800;
 }
 
 .focus-session-detail-stats {
@@ -7475,6 +7487,16 @@ textarea {
 .focus-session-chat {
   display: grid;
   gap: 10px;
+}
+
+.focus-session-chat .focus-session-section-title {
+  position: sticky;
+  top: -16px;
+  z-index: 2;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text) 10%, var(--transparent));
+  background:
+    linear-gradient(180deg, #171820 78%, rgba(23, 24, 32, 0));
+  padding: 8px 0 12px;
 }
 
 .focus-session-chat-pair {

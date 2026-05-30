@@ -176,9 +176,15 @@ function FocusSessionDetail({ session, onClose }) {
           <span>Session detail</span>
           <h3>{session.goal || session.lockedTitle || "Study session"}</h3>
         </div>
-        <button type="button" aria-label="Close session detail" onClick={onClose}>
-          <X size={17} />
-        </button>
+        <div className="focus-session-detail-actions">
+          <button type="button" onClick={() => copySessionText(session).catch(() => {})}>
+            <Copy size={14} />
+            Copy all
+          </button>
+          <button type="button" aria-label="Close session detail" onClick={onClose}>
+            <X size={17} />
+          </button>
+        </div>
       </div>
 
       <div className="focus-session-detail-stats">
@@ -203,10 +209,7 @@ function FocusSessionDetail({ session, onClose }) {
       <section className="focus-session-keypoints">
         <div className="focus-session-section-title">
           <strong>Key points</strong>
-          <button type="button" onClick={() => copySessionText(session).catch(() => {})}>
-            <Copy size={14} />
-            Copy
-          </button>
+          <span>{keyPoints.length} items</span>
         </div>
         {keyPoints.length ? (
           <ul>
