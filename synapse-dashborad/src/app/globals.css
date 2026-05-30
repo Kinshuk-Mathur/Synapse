@@ -7308,7 +7308,7 @@ textarea {
 
 .focus-session-detail {
   position: fixed;
-  inset: 28px 28px 28px 268px;
+  inset: 12px 12px 12px 252px;
   z-index: 120;
   display: grid;
   align-content: start;
@@ -7353,7 +7353,6 @@ textarea {
 }
 
 .focus-session-detail-header span,
-.focus-session-detail-stats span,
 .focus-session-section-title span,
 .focus-session-question span,
 .focus-session-answer span,
@@ -7372,13 +7371,6 @@ textarea {
   white-space: nowrap;
 }
 
-.focus-session-detail-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: none;
-}
-
 .focus-session-detail-header button,
 .focus-session-section-title button {
   display: inline-flex;
@@ -7393,20 +7385,6 @@ textarea {
   cursor: pointer;
 }
 
-.focus-session-detail-actions button:first-child {
-  border-color: color-mix(in oklab, var(--color-pulse) 38%, var(--border));
-  background: color-mix(in oklab, var(--color-pulse) 13%, var(--transparent));
-  color: var(--color-text);
-  font-weight: 800;
-}
-
-.focus-session-detail-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 9px;
-}
-
-.focus-session-detail-stats div,
 .focus-session-keypoints,
 .focus-session-chat-pair {
   border: 1px solid color-mix(in oklab, var(--color-text) 13%, var(--transparent));
@@ -7414,17 +7392,6 @@ textarea {
   background:
     linear-gradient(145deg, color-mix(in oklab, var(--color-text) 6%, var(--transparent)), rgba(0, 0, 0, 0.12)),
     color-mix(in oklab, var(--color-text) 4%, var(--transparent));
-}
-
-.focus-session-detail-stats div {
-  display: grid;
-  gap: 6px;
-  padding: 11px;
-}
-
-.focus-session-detail-stats strong {
-  color: var(--color-text);
-  font-size: 18px;
 }
 
 .focus-session-topics {
@@ -7658,10 +7625,6 @@ textarea {
     padding: 14px;
   }
 
-  .focus-session-detail-stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .focus-hero-title-row {
     max-width: none;
     width: 100%;
@@ -7758,10 +7721,6 @@ textarea {
 
   .focus-session-detail-header h3 {
     white-space: normal;
-  }
-
-  .focus-session-detail-stats {
-    grid-template-columns: 1fr;
   }
 
   .focus-session-section-title {

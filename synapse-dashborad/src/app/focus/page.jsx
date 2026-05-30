@@ -10,7 +10,6 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
-  Copy,
   FolderOpen,
   HelpCircle,
   LayoutDashboard,
@@ -137,25 +136,6 @@ function getSessionKeyPoints(session = {}) {
   return [...new Set(candidates.map((item) => String(item || "").trim()).filter(Boolean))].slice(0, 5);
 }
 
-async function copySessionText(session = {}) {
-  const chats = getSessionChats(session);
-  const keyPoints = getSessionKeyPoints(session)
-    .map((point) => `- ${point}`)
-    .join("\n");
-  const transcript = chats
-    .map((chat, index) => [
-      `Question ${index + 1}: ${chat.userMessage || ""}`,
-      `Answer ${index + 1}: ${chat.aiResponse || ""}`
-    ].join("\n"))
-    .join("\n\n");
-
-  await navigator.clipboard.writeText([
-    session.goal || session.lockedTitle || "FocusLock session",
-    keyPoints ? `Key points:\n${keyPoints}` : "",
-    transcript
-  ].filter(Boolean).join("\n\n"));
-}
-
 function FocusSessionDetail({ session, onClose }) {
   if (!session) return null;
 
@@ -176,30 +156,9 @@ function FocusSessionDetail({ session, onClose }) {
           <span>Session detail</span>
           <h3>{session.goal || session.lockedTitle || "Study session"}</h3>
         </div>
-        <div className="focus-session-detail-actions">
-          <button type="button" onClick={() => copySessionText(session).catch(() => {})}>
-            <Copy size={14} />
-            Copy all
-          </button>
-          <button type="button" aria-label="Close session detail" onClick={onClose}>
-            <X size={17} />
-          </button>
-        </div>
-      </div>
-
-      <div className="focus-session-detail-stats">
-        <div>
-          <span>Duration</span>
-          <strong>{formatDuration(session.focusSeconds)}</strong>
-        </div>
-        <div>
-          <span>AI questions</span>
-          <strong>{chats.length}</strong>
-        </div>
-        <div>
-          <span>Blocked</span>
-          <strong>{session.violations || 0}</strong>
-        </div>
+        <button type="button" aria-label="Close session detail" onClick={onClose}>
+          <X size={17} />
+        </button>
       </div>
 
       <div className="focus-session-topics">
