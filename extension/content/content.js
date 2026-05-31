@@ -1662,6 +1662,53 @@ function toggleSynapseAiPanel() {
   }
 }
 
+function getSynapseAiPageContext() {
+  return {
+    title: document.title,
+    url: location.href,
+    selection: String(window.getSelection?.() || "").trim().slice(0, 1200)
+  };
+}
+
+function shouldUseAmbientAiFallback(response) {
+  const error = String(response?.error || "");
+  return !synapseAiStatus?.session?.active && /start a focuslock session before using/i.test(error);
+}
+
+async function requestAmbientSynapseAiReply(prompt, pageContext) {
+  const endpoint = synapseAiStatus?.endpoint;
+  if (!endpoint) throw new Error("SYNAPSE AI is unavailable right now.");
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mode: "chat",
+      sessionId: "",
+      session: null,
+      pageContext,
+      prompt,
+      recentMessages: []
+    })
+  });
+
+  if (!response.ok) {
+    let detail = "";
+    try {
+      const errorBody = await response.json();
+      detail = errorBody?.message || errorBody?.error?.message || "";
+    } catch (_) {
+      detail = await response.text().catch(() => "");
+    }
+    throw new Error(detail || "SYNAPSE AI is unavailable right now.");
+  }
+
+  const data = await response.json();
+  const reply = data?.message?.trim();
+  if (!reply) throw new Error("SYNAPSE AI returned an empty answer.");
+  return reply;
+}
+
 async function sendSynapseAiPrompt() {
   if (!synapseAiInputEl || synapseAiInFlight) return;
 
@@ -1676,23 +1723,36 @@ async function sendSynapseAiPrompt() {
   const pending = appendAiMessage("assistant", "Thinking...", { pending: true });
   const sendButton = synapseAiPanelEl?.querySelector(".synapse-ai-send");
   if (sendButton) sendButton.disabled = true;
+  const pageContext = getSynapseAiPageContext();
+
+  const finishRequest = () => {
+    synapseAiInFlight = false;
+    if (sendButton) sendButton.disabled = false;
+    resetAiInactivityTimer();
+  };
 
   safeRuntimeSendMessage(
     {
       type: "SYNAPSE_AI_CHAT",
       prompt,
       sessionId: synapseAiStatus?.session?.sessionId || "",
-      pageContext: {
-        title: document.title,
-        url: location.href,
-        selection: String(window.getSelection?.() || "").trim().slice(0, 1200)
-      }
+      pageContext
     },
     (response) => {
-      synapseAiInFlight = false;
-      if (sendButton) sendButton.disabled = false;
-
       if (!response?.success) {
+        if (shouldUseAmbientAiFallback(response)) {
+          requestAmbientSynapseAiReply(prompt, pageContext)
+            .then((reply) => {
+              if (pending) pending.innerHTML = renderMarkdown(reply);
+            })
+            .catch((error) => {
+              if (pending) pending.innerHTML = renderMarkdown(error?.message || "SYNAPSE AI is unavailable right now.");
+            })
+            .finally(finishRequest);
+          return;
+        }
+
+        finishRequest();
         if (pending) pending.innerHTML = renderMarkdown(response?.error || "SYNAPSE AI is unavailable right now.");
         return;
       }
@@ -1705,7 +1765,7 @@ async function sendSynapseAiPrompt() {
           synapseAiStatus.session.aiChats = [...chats, response.chat].slice(-80);
         }
       }
-      resetAiInactivityTimer();
+      finishRequest();
     }
   );
 }
