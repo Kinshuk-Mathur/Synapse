@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart3,
-  BrainCircuit,
   Check,
   CheckSquare,
   ChevronDown,
@@ -405,7 +404,7 @@ function MomentumTimeline({ days = [] }) {
       aria-label="Weekly SYNAPSE Momentum"
     >
       <div className="momentum-timeline-brand" aria-hidden="true">
-        <BrainCircuit size={38} />
+        <span className="brain-mark momentum-brain-mark" />
       </div>
       <div className="momentum-timeline-copy">
         <strong>Your Daily Momentum</strong>
@@ -1047,7 +1046,6 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="brain-system" aria-hidden="true">
-                  <div className="signal-ring" />
                   <span className="brain-mark" />
                 </div>
               </motion.section>

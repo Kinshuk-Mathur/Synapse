@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 import CalendarHeatmap from "react-calendar-heatmap";
 import {
   BarChart3,
-  BrainCircuit,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -213,8 +212,7 @@ function ReportHero({ report, summary, hasActivity }) {
     >
       <div className="analytics-report-visual" aria-hidden="true">
         <span className="analytics-ai-badge">AI</span>
-        <BrainCircuit size={156} />
-        <i />
+        <span className="brain-mark analytics-brain-mark" />
       </div>
       <div className="analytics-report-copy">
         <span className="analytics-kicker">

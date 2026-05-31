@@ -454,6 +454,12 @@ textarea {
   filter: drop-shadow(0 0 18px color-mix(in oklab, var(--color-pulse) 68%, var(--transparent)));
 }
 
+.momentum-brain-mark {
+  width: 34px;
+  height: 25px;
+  animation: none;
+}
+
 .momentum-timeline-copy {
   display: grid;
   align-content: center;
@@ -1429,16 +1435,6 @@ textarea {
     mask: url("/assets/synapse-brain-mask.png") center / contain no-repeat;
     -webkit-mask: url("/assets/synapse-brain-mask.png") center / contain no-repeat;
   }
-}
-
-.signal-ring {
-  position: absolute;
-  width: 146px;
-  height: 48px;
-  border: 2px solid color-mix(in oklab, var(--color-pulse) 78%, var(--transparent));
-  border-radius: 999px;
-  transform: rotate(-14deg);
-  animation: signalPulse 4s ease-in-out infinite;
 }
 
 .stats-grid {
@@ -4896,18 +4892,6 @@ textarea {
   }
 }
 
-@keyframes signalPulse {
-  0%,
-  100% {
-    opacity: 0.7;
-    transform: rotate(-14deg) scale(0.96);
-  }
-  50% {
-    opacity: 1;
-    transform: rotate(-14deg) scale(1.06);
-  }
-}
-
 @keyframes momentumPulse {
   0%,
   100% {
@@ -5233,6 +5217,11 @@ textarea {
   .momentum-timeline-brand {
     width: 42px;
     height: 42px;
+  }
+
+  .momentum-brain-mark {
+    width: 38px;
+    height: 28px;
   }
 
   .momentum-timeline-copy {
@@ -7930,20 +7919,12 @@ textarea {
   color: var(--chart-pink);
 }
 
-.analytics-report-visual svg {
+.analytics-brain-mark {
+  width: min(320px, 88%);
+  height: 234px;
   filter:
     drop-shadow(0 0 20px color-mix(in oklab, var(--color-pulse) 70%, var(--transparent)))
     drop-shadow(0 0 30px color-mix(in oklab, var(--chart-blue) 55%, var(--transparent)));
-}
-
-.analytics-report-visual i {
-  position: absolute;
-  width: min(260px, 90%);
-  aspect-ratio: 1.62;
-  border: 1px solid color-mix(in oklab, var(--chart-blue) 56%, var(--transparent));
-  border-radius: 50%;
-  transform: rotate(-12deg);
-  box-shadow: 0 0 28px color-mix(in oklab, var(--chart-blue) 34%, var(--transparent));
 }
 
 .analytics-ai-badge {
@@ -8510,6 +8491,11 @@ textarea {
 
   .analytics-report-visual {
     min-height: 170px;
+  }
+
+  .analytics-brain-mark {
+    width: min(260px, 82%);
+    height: 190px;
   }
 
   .analytics-score-orbit {
