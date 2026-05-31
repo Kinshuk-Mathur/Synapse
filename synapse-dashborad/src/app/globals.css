@@ -1409,10 +1409,26 @@ textarea {
   filter: drop-shadow(0 0 24px color-mix(in oklab, var(--color-pulse) 56%, var(--transparent)));
 }
 
-.brain-system svg {
-  width: 96px;
-  height: 96px;
+.brain-mark {
+  display: block;
+  width: 148px;
+  height: 108px;
   animation: floatBrain 5s ease-in-out infinite;
+  background:
+    url("/assets/synapse-brain-mask.png") center / contain no-repeat;
+}
+
+@supports (mask: url("/assets/synapse-brain-mask.png") center / contain no-repeat) or (-webkit-mask: url("/assets/synapse-brain-mask.png") center / contain no-repeat) {
+  .brain-mark {
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in oklab, var(--color-text) 18%, var(--color-pulse)),
+        color-mix(in oklab, var(--color-accent) 24%, var(--color-pulse))
+      );
+    mask: url("/assets/synapse-brain-mask.png") center / contain no-repeat;
+    -webkit-mask: url("/assets/synapse-brain-mask.png") center / contain no-repeat;
+  }
 }
 
 .signal-ring {
@@ -5284,9 +5300,9 @@ textarea {
     margin-top: 8px;
   }
 
-  .brain-system svg {
-    width: 78px;
-    height: 78px;
+  .brain-mark {
+    width: 118px;
+    height: 86px;
   }
 
   .stats-grid {

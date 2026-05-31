@@ -1048,7 +1048,7 @@ export default function Home() {
                 </div>
                 <div className="brain-system" aria-hidden="true">
                   <div className="signal-ring" />
-                  <BrainCircuit size={112} />
+                  <span className="brain-mark" />
                 </div>
               </motion.section>
 
