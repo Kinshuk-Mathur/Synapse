@@ -1537,7 +1537,7 @@ function populateAiMessages() {
       "system",
       synapseAiStatus?.session?.active
         ? "Ask quietly. I will keep answers short, structured, and tied to this FocusLock session."
-        : "Start a FocusLock session to attach AI chats and summaries to your study history."
+        : "Ask anytime. FocusLock history saves only during an active session."
     );
     return;
   }
@@ -1832,7 +1832,7 @@ function removeSynapseAiCompanion() {
 
 function refreshSynapseAiCompanion(status = synapseAiStatus) {
   synapseAiStatus = { ...(synapseAiStatus || {}), ...(status || {}) };
-  if (!synapseAiStatus?.enabled || !synapseAiStatus?.session?.active) {
+  if (!synapseAiStatus?.enabled) {
     removeSynapseAiCompanion();
     return;
   }

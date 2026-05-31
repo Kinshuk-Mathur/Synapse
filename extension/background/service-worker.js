@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS = {
   sameOriginLock: true,
   fullscreenProtection: true,
   blockDistractingSites: true,
-  aiCompanionEnabled: false,
+  aiCompanionEnabled: true,
   aiButtonPosition: null,
   dashboardUrl: "https://synapse24.netlify.app",
   restrictedHosts: [
@@ -629,8 +629,10 @@ function storeAiChat(chat) {
     changed = true;
   }
 
-  if (changed) scheduleDashboardSync();
-  persistAiChatToFirestore(normalized).catch(() => {});
+  if (changed) {
+    scheduleDashboardSync();
+    persistAiChatToFirestore(normalized).catch(() => {});
+  }
   return normalized;
 }
 
@@ -702,10 +704,6 @@ async function handleAiChatRequest(message = {}, sender = {}) {
     return { success: false, error: "SYNAPSE AI Companion is turned off." };
   }
 
-  if (!sessionData.active || !sessionData.sessionId) {
-    return { success: false, error: "Start a FocusLock session before using SYNAPSE AI Companion." };
-  }
-
   const prompt = cleanText(message.prompt || "", 5000);
   if (!prompt) return { success: false, error: "Ask a study question first." };
 
@@ -714,7 +712,8 @@ async function handleAiChatRequest(message = {}, sender = {}) {
     url: cleanText(message.pageContext?.url || sender.tab?.url || "", 1000),
     selection: cleanText(message.pageContext?.selection || "", 1200)
   };
-  const sessionId = message.sessionId || sessionData.sessionId;
+  const hasActiveFocusSession = Boolean(sessionData.active && sessionData.sessionId);
+  const sessionId = hasActiveFocusSession ? (message.sessionId || sessionData.sessionId) : "";
   const sourceSession = sessionData.sessionId === sessionId ? sessionData : getHistoryRecord(sessionId) || sessionData;
   const aiResponse = await callSynapseAiBackend({
     mode: "chat",

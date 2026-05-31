@@ -34,6 +34,17 @@
       <div class="goal-chip" id="active-goal-chip">Deep study session</div>
     </section>
 
+    <section class="ai-settings-card" aria-label="SYNAPSE AI Companion settings">
+      <label class="ai-toggle-row">
+        <span>
+          <strong>Enable SYNAPSE AI Companion</strong>
+          <small>Always available. Focus history saves during sessions.</small>
+        </span>
+        <input id="ai-companion-toggle" type="checkbox" />
+        <i aria-hidden="true"></i>
+      </label>
+    </section>
+
     <section class="panel" id="idle-state">
       <label class="field">
         <span>Current goal</span>
@@ -89,17 +100,6 @@
         <button class="secondary-button" id="break-btn">Take 6 Minute Break</button>
         <button class="danger-button" id="unlock-btn">Stop Session</button>
       </div>
-    </section>
-
-    <section class="ai-settings-card" aria-label="SYNAPSE AI Companion settings">
-      <label class="ai-toggle-row">
-        <span>
-          <strong>Enable SYNAPSE AI Companion</strong>
-          <small>Appears only during active FocusLock sessions</small>
-        </span>
-        <input id="ai-companion-toggle" type="checkbox" />
-        <i aria-hidden="true"></i>
-      </label>
     </section>
 
     <p class="sync-line" id="sync-line">Dashboard sync is ready.</p>
