@@ -403,9 +403,6 @@ function MomentumTimeline({ days = [] }) {
       transition={{ duration: 0.38 }}
       aria-label="Weekly SYNAPSE Momentum"
     >
-      <div className="momentum-timeline-brand" aria-hidden="true">
-        <span className="brain-mark momentum-brain-mark" />
-      </div>
       <div className="momentum-timeline-copy">
         <strong>Your Daily Momentum</strong>
         <span>Stay consistent. Build unstoppable.</span>
