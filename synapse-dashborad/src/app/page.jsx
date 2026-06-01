@@ -77,7 +77,7 @@ const navItems = [
   { label: "To-Do List", icon: CheckSquare, href: todoAppUrl },
   { label: "Goals", icon: Target, href: goalsAppUrl },
   { label: "Analytics", icon: BarChart3, href: "/analytics" },
-  { label: "Resources", icon: FolderOpen, href: "#" },
+  { label: "Resources", icon: FolderOpen, href: "/resources" },
   { label: "Settings", icon: Settings, href: "/settings" }
 ];
 

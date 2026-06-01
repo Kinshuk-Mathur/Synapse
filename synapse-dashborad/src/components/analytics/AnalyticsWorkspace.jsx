@@ -63,7 +63,7 @@ const navItems = [
   { label: "To-Do List", icon: CheckSquare, href: "/todo" },
   { label: "Goals", icon: Target, href: "/goals" },
   { label: "Analytics", icon: BarChart3, href: "/analytics", active: true },
-  { label: "Resources", icon: FolderOpen, href: "#" },
+  { label: "Resources", icon: FolderOpen, href: "/resources" },
   { label: "Settings", icon: Settings, href: "/settings" }
 ];
 
