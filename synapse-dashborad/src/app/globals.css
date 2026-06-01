@@ -8681,21 +8681,6 @@ textarea {
   align-items: flex-start;
 }
 
-.resources-title-icon {
-  display: grid;
-  width: 58px;
-  height: 58px;
-  flex: none;
-  place-items: center;
-  border: 1px solid color-mix(in oklab, var(--chart-blue) 42%, var(--transparent));
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg, color-mix(in oklab, var(--chart-blue) 22%, var(--transparent)), color-mix(in oklab, var(--color-lime) 10%, var(--transparent))),
-    var(--panel);
-  color: var(--chart-blue);
-  box-shadow: 0 0 34px color-mix(in oklab, var(--chart-blue) 24%, var(--transparent));
-}
-
 .resources-eyebrow {
   gap: 8px;
   color: var(--chart-gold);
@@ -9115,11 +9100,6 @@ textarea {
 
   .resources-title-block {
     align-items: flex-start;
-  }
-
-  .resources-title-icon {
-    width: 50px;
-    height: 50px;
   }
 
   .resources-hero {

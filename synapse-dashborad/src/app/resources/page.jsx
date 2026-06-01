@@ -241,9 +241,6 @@ function ResourcesWorkspace() {
               >
                 <Menu size={22} />
               </button>
-              <div className="resources-title-icon" aria-hidden="true">
-                <FolderOpen size={26} />
-              </div>
               <div>
                 <motion.span
                   className="resources-eyebrow"
