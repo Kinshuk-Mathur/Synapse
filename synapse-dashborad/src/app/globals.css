@@ -5757,8 +5757,8 @@ textarea {
 
   .synapse-ai-actions {
     margin-left: 0;
-    width: 100%;
-    justify-content: flex-start;
+    width: auto;
+    justify-content: flex-end;
   }
 
   .synapse-chat-panel {
@@ -6173,9 +6173,10 @@ textarea {
 .synapse-ai-topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 14px;
-  min-height: 64px;
-  margin-bottom: 16px;
+  min-height: 52px;
+  margin-bottom: 10px;
 }
 
 .ai-workspace-greeting {
@@ -6205,6 +6206,8 @@ textarea {
   align-items: center;
   gap: 10px;
   margin-left: auto;
+  width: auto;
+  justify-content: flex-end;
 }
 
 .model-chip {
@@ -6229,7 +6232,7 @@ textarea {
 .synapse-ai-layout {
   display: grid;
   min-height: 0;
-  height: calc(100% - 80px);
+  height: calc(100% - 62px);
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
 }
@@ -7909,9 +7912,9 @@ textarea {
   }
 
   .synapse-ai-actions {
-    width: 100%;
-    margin-left: 0;
-    justify-content: space-between;
+    width: auto;
+    margin-left: auto;
+    justify-content: flex-end;
   }
 
   .workspace-quick-actions {
@@ -10820,10 +10823,11 @@ textarea {
 
   .synapse-ai-topbar {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
     gap: 10px;
     min-height: 0;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 
   .ai-workspace-greeting span {
@@ -10838,6 +10842,9 @@ textarea {
 
   .synapse-ai-actions {
     gap: 8px;
+    width: auto;
+    margin-left: auto;
+    justify-content: flex-end;
   }
 
   .synapse-ai-actions .model-chip {
@@ -10845,7 +10852,7 @@ textarea {
   }
 
   .synapse-ai-layout {
-    height: calc(100% - 92px);
+    height: calc(100% - 58px);
     min-height: 0;
     overflow: hidden;
   }

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Brain,
-  BookMarked,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -30,8 +29,6 @@ import {
   Send,
   Sigma,
   Sparkles,
-  ListTodo,
-  Target,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -40,7 +37,6 @@ import {
   Zap
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { useSynapseTheme } from "../../hooks/useSynapseTheme";
 import { recordMeaningfulAiUsage } from "../../services/analytics";
 import { consumeSynapseUsage } from "../../services/usageLimits";
 import { updateMomentumProgress } from "../../services/userStats";
@@ -50,9 +46,7 @@ import {
   normalizePdfTitle,
   PDF_LIMITS
 } from "../../utils/pdfParser";
-import NotificationCenter from "../NotificationCenter";
 import ProfileAvatarMenu from "../ProfileAvatarMenu";
-import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 import AIMessageRenderer, { extractAiReplyText } from "./AIMessageRenderer";
 
 const STORAGE_KEY = "synapse-ai-conversations";
@@ -173,25 +167,29 @@ const pdfQuickActions = [
   }
 ];
 
-function createWelcomeMessage() {
+function createWelcomeMessage(studentName = "Student") {
   return {
     id: "welcome",
     role: "assistant",
-    content:
-      "Hi, I am SYNAPSE AI. Ask a study doubt, plan your week, or upload a PDF and I will help you turn it into clear next steps.",
+    content: getWelcomeMessageContent(studentName),
     createdAt: new Date().toISOString(),
     synthetic: true
   };
 }
 
-function createConversation() {
+function getWelcomeMessageContent(studentName = "Student") {
+  const name = String(studentName || "Student").trim() || "Student";
+  return `Hi ${name}, I am SYNAPSE AI. Ask a study doubt, plan your week, or upload a PDF and I will help you turn it into clear next steps.`;
+}
+
+function createConversation(studentName = "Student") {
   const now = new Date().toISOString();
 
   return {
     id: `chat-${Date.now()}`,
     title: "New Chat",
     updatedAt: now,
-    messages: [createWelcomeMessage()]
+    messages: [createWelcomeMessage(studentName)]
   };
 }
 
@@ -599,10 +597,13 @@ function getAttachmentIcon(attachment) {
   return FileText;
 }
 
-function MessageBubble({ message, onCopy, onMessageAction }) {
+function MessageBubble({ message, studentName, onCopy, onMessageAction }) {
   const fromUser = message.role === "user";
   const AttachmentIcon = getAttachmentIcon(message.attachment);
-  const displayContent = fromUser ? message.content : formatDenseAiContent(message.content);
+  const rawContent = !fromUser && message.synthetic && message.id === "welcome"
+    ? getWelcomeMessageContent(studentName)
+    : message.content;
+  const displayContent = fromUser ? rawContent : formatDenseAiContent(rawContent);
   const aiActions = [
     {
       key: "copy",
@@ -611,28 +612,22 @@ function MessageBubble({ message, onCopy, onMessageAction }) {
       onClick: () => onCopy(displayContent)
     },
     {
+      key: "like",
+      label: "Like response",
+      icon: ThumbsUp,
+      onClick: () => {}
+    },
+    {
+      key: "dislike",
+      label: "Dislike response",
+      icon: ThumbsDown,
+      onClick: () => {}
+    },
+    {
       key: "regenerate",
-      label: "Regenerate",
+      label: "Reanswer",
       icon: RefreshCw,
       onClick: () => onMessageAction("regenerate", message)
-    },
-    {
-      key: "save-note",
-      label: "Save as note",
-      icon: BookMarked,
-      onClick: () => onMessageAction("save-note", message)
-    },
-    {
-      key: "add-tasks",
-      label: "Add tasks from response",
-      icon: ListTodo,
-      onClick: () => onMessageAction("add-tasks", message)
-    },
-    {
-      key: "add-goals",
-      label: "Add goals from response",
-      icon: Target,
-      onClick: () => onMessageAction("add-goals", message)
     }
   ];
 
@@ -677,12 +672,6 @@ function MessageBubble({ message, onCopy, onMessageAction }) {
                   </button>
                 );
               })}
-              <button type="button" aria-label="Like response" title="Like response">
-                <ThumbsUp size={15} />
-              </button>
-              <button type="button" aria-label="Dislike response" title="Dislike response">
-                <ThumbsDown size={15} />
-              </button>
             </span>
           ) : (
             <Check size={14} />
@@ -884,7 +873,6 @@ export default function SynapseAIWorkspace() {
   const voiceStatusRef = useRef("idle");
   const voiceRunIdRef = useRef(0);
   const speechVoicesRef = useRef([]);
-  const { theme, applyTheme } = useSynapseTheme();
   const { user, profile, setProfile } = useAuth();
 
   const studentName = profile?.name || user?.displayName?.split(" ")[0] || "Student";
@@ -901,18 +889,18 @@ export default function SynapseAIWorkspace() {
   useEffect(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
-      const valid = Array.isArray(saved) && saved.length > 0 ? limitStoredConversations(saved) : [createConversation()];
+      const valid = Array.isArray(saved) && saved.length > 0 ? limitStoredConversations(saved) : [createConversation(studentName)];
 
       setConversations(valid);
       setActiveId(valid[0].id);
     } catch {
-      const firstConversation = createConversation();
+      const firstConversation = createConversation(studentName);
       setConversations([firstConversation]);
       setActiveId(firstConversation.id);
     } finally {
       setHydrated(true);
     }
-  }, []);
+  }, [studentName]);
 
   useEffect(() => {
     try {
@@ -1031,7 +1019,7 @@ export default function SynapseAIWorkspace() {
   };
 
   const handleNewChat = () => {
-    const nextConversation = createConversation();
+    const nextConversation = createConversation(studentName);
     setConversations((current) => [nextConversation, ...current]);
     setActiveId(nextConversation.id);
     setInput("");
@@ -1046,7 +1034,7 @@ export default function SynapseAIWorkspace() {
       const next = current.filter((conversation) => conversation.id !== conversationId);
 
       if (!next.length) {
-        const fresh = createConversation();
+        const fresh = createConversation(studentName);
         setActiveId(fresh.id);
         return [fresh];
       }
@@ -1823,19 +1811,7 @@ export default function SynapseAIWorkspace() {
               <Menu size={22} />
             </button>
 
-            <div className="ai-workspace-greeting">
-              <span>Good evening, {studentName}</span>
-              <strong>Ready to continue your learning journey?</strong>
-            </div>
-
             <div className="synapse-ai-actions">
-              <div className="model-chip">
-                <Sparkles size={16} />
-                <span>SYNAPSE Router</span>
-                <ChevronRight size={14} />
-              </div>
-              <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
-              <NotificationCenter />
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}
@@ -1888,6 +1864,7 @@ export default function SynapseAIWorkspace() {
                     <MessageBubble
                       key={message.id}
                       message={message}
+                      studentName={studentName}
                       onCopy={copyMessage}
                       onMessageAction={handleMessageAction}
                     />
