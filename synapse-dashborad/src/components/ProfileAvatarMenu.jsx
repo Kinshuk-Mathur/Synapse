@@ -165,10 +165,12 @@ function SynapseUsageCard({ usage, secondsToReset, usageError }) {
         </motion.div>
       ) : null}
 
-      <div className="ai-usage-reset">
-        <span>{limitReached ? "Resets In" : "Daily Reset In"}</span>
-        <strong>{resetCopy}</strong>
-      </div>
+      {limitReached ? (
+        <div className="ai-usage-reset">
+          <span>Resets In</span>
+          <strong>{resetCopy}</strong>
+        </div>
+      ) : null}
 
       {usageError ? <p className="ai-usage-error">{usageError}</p> : null}
     </motion.section>
