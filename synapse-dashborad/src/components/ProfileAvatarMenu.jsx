@@ -53,6 +53,12 @@ function getUsagePercent(value, limit) {
   return Math.min(100, Math.round((value / limit) * 100));
 }
 
+function getCompoundUsagePercent(usage) {
+  const aiPercent = getUsagePercent(usage.aiInteractions, SYNAPSE_FREE_PLAN_LIMITS.aiInteractions);
+  const pdfPercent = getUsagePercent(usage.pdfUploads, SYNAPSE_FREE_PLAN_LIMITS.pdfUploads);
+  return Math.max(aiPercent, pdfPercent);
+}
+
 function formatResetCountdown(totalSeconds = 0) {
   const safeSeconds = Math.max(0, Math.floor(totalSeconds));
   const hours = String(Math.floor(safeSeconds / 3600)).padStart(2, "0");
@@ -62,21 +68,18 @@ function formatResetCountdown(totalSeconds = 0) {
   return `${hours}:${minutes}:${seconds}`;
 }
 
-function getAiUsageNotice(aiInteractions) {
-  const limit = SYNAPSE_FREE_PLAN_LIMITS.aiInteractions;
-  const percent = getUsagePercent(aiInteractions, limit);
-
-  if (aiInteractions >= limit) {
+function getUsageNotice(percent) {
+  if (percent >= 100) {
     return {
       tone: "danger",
-      label: "Daily AI Limit Reached"
+      label: "Daily limit reached"
     };
   }
 
   if (percent >= 95) {
     return {
       tone: "orange",
-      label: "Only a few interactions remaining"
+      label: "Almost at today's limit"
     };
   }
 
@@ -108,43 +111,17 @@ function AnimatedUsageNumber({ value }) {
   return <span>{displayValue}</span>;
 }
 
-function UsageMeter({ label, value, limit, tone }) {
-  const percent = getUsagePercent(value, limit);
-  const meterLabel = `${label}: ${value} of ${limit}`;
-
-  return (
-    <div className="ai-usage-meter">
-      <div className="ai-usage-meter-head">
-        <span>{label}</span>
-        <strong>
-          <AnimatedUsageNumber value={value} /> / {limit}
-        </strong>
-        <em>{percent}%</em>
-      </div>
-      <div className="ai-usage-track" aria-label={meterLabel} role="meter" aria-valuemin={0} aria-valuemax={limit} aria-valuenow={value}>
-        <motion.span
-          className={`ai-usage-fill is-${tone}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${percent}%` }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </div>
-    </div>
-  );
-}
-
 function SynapseUsageCard({ usage, secondsToReset, usageError }) {
-  const aiLimit = SYNAPSE_FREE_PLAN_LIMITS.aiInteractions;
-  const pdfLimit = SYNAPSE_FREE_PLAN_LIMITS.pdfUploads;
-  const aiLimitReached = usage.aiInteractions >= aiLimit;
-  const aiRemaining = Math.max(0, aiLimit - usage.aiInteractions);
-  const pdfRemaining = Math.max(0, pdfLimit - usage.pdfUploads);
-  const aiNotice = getAiUsageNotice(usage.aiInteractions);
+  const compoundPercent = getCompoundUsagePercent(usage);
+  const limitReached =
+    usage.aiInteractions >= SYNAPSE_FREE_PLAN_LIMITS.aiInteractions ||
+    usage.pdfUploads >= SYNAPSE_FREE_PLAN_LIMITS.pdfUploads;
+  const usageNotice = getUsageNotice(limitReached ? 100 : compoundPercent);
   const resetCopy = formatResetCountdown(secondsToReset);
 
   return (
     <motion.section
-      className={`ai-usage-card ${aiLimitReached ? "is-limit-reached" : ""}`}
+      className={`ai-usage-card ${limitReached ? "is-limit-reached" : ""}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.24, ease: "easeOut" }}
@@ -153,59 +130,45 @@ function SynapseUsageCard({ usage, secondsToReset, usageError }) {
       <div className="ai-usage-card-head">
         <div>
           <p>Today's AI Usage</p>
-          <h3>Today's Usage</h3>
+          <h3>
+            <AnimatedUsageNumber value={compoundPercent} />% usage
+          </h3>
         </div>
         <span>Free Plan</span>
       </div>
 
-      <div className="ai-usage-card-body">
-        <UsageMeter
-          label={aiLimitReached ? "AI Limit Reached" : "AI Interactions"}
-          value={usage.aiInteractions}
-          limit={aiLimit}
-          tone="purple"
+      <div
+        className="ai-usage-track"
+        aria-label={`Today's usage: ${compoundPercent}%`}
+        role="meter"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={compoundPercent}
+      >
+        <motion.span
+          className="ai-usage-fill"
+          initial={{ width: 0 }}
+          animate={{ width: `${compoundPercent}%` }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         />
-        <UsageMeter label="PDF Uploads" value={usage.pdfUploads} limit={pdfLimit} tone="blue" />
       </div>
 
-      {aiNotice ? (
+      {usageNotice ? (
         <motion.div
-          className={`ai-usage-notice is-${aiNotice.tone}`}
+          className={`ai-usage-notice is-${usageNotice.tone}`}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
           <span aria-hidden="true">⚠</span>
-          <strong>{aiNotice.label}</strong>
+          <strong>{usageNotice.label}</strong>
         </motion.div>
       ) : null}
 
-      {aiLimitReached ? (
-        <div className="ai-usage-reset-panel">
-          <span>Resets In</span>
-          <strong>{resetCopy}</strong>
-        </div>
-      ) : (
-        <>
-          <div className="ai-usage-remaining">
-            <span>Remaining Today</span>
-            <div>
-              <p>
-                AI Remaining:
-                <strong>{aiRemaining}</strong>
-              </p>
-              <p>
-                PDF Remaining:
-                <strong>{pdfRemaining}</strong>
-              </p>
-            </div>
-          </div>
-          <div className="ai-usage-reset">
-            <span>Daily Reset In</span>
-            <strong>{resetCopy}</strong>
-          </div>
-        </>
-      )}
+      <div className="ai-usage-reset">
+        <span>{limitReached ? "Resets In" : "Daily Reset In"}</span>
+        <strong>{resetCopy}</strong>
+      </div>
 
       {usageError ? <p className="ai-usage-error">{usageError}</p> : null}
     </motion.section>
