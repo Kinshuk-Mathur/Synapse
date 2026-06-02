@@ -1,9 +1,16 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, animate, motion } from "framer-motion";
 import { ImagePlus, Pencil } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { updateUserPersonalization } from "../services/firestore";
+import {
+  formatSynapseUsageDateKey,
+  getSecondsUntilNextLocalMidnight,
+  listenToTodaySynapseUsage,
+  normalizeSynapseUsage,
+  SYNAPSE_FREE_PLAN_LIMITS
+} from "../services/usageLimits";
 
 const avatarFileTypes = ["image/png", "image/jpeg"];
 
@@ -41,6 +48,170 @@ async function createAvatarDataUrl(file) {
   return canvas.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.86);
 }
 
+function getUsagePercent(value, limit) {
+  if (!limit) return 0;
+  return Math.min(100, Math.round((value / limit) * 100));
+}
+
+function formatResetCountdown(totalSeconds = 0) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = String(Math.floor(safeSeconds / 3600)).padStart(2, "0");
+  const minutes = String(Math.floor((safeSeconds % 3600) / 60)).padStart(2, "0");
+  const seconds = String(safeSeconds % 60).padStart(2, "0");
+
+  return `${hours}:${minutes}:${seconds}`;
+}
+
+function getAiUsageNotice(aiInteractions) {
+  const limit = SYNAPSE_FREE_PLAN_LIMITS.aiInteractions;
+  const percent = getUsagePercent(aiInteractions, limit);
+
+  if (aiInteractions >= limit) {
+    return {
+      tone: "danger",
+      label: "Daily AI Limit Reached"
+    };
+  }
+
+  if (percent >= 95) {
+    return {
+      tone: "orange",
+      label: "Only a few interactions remaining"
+    };
+  }
+
+  if (percent >= 80) {
+    return {
+      tone: "amber",
+      label: "Approaching today's limit"
+    };
+  }
+
+  return null;
+}
+
+function AnimatedUsageNumber({ value }) {
+  const [displayValue, setDisplayValue] = useState(value);
+  const previousValueRef = useRef(value);
+
+  useEffect(() => {
+    const controls = animate(previousValueRef.current, value, {
+      duration: 0.55,
+      ease: [0.22, 1, 0.36, 1],
+      onUpdate: (latest) => setDisplayValue(Math.round(latest))
+    });
+
+    previousValueRef.current = value;
+    return () => controls.stop();
+  }, [value]);
+
+  return <span>{displayValue}</span>;
+}
+
+function UsageMeter({ label, value, limit, tone }) {
+  const percent = getUsagePercent(value, limit);
+  const meterLabel = `${label}: ${value} of ${limit}`;
+
+  return (
+    <div className="ai-usage-meter">
+      <div className="ai-usage-meter-head">
+        <span>{label}</span>
+        <strong>
+          <AnimatedUsageNumber value={value} /> / {limit}
+        </strong>
+        <em>{percent}%</em>
+      </div>
+      <div className="ai-usage-track" aria-label={meterLabel} role="meter" aria-valuemin={0} aria-valuemax={limit} aria-valuenow={value}>
+        <motion.span
+          className={`ai-usage-fill is-${tone}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${percent}%` }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SynapseUsageCard({ usage, secondsToReset, usageError }) {
+  const aiLimit = SYNAPSE_FREE_PLAN_LIMITS.aiInteractions;
+  const pdfLimit = SYNAPSE_FREE_PLAN_LIMITS.pdfUploads;
+  const aiLimitReached = usage.aiInteractions >= aiLimit;
+  const aiRemaining = Math.max(0, aiLimit - usage.aiInteractions);
+  const pdfRemaining = Math.max(0, pdfLimit - usage.pdfUploads);
+  const aiNotice = getAiUsageNotice(usage.aiInteractions);
+  const resetCopy = formatResetCountdown(secondsToReset);
+
+  return (
+    <motion.section
+      className={`ai-usage-card ${aiLimitReached ? "is-limit-reached" : ""}`}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: "easeOut" }}
+      aria-label="Today's AI Usage"
+    >
+      <div className="ai-usage-card-head">
+        <div>
+          <p>Today's AI Usage</p>
+          <h3>Today's Usage</h3>
+        </div>
+        <span>Free Plan</span>
+      </div>
+
+      <div className="ai-usage-card-body">
+        <UsageMeter
+          label={aiLimitReached ? "AI Limit Reached" : "AI Interactions"}
+          value={usage.aiInteractions}
+          limit={aiLimit}
+          tone="purple"
+        />
+        <UsageMeter label="PDF Uploads" value={usage.pdfUploads} limit={pdfLimit} tone="blue" />
+      </div>
+
+      {aiNotice ? (
+        <motion.div
+          className={`ai-usage-notice is-${aiNotice.tone}`}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <span aria-hidden="true">⚠</span>
+          <strong>{aiNotice.label}</strong>
+        </motion.div>
+      ) : null}
+
+      {aiLimitReached ? (
+        <div className="ai-usage-reset-panel">
+          <span>Resets In</span>
+          <strong>{resetCopy}</strong>
+        </div>
+      ) : (
+        <>
+          <div className="ai-usage-remaining">
+            <span>Remaining Today</span>
+            <div>
+              <p>
+                AI Remaining:
+                <strong>{aiRemaining}</strong>
+              </p>
+              <p>
+                PDF Remaining:
+                <strong>{pdfRemaining}</strong>
+              </p>
+            </div>
+          </div>
+          <div className="ai-usage-reset">
+            <span>Daily Reset In</span>
+            <strong>{resetCopy}</strong>
+          </div>
+        </>
+      )}
+
+      {usageError ? <p className="ai-usage-error">{usageError}</p> : null}
+    </motion.section>
+  );
+}
+
 export default function ProfileAvatarMenu({
   user,
   profile,
@@ -50,11 +221,41 @@ export default function ProfileAvatarMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [usageError, setUsageError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [usage, setUsage] = useState(() => normalizeSynapseUsage(profile?.usage));
+  const [usageDateKey, setUsageDateKey] = useState(() => formatSynapseUsageDateKey());
+  const [secondsToReset, setSecondsToReset] = useState(() => getSecondsUntilNextLocalMidnight());
   const menuRef = useRef(null);
   const inputRef = useRef(null);
   const avatarSrc = profile?.avatarDataUrl || profile?.photoURL || user?.photoURL || "/assets/synapse-icon-cropped.png";
   const displayName = profile?.name || profile?.displayName || user?.displayName || studentName || "Student";
+
+  useEffect(() => {
+    const tick = () => {
+      setUsageDateKey(formatSynapseUsageDateKey());
+      setSecondsToReset(getSecondsUntilNextLocalMidnight());
+    };
+
+    tick();
+    const intervalId = window.setInterval(tick, 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setUsage(normalizeSynapseUsage(profile?.usage, usageDateKey));
+      return undefined;
+    }
+
+    setUsageError("");
+    return listenToTodaySynapseUsage(
+      user.uid,
+      setUsage,
+      (error) => setUsageError(error.message || "Usage sync is temporarily unavailable."),
+      usageDateKey
+    );
+  }, [profile?.usage, usageDateKey, user?.uid]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -151,6 +352,7 @@ export default function ProfileAvatarMenu({
               onChange={handleAvatarFile}
             />
             {uploadError ? <p className="profile-avatar-error">{uploadError}</p> : null}
+            <SynapseUsageCard usage={usage} secondsToReset={secondsToReset} usageError={usageError} />
           </motion.div>
         ) : null}
       </AnimatePresence>

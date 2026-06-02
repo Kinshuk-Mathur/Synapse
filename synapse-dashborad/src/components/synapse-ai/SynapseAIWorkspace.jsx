@@ -42,6 +42,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
 import { recordMeaningfulAiUsage } from "../../services/analytics";
+import { consumeSynapseUsage } from "../../services/usageLimits";
 import { updateMomentumProgress } from "../../services/userStats";
 import {
   formatPdfFileSize,
@@ -1455,6 +1456,24 @@ export default function SynapseAIWorkspace() {
       if (shouldSpeakResponse && voiceRunIsCurrent()) {
         updateVoiceStatus("idle");
       }
+      return;
+    }
+
+    try {
+      await consumeSynapseUsage(user?.uid, {
+        aiInteractions: 1,
+        pdfUploads: attachedPdfFile ? 1 : 0
+      });
+      setUploadError("");
+    } catch (usageLimitError) {
+      const limitMessage = usageLimitError.message || "Today's SYNAPSE usage limit has been reached.";
+      setUploadError(limitMessage);
+      showToast(limitMessage);
+
+      if (shouldSpeakResponse && voiceRunIsCurrent()) {
+        setVoiceFailure(limitMessage);
+      }
+
       return;
     }
 
