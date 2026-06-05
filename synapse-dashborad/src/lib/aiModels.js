@@ -9,7 +9,6 @@ export const AI_ROUTER_CONFIG = {
   retriesPerModel: 1,
   maxMessages: 12,
   maxContentLength: 12_000,
-  temperature: 0.7,
   maxCompletionTokens: 3_000,
   retryDelayMs: 550,
   maxRateLimitWaitMs: 2_000,
