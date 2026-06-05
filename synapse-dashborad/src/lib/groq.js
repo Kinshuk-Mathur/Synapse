@@ -47,13 +47,7 @@ export function getGroqModelByKey(key) {
 
 export function orderGroqModels(primaryKey = GROQ_MODEL_KEYS.GENERAL) {
   const primary = getGroqModelByKey(primaryKey);
-  const fallbackOrder = [
-    GROQ_MODEL_KEYS.GENERAL,
-    GROQ_MODEL_KEYS.REASONING,
-    GROQ_MODEL_KEYS.LIGHTWEIGHT
-  ]
-    .map(getGroqModelByKey)
-    .filter((model) => model.id !== primary.id);
+  const fallbackModels = GROQ_MODELS.filter((model) => model.id !== primary.id);
 
-  return [primary, ...fallbackOrder];
+  return [primary, ...fallbackModels];
 }

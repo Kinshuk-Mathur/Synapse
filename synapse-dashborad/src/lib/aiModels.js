@@ -1,4 +1,5 @@
-import { GROQ_MODEL_KEYS, orderGroqModels } from "./groq";
+import { orderGroqModels } from "./groq";
+import { getAiRouterDecision } from "./ai/router.js";
 import { formatUserContextForPrompt } from "./aiContextEngine";
 
 export const SYNAPSE_AI_BUSY_MESSAGE =
@@ -444,30 +445,7 @@ function latestUserMessage(messages = []) {
 }
 
 export function chooseGroqModelKey(messages = []) {
-  const latest = latestUserMessage(messages).toLowerCase();
-  const classification = classifyPrompt(latest);
-
-  if (
-    ["coding", "startup", "productivity", "detailed"].includes(classification.mode) ||
-    /\b(code|coding|debug|bug|error|stack trace|algorithm|function|component|api|firebase|firestore|next\.?js|react|tailwind)\b/.test(
-      latest
-    ) ||
-    /\b(solve|derive|proof|calculate|equation|formula|physics|math|reason|step by step|why|strategy|roadmap|business|startup|mentor)\b/.test(
-      latest
-    )
-  ) {
-    return GROQ_MODEL_KEYS.REASONING;
-  }
-
-  if (
-    /\b(short|quick|one line|one sentence|rewrite|title|caption)\b/.test(
-      latest
-    )
-  ) {
-    return GROQ_MODEL_KEYS.LIGHTWEIGHT;
-  }
-
-  return GROQ_MODEL_KEYS.GENERAL;
+  return getAiRouterDecision(latestUserMessage(messages)).modelKey;
 }
 
 function isHtmlErrorResponse(value) {
@@ -764,7 +742,9 @@ async function requestGroqStreamCompletion(client, model, messages, timeoutMs, l
 }
 
 export async function routeCompletionThroughGroq(client, messages, options = {}) {
-  const primaryKey = options.primaryKey || chooseGroqModelKey(messages);
+  const prompt = latestUserMessage(messages);
+  const routerDecision = options.routerDecision || getAiRouterDecision(prompt);
+  const primaryKey = options.primaryKey || routerDecision.modelKey;
   const models = options.models || orderGroqModels(primaryKey);
   const retriesPerModel = options.retriesPerModel ?? AI_ROUTER_CONFIG.retriesPerModel;
   const timeoutMs = options.timeoutMs ?? AI_ROUTER_CONFIG.timeoutMs;
@@ -773,6 +753,10 @@ export async function routeCompletionThroughGroq(client, messages, options = {})
   const streamFromProvider = Boolean(options.streamFromProvider);
   const failures = [];
   let lastError = null;
+
+  logger.info(
+    `[AI ROUTER]\nPrompt Type: ${routerDecision.promptType}\nSelected Model: ${routerDecision.model.id}`
+  );
 
   logger.info(
     `[SYNAPSE AI ${requestId}] Groq router start. primary=${primaryKey}; Models=${models
