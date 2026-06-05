@@ -11,13 +11,13 @@ export const GROQ_MODELS = [
     key: GROQ_MODEL_KEYS.GENERAL,
     name: "Llama 4 Scout",
     label: "General Chat",
-    id: "llama-3.3-70b-versatile"
+    id: "meta-llama/llama-4-scout-17b-16e-instruct"
   },
   {
     key: GROQ_MODEL_KEYS.REASONING,
     name: "Llama 3.3 70B",
     label: "Reasoning",
-    id: "meta-llama/llama-4-scout-17b-16e-instruct"
+    id: "llama-3.3-70b-versatile"
   },
   {
     key: GROQ_MODEL_KEYS.LIGHTWEIGHT,
