@@ -405,7 +405,7 @@ ${STRUCTURED_ANSWER_BLUEPRINT_BLOCK}
 
 ${CONTEXT_INTELLIGENCE_BLOCK}
 
-${isAnalyticsContext ? RESPONSE_FORMATTER_BLOCK : ""}
+${RESPONSE_FORMATTER_BLOCK}
 
 Core operating rules:
 - Always answer in English only.
@@ -427,7 +427,7 @@ ${buildVoiceModeInstructions(voiceMode)}
 ${buildActionContract(today)}
 
 Formatting rules:
-- Use only purposeful emojis that improve tone or scanning; avoid emoji clutter.
+- Emojis in ## section headings are required for productivity, analytics, and structured mentor responses (per EMOTIVE_EMOJI_STYLE_BLOCK above). Do not strip them. Avoid emoji clutter only in body text and bullet lists.
 - Avoid long decorative separators.
 - Do not output raw LaTeX delimiters or commands such as \\[, \\], \\frac{}, \\vec{}, \\hat{}, \\text{}, or $$.
 - Write math in student-readable plain text using normal symbols: (a + b)^2 = a^2 + 2ab + b^2, F = k(q1 q2) / r^2, ×, π, ε0.

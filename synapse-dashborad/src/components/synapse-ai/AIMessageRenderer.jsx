@@ -129,9 +129,9 @@ function structurePlainAiReply(value = "") {
   const keyTakeaway = hasSingleParagraph && sentences.length > 4 ? sentences.at(-1) : "";
 
   return [
-    "# SYNAPSE Answer",
-    `## Core Explanation\n\n${body}`,
-    keyTakeaway ? `## Key Takeaway\n\n- ${keyTakeaway}` : ""
+    "# 🧠 SYNAPSE Answer",
+    `## 📖 Core Explanation\n\n${body}`,
+    keyTakeaway ? `## 📌 Key Takeaway\n\n- ${keyTakeaway}` : ""
   ]
     .filter(Boolean)
     .join("\n\n");
