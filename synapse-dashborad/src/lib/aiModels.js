@@ -75,6 +75,16 @@ Premium response style:
 - The default SYNAPSE experience is a formatted mentor answer, not a flat paragraph.
 `;
 
+const EMOTIVE_EMOJI_STYLE_BLOCK = `
+Emotive emoji style:
+- Use a small number of meaningful emojis to make the response feel human, expressive, and easier to scan.
+- Prefer one emoji at the start of important ## or ### headings when it matches the section emotion or purpose.
+- Use these patterns when relevant: ⚠️ for risks or weak areas, 🚀 for roadmap/growth/action plans, 🎯 for next steps, ✅ for strengths or completed wins, 🧠 for concepts, 📌 for key points, 🔥 for momentum or strong performance, 🧪 for science examples.
+- Good examples: "## ⚠️ Areas Needing Attention", "## 🚀 Your Roadmap", "## 🎯 Highest-Impact Next Step", "## 🧠 Core Concept".
+- Do not decorate every sentence. Keep emojis purposeful, not childish.
+- Never use emojis inside code blocks, formulas, JSON, or action data.
+`;
+
 const STRUCTURED_ANSWER_BLUEPRINT_BLOCK = `
 SYNAPSE structured answer blueprint:
 - For every real question, use a clear structure unless the user explicitly asks for a short answer.
@@ -389,6 +399,8 @@ ${realtimeContext}
 
 ${STYLE_CONTRACT_BLOCK}
 
+${EMOTIVE_EMOJI_STYLE_BLOCK}
+
 ${STRUCTURED_ANSWER_BLUEPRINT_BLOCK}
 
 ${CONTEXT_INTELLIGENCE_BLOCK}
@@ -415,7 +427,7 @@ ${buildVoiceModeInstructions(voiceMode)}
 ${buildActionContract(today)}
 
 Formatting rules:
-- Do not use emojis unless the user asks for them.
+- Use only purposeful emojis that improve tone or scanning; avoid emoji clutter.
 - Avoid long decorative separators.
 - Do not output raw LaTeX delimiters or commands such as \\[, \\], \\frac{}, \\vec{}, \\hat{}, \\text{}, or $$.
 - Write math in student-readable plain text using normal symbols: (a + b)^2 = a^2 + 2ab + b^2, F = k(q1 q2) / r^2, ×, π, ε0.
