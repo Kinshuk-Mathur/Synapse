@@ -864,6 +864,7 @@ export default function SynapseAIWorkspace() {
   const textareaRef = useRef(null);
   const fileRef = useRef(null);
   const attachmentMenuRef = useRef(null);
+  const lastSendTimeRef = useRef(0);
   const toastTimeoutRef = useRef(null);
   const recognitionRef = useRef(null);
   const voiceTimeoutRef = useRef(null);
@@ -1426,6 +1427,7 @@ export default function SynapseAIWorkspace() {
   };
 
   const handleSend = async (options = {}) => {
+    
     const promptOverride = typeof options.prompt === "string" ? options.prompt : "";
     const trimmed = (promptOverride || input).trim();
     const attachedFile = selectedFile;
@@ -1439,6 +1441,12 @@ export default function SynapseAIWorkspace() {
     const voiceRunIsCurrent = () => !shouldSpeakResponse || !voiceRunId || voiceRunId === voiceRunIdRef.current;
     const conversation = conversations.find((item) => item.id === activeId);
     const targetId = activeId;
+    const sendTime = Date.now();
+if (sendTime - lastSendTimeRef.current < 3000) {
+  showToast("Please wait a moment before sending again.");
+  return;
+}
+lastSendTimeRef.current = sendTime;
 
     if (!conversation || loading || (!trimmed && !attachedFile && !hasPdfContext)) {
       if (shouldSpeakResponse && voiceRunIsCurrent()) {
