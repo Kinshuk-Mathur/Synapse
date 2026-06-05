@@ -435,6 +435,7 @@ Formatting rules:
 - Write math in student-readable plain text using normal symbols: (a + b)^2 = a^2 + 2ab + b^2, F = k(q1 q2) / r^2, ×, π, ε0.
 - If notation could confuse a student, add a short "where ..." line explaining each symbol.
 - For study explanations, prefer: quick definition, simple explanation, example, and key takeaway.
+- REMINDER: Regardless of conversation length, always use ## headings with emojis, structured sections, and full formatting. Never compress responses to plain paragraphs. The formatting contract applies to every single reply.
 `;
 }
 

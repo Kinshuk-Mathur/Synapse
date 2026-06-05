@@ -1496,10 +1496,13 @@ export default function SynapseAIWorkspace() {
     const baseMessages = conversation.messages.filter((message) => !message.synthetic);
     const nextMessages = [...baseMessages, userMessage]
       .filter((message) => message.role === "user" || message.role === "assistant")
-      .slice(-10)
+      .slice(-6)  // ← reduce from 10 to 6 to protect context space for system prompt
       .map((message) => ({
         role: message.role,
-        content: message.content
+        // Trim long AI responses in history — keeps structure instructions effective
+        content: message.role === "assistant"
+          ? String(message.content || "").slice(0, 1800)
+          : String(message.content || "").slice(0, 600)
       }));
 
     updateConversation(targetId, (current) => ({
@@ -1607,11 +1610,12 @@ export default function SynapseAIWorkspace() {
             document: pdfDocumentPayload
           }
         : {
-            messages: nextMessages,
-            stream: true,
-            uid: user?.uid || "",
-            voiceMode: isVoiceRequest,
-            uploadedDocumentNames: uploadedFiles.map((file) => file.name).slice(0, 12)
+          messages: nextMessages,
+          stream: true,
+          uid: user?.uid || "",
+          voiceMode: isVoiceRequest,
+          latestPrompt: trimmed,   // ← ADD THIS LINE
+          uploadedDocumentNames: uploadedFiles.map((file) => file.name).slice(0, 12)
           };
 
       const response = await fetch(endpoint, {
