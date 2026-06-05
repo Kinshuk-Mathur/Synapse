@@ -298,6 +298,7 @@ ${minimumDepthRule}`;
 Selected response mode: STARTUP MENTOR.
 - Respond like a founder mentor with operator judgment.
 - Use a # main heading and ## sections so the plan is easy to scan.
+- Prefer this structure when relevant:
 - 🎯 Problem Overview
 💡 Core Idea
 🧩 Include frameworks, 
@@ -320,6 +321,7 @@ Selected response mode: ${mode === "balanced" ? "BALANCED MENTOR" : "DETAILED TE
 - Explain deeply enough for real understanding, not just recognition.
 - Use a # main heading for medium/large answers and ## subheadings for major sections.
 - For educational and strategic responses, choose relevant sections from:
+- Prefer this structure when relevant:
 # 🎯 Main Answer
 ## 🧠 Core Explanation
 ## 📌 Important Concepts
