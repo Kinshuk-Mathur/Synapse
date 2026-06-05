@@ -9736,6 +9736,50 @@ textarea {
   font-size: 0.9em;
 }
 
+/* ============================================
+   SYNAPSE RESPONSE FORMATTER — spacing fixes
+   Paste after line 9737 in globals.css
+   ============================================ */
+
+/* Give h2 section headings strong top breathing room */
+.ai-response-markdown h2 {
+  margin-top: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
+}
+
+/* Give h3 sub-topic headings clear separation */
+.ai-response-markdown h3 {
+  margin-top: 1.5em;
+}
+
+/* First heading inside a response should NOT have top margin */
+.ai-response-markdown > h1:first-child,
+.ai-response-markdown > h2:first-child {
+  margin-top: 0;
+}
+
+/* Paragraph breathing room — prevents the wall-of-text effect */
+.ai-response-markdown p + p {
+  margin-top: 0.6em;
+}
+
+/* Bold sub-labels (like "Programming Fundamentals") should not
+   collapse into the paragraph above them */
+.ai-response-markdown p + p:has(> strong:only-child),
+.ai-response-markdown p:has(> strong:only-child) {
+  margin-top: 1.1em;
+  margin-bottom: 0.2em;
+  color: var(--color-text);
+}
+
+/* Formatter section headings — emoji-prefixed h2s get accent color */
+.ai-section-snapshot { color: color-mix(in oklab, var(--color-sky) 86%, var(--color-text)); }
+.ai-section-strengths { color: color-mix(in oklab, var(--color-lime) 82%, var(--color-text)); }
+.ai-section-warning   { color: color-mix(in oklab, var(--color-gold) 86%, var(--color-text)); }
+.ai-section-action    { color: color-mix(in oklab, var(--color-pulse) 90%, white); }
+.ai-section-growth    { color: color-mix(in oklab, var(--color-sky) 72%, var(--color-pulse)); }
+
 .ai-table-scroll {
   width: 100%;
   overflow-x: auto;
@@ -10357,6 +10401,8 @@ textarea {
     font-size: 17px;
   }
 
+  
+  
   .ai-table-scroll {
     margin: 18px 0 22px;
   }
