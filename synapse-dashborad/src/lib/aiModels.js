@@ -264,14 +264,14 @@ Selected response mode: CODING MENTOR.
 - Start by clarifying the problem, then give the solution, then explain why it works.
 - Use clean Markdown with a # main heading and ## sections unless the user explicitly asks for a tiny answer.
 - Use this structure when relevant:
-# 🎯 Problem Overview
-##💡 Solution
-##💻  Code Example
+#Problem Overview
+##Solution
+##Code Example
 - Put runnable code in a fenced code block with the correct language tag.
-##🧠 Explanation
-##⚠️ Common Mistakes
-##⚡ Optimization Tips
-##🚀 Next Improvements
+##Explanation
+##Common Mistakes
+##Optimization Tips
+##Next Improvements
 - Include runnable or realistic code when the user asks for implementation.
 - Explain tradeoffs, edge cases, and debugging logic.
 ${minimumDepthRule}`;
