@@ -51,6 +51,14 @@ function normalizeMarkdownSpacing(value = "") {
     .trim();
 }
 
+const FORMATTER_SECTIONS = {
+  "📊": "snapshot",
+  "🔥": "strengths", 
+  "⚠️": "warning",
+  "🎯": "action",
+  "🚀": "growth"
+};
+
 function hasMarkdownStructure(value = "") {
   const text = String(value || "");
 
@@ -81,6 +89,16 @@ function groupSentences(sentences = [], size = 2) {
   }
 
   return groups;
+}
+
+function upgradeRoadmapStructure(value = "") {
+  const text = String(value || "");
+
+  return text
+    .replace(/^(Phase\s+\d+[:\s][^\n]+)/gm, "\n\n## $1\n")
+    .replace(/^(\*\*[^*\n]{3,60}\*\*)$/gm, "\n\n### $1\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function structurePlainAiReply(value = "") {
@@ -253,6 +271,7 @@ function CodeBlock({ className = "", children, node, ...props }) {
         </code>
       </pre>
     </div>
+    
   );
 }
 
@@ -261,7 +280,8 @@ export default function AIMessageRenderer({ content, compact = false }) {
   const normalizedMarkdown = isInvalidPlaceholderReply(extractedMarkdown)
     ? INVALID_PLACEHOLDER_MARKDOWN
     : normalizeMarkdownSpacing(extractedMarkdown);
-  const markdown = compact ? normalizedMarkdown : structurePlainAiReply(normalizedMarkdown);
+  const upgraded = upgradeRoadmapStructure(normalizedMarkdown);
+  const markdown = compact ? upgraded : structurePlainAiReply(upgraded);
 
   return (
     <ReactMarkdown
@@ -275,18 +295,45 @@ export default function AIMessageRenderer({ content, compact = false }) {
             {children}
           </h1>
         ),
-        h2: ({ children, node, ...props }) => (
-          <h2 className="ai-md-heading ai-md-heading-section" {...props}>
-            {children}
-          </h2>
-        ),
+        h2: ({ children, node, ...props }) => {
+          const text = String(children || "");
+          const sectionType = Object.entries(FORMATTER_SECTIONS)
+            .find(([emoji]) => text.startsWith(emoji))?.[1];
+          const className = [
+            "ai-md-heading",
+            "ai-md-heading-section",
+            sectionType ? `ai-section-${sectionType}` : ""
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          return (
+            <h2 
+              {...props}
+              className={className}
+              style={{ marginTop: "2rem", marginBottom: "0.5rem", ...props.style }}
+            >
+              {children}
+            </h2>
+          );
+        },
+        
         h3: ({ children, node, ...props }) => (
-          <h3 className="ai-md-heading ai-md-heading-subsection" {...props}>
+          <h3 
+            className="ai-md-heading ai-md-heading-subsection"
+            style={{ marginTop: "1.25rem", marginBottom: "0.35rem" }}
+            {...props}
+          >
             {children}
           </h3>
         ),
+         
         p: ({ children, node, ...props }) => (
-          <p className="ai-md-paragraph" {...props}>
+          <p 
+            className="ai-md-paragraph" 
+            style={{ marginBottom: "0.75rem", lineHeight: "1.7" }}
+            {...props}
+          >
             {children}
           </p>
         ),

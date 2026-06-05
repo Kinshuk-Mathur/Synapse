@@ -104,7 +104,7 @@ const quickActions = [
   {
     label: "Productivity Help",
     icon: Zap,
-    prompt: "Help me plan a calm, productive day with priorities, breaks, and focus sessions."
+    prompt: "Analyze my current productivity status and give me a structured performance snapshot with strengths, areas needing attention, and my single highest-impact next step."
   }
 ];
 
