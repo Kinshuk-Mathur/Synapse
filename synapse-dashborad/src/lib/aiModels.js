@@ -245,7 +245,7 @@ function buildResponseModeInstructions(classification) {
   const explicitlyBrief = classification.explicitlyBrief;
   const minimumDepthRule = explicitlyBrief
     ? "- The user requested brevity, so stay concise while preserving usefulness."
-    : "- For educational, strategic, coding, productivity, business, and self-improvement questions, do not answer under 200 words unless the question is truly tiny.";
+    : "- For educational, strategic, coding, productivity, business, and self-improvement questions, do not answer under 200 words unless the question is truly tiny - Target response length: 250–650 words for most answers. Go longer only for roadmaps, step-by-step code, or multi-part explanations. Never pad responses.";
 
   if (mode === "short") {
     return `
@@ -264,14 +264,14 @@ Selected response mode: CODING MENTOR.
 - Start by clarifying the problem, then give the solution, then explain why it works.
 - Use clean Markdown with a # main heading and ## sections unless the user explicitly asks for a tiny answer.
 - Use this structure when relevant:
-# Problem Overview
-## Solution
-## Code Example
+# 🎯 Problem Overview
+##💡 Solution
+##💻  Code Example
 - Put runnable code in a fenced code block with the correct language tag.
-## Explanation
-## Common Mistakes
-## Optimization Tips
-## Next Improvements
+##🧠 Explanation
+##⚠️ Common Mistakes
+##⚡ Optimization Tips
+##🚀 Next Improvements
 - Include runnable or realistic code when the user asks for implementation.
 - Explain tradeoffs, edge cases, and debugging logic.
 ${minimumDepthRule}`;
@@ -297,7 +297,18 @@ ${minimumDepthRule}`;
     return `
 Selected response mode: STARTUP MENTOR.
 - Respond like a founder mentor with operator judgment.
-- Include frameworks, customer thinking, execution steps, validation logic, mistakes to avoid, and scaling insight.
+- Use a # main heading and ## sections so the plan is easy to scan.
+- 🎯 Problem Overview
+💡 Core Idea
+🧩 Include frameworks, 
+🎯 Customer Thinking, 
+⚙️ Execution Steps, 
+✅ Validation Logic,
+💻 Examples / Implementation,
+🧠 Key Insights
+⚠️ Mistakes to Avoid,
+📈 Scaling Insight,
+🚀 Next Improvements .
 - Make advice practical enough that the student can act this week.
 - Use a # main heading, ## sections, bullets, and tables when comparing options or frameworks.
 - Avoid generic motivation. Make the answer useful for decisions and action.
@@ -309,16 +320,16 @@ Selected response mode: ${mode === "balanced" ? "BALANCED MENTOR" : "DETAILED TE
 - Explain deeply enough for real understanding, not just recognition.
 - Use a # main heading for medium/large answers and ## subheadings for major sections.
 - For educational and strategic responses, choose relevant sections from:
-# Main Answer
-## Core Explanation
-## Important Concepts
-## Step-by-Step Breakdown
-## Examples
-## Real-Life Applications
-## Common Mistakes
-## Key Takeaways
-## Pro Tips
-## Next Steps
+# 🎯 Main Answer
+## 🧠 Core Explanation
+## 📌 Important Concepts
+## 📖 Step-by-Step Breakdown
+## 💡 Examples
+## 🌍 Real-Life Applications
+## ⚠️ Common Mistakes
+##✨ Key Takeaways
+## 🚀 Pro Tips
+## ➡️ Next Steps
 - Do not force every section. Choose only the sections that make the answer stronger.
 - Use analogies, examples, and practical steps when they improve retention.
 - For comparisons, roadmaps, study planning, and strategy, use tables when they improve scanning.
@@ -435,6 +446,8 @@ Formatting rules:
 - For study explanations, prefer: quick definition, simple explanation, example, and key takeaway.
 `;
 }
+
+
 
 function latestUserMessage(messages = []) {
   return [...messages].reverse().find((message) => message.role === "user")?.content || "";
@@ -655,12 +668,37 @@ function extractStreamedMessage(text) {
   return trimmed;
 }
 
+const MODEL_CONFIGS = {
+  "llama-3.3-70b-versatile": {
+    temperature: 0.65, 
+    top_p: 0.9,        // slightly more focused — this is your smartes
+    max_completion_tokens: 3000
+  },
+  "meta-llama/llama-4-scout-17b-16e-instruct": {
+    temperature: 0.72, 
+    top_p: 0.92,        // slightly more creative — scout benefits from it
+    max_completion_tokens: 2800
+  },
+  "llama-3.1-8b-instant": {
+    temperature: 0.55,
+    top_p: 0.85,
+    max_completion_tokens: 1500,
+    useCompactSystemPrompt: true  // signal to use a shorter prompt
+  },
+};
+
 function createCompletionPayload(model, messages, stream = false) {
+  const config = MODEL_CONFIGS[model.id] || {
+    temperature: AI_ROUTER_CONFIG.temperature,
+    max_completion_tokens: AI_ROUTER_CONFIG.maxCompletionTokens
+  };
+
   return {
     model: model.id,
     messages,
-    temperature: AI_ROUTER_CONFIG.temperature,
-    max_completion_tokens: AI_ROUTER_CONFIG.maxCompletionTokens,
+    temperature: config.temperature ?? 0.7,
+    top_p: config.top_p ?? 0.9,
+    max_completion_tokens: config.max_completion_tokens ?? 3000,
     stream
   };
 }
