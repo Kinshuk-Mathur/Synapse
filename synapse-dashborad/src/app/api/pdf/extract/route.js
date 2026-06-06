@@ -1,4 +1,4 @@
-import PDFParse from "pdf-parse/lib/pdf-parse.js";
+import PDFParse from "pdf-parse";
 import {
   cleanPdfText,
   normalizePdfTitle,
