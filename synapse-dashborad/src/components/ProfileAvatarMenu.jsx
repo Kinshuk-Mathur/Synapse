@@ -67,6 +67,20 @@ function formatResetTime(totalMinutes = 0) {
   return `${hours}h ${minutes}m`;
 }
 
+function getResetStatus(hasActiveWindow, minutesUntilReset) {
+  if (!hasActiveWindow) {
+    return {
+      label: "Start chatting to begin session",
+      urgent: false
+    };
+  }
+
+  return {
+    label: `Resets in ${formatResetTime(minutesUntilReset)}`,
+    urgent: minutesUntilReset <= 5
+  };
+}
+
 function getInitials(name = "Student") {
   return String(name)
     .trim()
@@ -119,9 +133,10 @@ function UsageRing({ remainingPercent, toneClass }) {
   );
 }
 
-function UsagePopover({ minutesUntilReset, overallPercent, loading }) {
+function UsagePopover({ hasActiveWindow, minutesUntilReset, overallPercent, loading }) {
   const remainingPercent = clampPercent(100 - overallPercent);
   const overallToneClass = getUsageToneClass(remainingPercent);
+  const resetStatus = getResetStatus(hasActiveWindow, minutesUntilReset);
 
   return (
     <motion.div
@@ -134,9 +149,9 @@ function UsagePopover({ minutesUntilReset, overallPercent, loading }) {
     >
       <div className="profile-usage-popover-head">
         <strong>Session Usage</strong>
-        <span>
+        <span style={resetStatus.urgent ? { color: "var(--color-pulse)" } : undefined}>
           <Clock size={13} />
-          Resets in {formatResetTime(minutesUntilReset)}
+          {resetStatus.label}
         </span>
       </div>
 
@@ -174,7 +189,7 @@ export default function ProfileAvatarMenu({
   const closeUsageTimerRef = useRef(null);
   const avatarSrc = profile?.avatarDataUrl || profile?.photoURL || user?.photoURL || "";
   const displayName = profile?.name || profile?.displayName || user?.displayName || studentName || "Student";
-  const { minutesUntilReset, overallPercent, loading } = useSynapseUsage(user?.uid);
+  const { hasActiveWindow, minutesUntilReset, overallPercent, loading } = useSynapseUsage(user?.uid);
   const remainingPercent = clampPercent(100 - overallPercent);
   const ringToneClass = getUsageToneClass(remainingPercent);
 
@@ -268,6 +283,7 @@ export default function ProfileAvatarMenu({
       <AnimatePresence>
         {usagePopoverOpen && !open ? (
           <UsagePopover
+            hasActiveWindow={hasActiveWindow}
             minutesUntilReset={minutesUntilReset}
             overallPercent={overallPercent}
             loading={loading}
