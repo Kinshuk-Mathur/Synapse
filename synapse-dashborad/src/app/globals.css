@@ -11558,6 +11558,11 @@ textarea {
   align-items: flex-start;
   justify-content: flex-end;
   gap: 10px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  padding: 0;
 }
 
 .synapse-message.from-user .message-shell {
