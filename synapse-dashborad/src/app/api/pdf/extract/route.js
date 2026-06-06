@@ -146,16 +146,3 @@ export async function POST(req) {
     }, 400);
   }
 }
-  } catch (error) {
-    console.error("[SYNAPSE PDF] Extraction failed:", error?.message || error);
-
-    return jsonResponse(
-      {
-        message:
-          error?.message ||
-          "SYNAPSE could not read this PDF. Try a cleaner text-based PDF under 10 MB."
-      },
-      400
-    );
-  }
-}
