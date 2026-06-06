@@ -11244,3 +11244,90 @@ textarea {
     filter: drop-shadow(0 0 18px color-mix(in oklab, var(--color-pulse) 76%, var(--transparent)));
   }
 }
+/* ============================================
+   SYNAPSE UI UPGRADE — Premium OS Feel
+   ============================================ */
+
+/* 1. AI response left accent border — biggest single visual upgrade
+      Makes SYNAPSE responses instantly distinct from every chatbot */
+      .synapse-message.from-ai .message-shell {
+        border-left: 3px solid color-mix(in oklab, var(--color-pulse) 72%, white 8%);
+      }
+      
+      /* 2. Mobile input bar elevation — floats above content like a real app */
+      @media (max-width: 768px) {
+        .synapse-ai-composer {
+          box-shadow:
+            0 -8px 32px color-mix(in oklab, black 48%, var(--transparent)),
+            0 0 28px color-mix(in oklab, var(--color-pulse) 14%, var(--transparent)),
+            var(--shadow-glow);
+          backdrop-filter: blur(28px);
+          border-top: 1px solid color-mix(in oklab, var(--color-pulse) 22%, var(--transparent));
+        }
+      
+        /* Mobile message bubble — more breathing room on sides */
+        .synapse-message.from-ai .message-shell {
+          border-radius: 14px;
+          padding: 18px 16px;
+        }
+      
+        /* Mobile AI response text — slightly smaller for readability */
+        .ai-response-markdown {
+          font-size: 15px;
+          line-height: 1.74;
+        }
+      
+        /* Mobile h2 section headings — tighter */
+        .ai-response-markdown .ai-md-heading-section {
+          font-size: 18px;
+          margin: 24px 0 10px;
+          padding-top: 14px;
+        }
+      }
+      
+      /* 3. Quick action buttons — upgrade from filter tabs to feature cards feel */
+      .quick-action-row button {
+        border-radius: 10px;    /* was 999px pill — now card-like */
+        padding: 0 14px;
+        font-size: 13px;
+        letter-spacing: 0.01em;
+      }
+      
+      .quick-action-row button:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          0 8px 24px color-mix(in oklab, var(--color-pulse) 22%, var(--transparent)),
+          0 0 0 1px color-mix(in oklab, var(--color-pulse) 40%, var(--transparent));
+      }
+      
+      /* 4. Premium "thinking" state — replaces generic dots with branded pulse */
+      .typing-dots i {
+        animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+      }
+      
+      .typing-dots i:nth-child(1) {
+        background: var(--color-pulse);
+        box-shadow: 0 0 10px color-mix(in oklab, var(--color-pulse) 60%, var(--transparent));
+      }
+      
+      .typing-dots i:nth-child(2) {
+        background: color-mix(in oklab, var(--color-pulse) 70%, var(--color-sky));
+        box-shadow: 0 0 10px color-mix(in oklab, var(--color-sky) 50%, var(--transparent));
+      }
+      
+      .typing-dots i:nth-child(3) {
+        background: var(--color-sky);
+        box-shadow: 0 0 10px color-mix(in oklab, var(--color-sky) 60%, var(--transparent));
+      }
+      
+      /* 5. Financial/data values — make numbers stand out in responses */
+      .ai-response-markdown .ai-md-paragraph strong {
+        color: color-mix(in oklab, var(--color-gold) 88%, white 6%);
+        font-variant-numeric: tabular-nums;
+      }
+      
+      /* 6. Message stream — smoother scroll with padding at top for breathing */
+      .synapse-chat-stream {
+        padding-top: clamp(28px, 4vw, 48px);
+        scroll-padding-top: 20px;
+      }
