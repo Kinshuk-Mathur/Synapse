@@ -4,12 +4,7 @@ import {
   serverTimestamp,
   setDoc
 } from "firebase/firestore";
-import {
-  getDownloadURL,
-  ref,
-  uploadBytesResumable
-} from "firebase/storage";
-import { getFirebaseDb, getFirebaseStorage } from "../lib/firebase";
+import { getFirebaseDb } from "../lib/firebase";
 import {
   formatPdfFileSize,
   normalizePdfTitle,
@@ -65,138 +60,79 @@ export async function uploadPdfDocument({ uid, file, getIdToken, onProgress }) {
   }
 
   const documentId = createDocumentId();
-  const storagePath = `pdfs/${uid}/${documentId}.pdf`;
-  const storageReference = ref(getFirebaseStorage(), storagePath);
-  
-  onProgress?.({ stage: "uploading", progress: 4, message: "Processing your PDF..." });
 
-// Inside upload progress callback, add more granular messages:
-const message = percent < 30
-  ? "Uploading your PDF..."
-  : percent < 70
-  ? "Extracting text content..."
-  : percent < 90
-  ? "Building AI context..."
-  : "Almost ready...";
-
-onProgress?.({
-  stage: "uploading",
-  progress: Math.max(4, Math.min(70, percent * 0.7)),
-  message: `${message} ${percent}%`
-});
-  
-  // Fire BOTH operations at the exact same time — no waiting
-  const idToken = await Promise.resolve(getIdToken?.() || "").catch(() => "");
-  
-  const [uploadResult, extraction] = await Promise.allSettled([
-    // Operation 1: Upload to Firebase Storage
-    new Promise((resolve, reject) => {
-      const uploadTask = uploadBytesResumable(storageReference, file, {
-        contentType: "application/pdf",
-        customMetadata: { uid, documentId, originalName: file.name }
-      });
-  
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const percent = snapshot.totalBytes
-            ? Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
-            : 0;
-          onProgress?.({
-            stage: "uploading",
-            progress: Math.max(4, Math.min(70, percent * 0.7)),
-            message: `Uploading... ${percent}%`
-          });
-        },
-        reject,
-        () => resolve("uploaded")
-      );
-    }),
-  
-    // Operation 2: Extract PDF text — starts at the SAME time as upload
-    extractPdfFile({ file, idToken })
-  ]);
-  
-  if (uploadResult.status === "rejected") {
-    throw new Error("PDF upload failed. Please try again.");
-  }
-  
-  if (extraction.status === "rejected") {
-    throw extraction.reason instanceof Error
-      ? extraction.reason
-      : new Error("SYNAPSE could not read this PDF.");
-  }
-  
-  const fileUrl = await getDownloadURL(storageReference);
-  const extractionData = extraction.value;
-  
   onProgress?.({
-    stage: "analyzing",
-    progress: 84,
-    message: "Reading PDF intelligence..."
+    stage: "uploading",
+    progress: 10,
+    message: "Reading your PDF..."
   });
 
-  try {
-    const extraction = await extractionPromise;
+  const idToken = await Promise.resolve(getIdToken?.() || "").catch(() => "");
 
-    if (extraction instanceof Error) {
-      throw extraction;
-    }
+  onProgress?.({
+    stage: "uploading",
+    progress: 30,
+    message: "Extracting text content..."
+  });
 
-    onProgress?.({
-      stage: "saving",
-      progress: 90,
-      message: "Preparing AI context..."
-    });
+  // Extract text only — no Firebase Storage needed
+  const extraction = await extractPdfFile({ file, idToken });
 
-    const now = new Date();
+  onProgress?.({
+    stage: "analyzing",
+    progress: 70,
+    message: "Building AI context..."
+  });
 
-    const documentPayload = {
-      title: extractionData.title || normalizePdfTitle(file.name),
-      fileName: file.name,
-      fileUrl,
-      storagePath,
-      extractedText: extractionData.extractedText,
-      textTruncated: Boolean(extractionData.textTruncated),
-      pageCount: extractionData.pageCount || 0,
-      fileSize: file.size,
-      fileSizeLabel: formatPdfFileSize(file.size),
-      chunkCount: extractionData.chunkCount || 0,
-      uid,
-      createdAt: serverTimestamp(),   // only for Firestore
-      updatedAt: serverTimestamp()    // only for Firestore
-    };
-    
-    // Save to Firestore — non-blocking, don't await
-    setDoc(
-      doc(getDocumentsCollection(uid), documentId),
-      documentPayload
-    ).catch((error) => {
-      console.warn("SYNAPSE PDF Firestore save failed:", error?.message || error);
-    });
-    
-    onProgress?.({ stage: "complete", progress: 100, message: "PDF ready. Ask me anything." });
-    
-    // Return serializable object — no Firestore sentinels
-    return {
-      id: documentId,
-      title: extractionData.title || normalizePdfTitle(file.name),
-      fileName: file.name,
-      fileUrl,
-      storagePath,
-      extractedText: extractionData.extractedText,
-      textTruncated: Boolean(extractionData.textTruncated),
-      pageCount: extractionData.pageCount || 0,
-      fileSize: file.size,
-      fileSizeLabel: formatPdfFileSize(file.size),
-      chunkCount: extractionData.chunkCount || 0,
-      uid,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString()
-    };
-  } catch (error) {
-    throw error;
-  }
+  const now = new Date();
+
+  const documentPayload = {
+    title: extraction.title || normalizePdfTitle(file.name),
+    fileName: file.name,
+    fileUrl: "",
+    storagePath: "",
+    extractedText: extraction.extractedText,
+    textTruncated: Boolean(extraction.textTruncated),
+    pageCount: extraction.pageCount || 0,
+    fileSize: file.size,
+    fileSizeLabel: formatPdfFileSize(file.size),
+    chunkCount: extraction.chunkCount || 0,
+    uid,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  };
+
+  // Save to Firestore — non-blocking, don't await
+  setDoc(
+    doc(getDocumentsCollection(uid), documentId),
+    documentPayload
+  ).catch((error) => {
+    console.warn("SYNAPSE PDF Firestore save failed:", error?.message || error);
+  });
+
+  onProgress?.({
+    stage: "complete",
+    progress: 100,
+    message: "PDF ready. Ask me anything."
+  });
+
+  // Return serializable object — no Firestore sentinels
+  return {
+    id: documentId,
+    title: extraction.title || normalizePdfTitle(file.name),
+    fileName: file.name,
+    fileUrl: "",
+    storagePath: "",
+    extractedText: extraction.extractedText,
+    textTruncated: Boolean(extraction.textTruncated),
+    pageCount: extraction.pageCount || 0,
+    fileSize: file.size,
+    fileSizeLabel: formatPdfFileSize(file.size),
+    chunkCount: extraction.chunkCount || 0,
+    uid,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString()
+  };
 }
 
 export { PDF_LIMITS };
