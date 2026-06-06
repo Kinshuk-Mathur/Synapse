@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Clock, FileText, ImagePlus, Mic, Pencil, Sparkles } from "lucide-react";
+import { Clock, ImagePlus, Pencil } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSynapseUsage } from "../hooks/useSynapseUsage";
 import { updateUserPersonalization } from "../services/firestore";
@@ -9,24 +9,6 @@ import { updateUserPersonalization } from "../services/firestore";
 const avatarFileTypes = ["image/png", "image/jpeg"];
 const ringRadius = 25;
 const ringCircumference = 2 * Math.PI * ringRadius;
-
-const usageMetrics = [
-  {
-    key: "aiInteractions",
-    label: "AI",
-    icon: Sparkles
-  },
-  {
-    key: "pdfUploads",
-    label: "PDF",
-    icon: FileText
-  },
-  {
-    key: "voiceSessions",
-    label: "Voice",
-    icon: Mic
-  }
-];
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -64,11 +46,6 @@ async function createAvatarDataUrl(file) {
 
 function clampPercent(value) {
   return Math.min(100, Math.max(0, Math.round(Number(value) || 0)));
-}
-
-function getMetricPercent(value, limit) {
-  if (!limit) return 0;
-  return clampPercent((value / limit) * 100);
 }
 
 function getUsageToneClass(remainingPercent) {
@@ -142,7 +119,7 @@ function UsageRing({ remainingPercent, toneClass }) {
   );
 }
 
-function UsagePopover({ usage, limits, minutesUntilReset, overallPercent, loading }) {
+function UsagePopover({ minutesUntilReset, overallPercent, loading }) {
   const remainingPercent = clampPercent(100 - overallPercent);
   const overallToneClass = getUsageToneClass(remainingPercent);
 
@@ -175,31 +152,6 @@ function UsagePopover({ usage, limits, minutesUntilReset, overallPercent, loadin
         </div>
       </div>
 
-      <div className="profile-usage-metrics">
-        {usageMetrics.map((metric) => {
-          const Icon = metric.icon;
-          const value = usage[metric.key] || 0;
-          const limit = limits[metric.key] || 0;
-          const percent = getMetricPercent(value, limit);
-          const metricToneClass = getUsageToneClass(100 - percent);
-
-          return (
-            <div className="profile-usage-row" key={metric.key}>
-              <div className="profile-usage-row-head">
-                <span>
-                  <Icon size={14} />
-                  {metric.label}
-                </span>
-                <strong>
-                  {value} / {limit} used
-                </strong>
-              </div>
-              <UsageBar percent={percent} toneClass={metricToneClass} />
-            </div>
-          );
-        })}
-      </div>
-
       <p>Limits reset every 6 hours</p>
     </motion.div>
   );
@@ -222,7 +174,7 @@ export default function ProfileAvatarMenu({
   const closeUsageTimerRef = useRef(null);
   const avatarSrc = profile?.avatarDataUrl || profile?.photoURL || user?.photoURL || "";
   const displayName = profile?.name || profile?.displayName || user?.displayName || studentName || "Student";
-  const { usage, limits, minutesUntilReset, overallPercent, loading } = useSynapseUsage(user?.uid);
+  const { minutesUntilReset, overallPercent, loading } = useSynapseUsage(user?.uid);
   const remainingPercent = clampPercent(100 - overallPercent);
   const ringToneClass = getUsageToneClass(remainingPercent);
 
@@ -316,8 +268,6 @@ export default function ProfileAvatarMenu({
       <AnimatePresence>
         {usagePopoverOpen && !open ? (
           <UsagePopover
-            usage={usage}
-            limits={limits}
             minutesUntilReset={minutesUntilReset}
             overallPercent={overallPercent}
             loading={loading}
