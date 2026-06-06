@@ -1,4 +1,4 @@
-import { PDFParse } from "pdf-parse";
+import PDFParse from "pdf-parse";
 import {
   cleanPdfText,
   normalizePdfTitle,
@@ -9,7 +9,7 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 55;
 
 function jsonResponse(payload, status = 200) {
   return Response.json(payload, {
@@ -103,50 +103,49 @@ async function fetchPdfBuffer(fileUrl, fileSize) {
 export async function POST(req) {
   try {
     const payload = await readRequestPayload(req);
-    const buffer = payload.buffer;
-    const parser = new PDFParse({ data: buffer });
 
-    try {
-      const info = await parser.getInfo({ parsePageInfo: false });
-      const textResult = await parser.getText();
-      const pageCount = Number(textResult?.total || info?.total || 0);
+    // Correct pdf-parse usage — single call, not constructor
+    const pdfData = await PDFParse(payload.buffer, {
+      // Limit pages processed to avoid timeout on huge PDFs
+      max: PDF_LIMITS.maxPages + 1
+    });
 
-      if (pageCount > PDF_LIMITS.maxPages) {
-        return jsonResponse(
-          {
-            message: `This PDF has ${pageCount} pages. The current SYNAPSE limit is ${PDF_LIMITS.maxPages} pages.`
-          },
-          413
-        );
-      }
+    const pageCount = Number(pdfData.numpages || 0);
 
-      const cleanedText = cleanPdfText(textResult?.text || "");
-
-      if (!cleanedText || cleanedText.length < 80) {
-        return jsonResponse(
-          {
-            message:
-              "SYNAPSE could not find readable text in this PDF. It may be scanned, image-only, locked, or corrupted."
-          },
-          422
-        );
-      }
-
-      const stored = truncateExtractedTextForFirestore(cleanedText);
-      const chunks = splitPdfTextIntoChunks(stored.text);
-      const metadataTitle = info?.info?.Title && String(info.info.Title).trim();
-
+    if (pageCount > PDF_LIMITS.maxPages) {
       return jsonResponse({
-        title: metadataTitle || normalizePdfTitle(payload.fileName),
-        extractedText: stored.text,
-        textTruncated: stored.truncated,
-        pageCount,
-        chunkCount: chunks.length,
-        charCount: stored.text.length
-      });
-    } finally {
-      await parser.destroy?.();
+        message: `This PDF has ${pageCount} pages. SYNAPSE limit is ${PDF_LIMITS.maxPages} pages.`
+      }, 413);
     }
+
+    const cleanedText = cleanPdfText(pdfData.text || "");
+
+    if (!cleanedText || cleanedText.length < 80) {
+      return jsonResponse({
+        message: "SYNAPSE could not find readable text in this PDF. It may be scanned or image-only."
+      }, 422);
+    }
+
+    const stored = truncateExtractedTextForFirestore(cleanedText);
+    const chunks = splitPdfTextIntoChunks(stored.text);
+    const metadataTitle = pdfData.info?.Title && String(pdfData.info.Title).trim();
+
+    return jsonResponse({
+      title: metadataTitle || normalizePdfTitle(payload.fileName),
+      extractedText: stored.text,
+      textTruncated: stored.truncated,
+      pageCount,
+      chunkCount: chunks.length,
+      charCount: stored.text.length
+    });
+
+  } catch (error) {
+    console.error("[SYNAPSE PDF] Extraction failed:", error?.message || error);
+    return jsonResponse({
+      message: error?.message || "SYNAPSE could not read this PDF."
+    }, 400);
+  }
+}
   } catch (error) {
     console.error("[SYNAPSE PDF] Extraction failed:", error?.message || error);
 

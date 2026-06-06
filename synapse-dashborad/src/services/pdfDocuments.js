@@ -67,56 +67,69 @@ export async function uploadPdfDocument({ uid, file, getIdToken, onProgress }) {
   const documentId = createDocumentId();
   const storagePath = `pdfs/${uid}/${documentId}.pdf`;
   const storageReference = ref(getFirebaseStorage(), storagePath);
-  const idTokenPromise = Promise.resolve(getIdToken?.() || "").catch(() => "");
-  const extractionPromise = idTokenPromise
-    .then((idToken) =>
-      extractPdfFile({
-        file,
-        idToken
-      })
-    )
-    .catch((error) => error);
-  let fileUrl = "";
+  
+  onProgress?.({ stage: "uploading", progress: 4, message: "Processing your PDF..." });
 
-  onProgress?.({
-    stage: "uploading",
-    progress: 4,
-    message: "Uploading PDF to SYNAPSE cloud..."
-  });
+// Inside upload progress callback, add more granular messages:
+const message = percent < 30
+  ? "Uploading your PDF..."
+  : percent < 70
+  ? "Extracting text content..."
+  : percent < 90
+  ? "Building AI context..."
+  : "Almost ready...";
 
-  const uploadTask = uploadBytesResumable(storageReference, file, {
-    contentType: "application/pdf",
-    customMetadata: {
-      uid,
-      documentId,
-      originalName: file.name
-    }
-  });
-
-  await new Promise((resolve, reject) => {
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => {
-        const percent = snapshot.totalBytes
-          ? Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
-          : 0;
-        const progress = snapshot.totalBytes
-          ? Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 62)
-          : 18;
-
-        onProgress?.({
-          stage: "uploading",
-          progress: Math.max(4, Math.min(76, progress + 12)),
-          message: `Uploading PDF... ${Math.min(100, percent)}%`
-        });
-      },
-      reject,
-      resolve
-    );
-  });
-
-  fileUrl = await getDownloadURL(storageReference);
-
+onProgress?.({
+  stage: "uploading",
+  progress: Math.max(4, Math.min(70, percent * 0.7)),
+  message: `${message} ${percent}%`
+});
+  
+  // Fire BOTH operations at the exact same time — no waiting
+  const idToken = await Promise.resolve(getIdToken?.() || "").catch(() => "");
+  
+  const [uploadResult, extraction] = await Promise.allSettled([
+    // Operation 1: Upload to Firebase Storage
+    new Promise((resolve, reject) => {
+      const uploadTask = uploadBytesResumable(storageReference, file, {
+        contentType: "application/pdf",
+        customMetadata: { uid, documentId, originalName: file.name }
+      });
+  
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const percent = snapshot.totalBytes
+            ? Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
+            : 0;
+          onProgress?.({
+            stage: "uploading",
+            progress: Math.max(4, Math.min(70, percent * 0.7)),
+            message: `Uploading... ${percent}%`
+          });
+        },
+        reject,
+        () => resolve("uploaded")
+      );
+    }),
+  
+    // Operation 2: Extract PDF text — starts at the SAME time as upload
+    extractPdfFile({ file, idToken })
+  ]);
+  
+  if (uploadResult.status === "rejected") {
+    throw new Error("PDF upload failed. Please try again.");
+  }
+  
+  if (extraction.status === "rejected") {
+    throw extraction.reason instanceof Error
+      ? extraction.reason
+      : new Error("SYNAPSE could not read this PDF.");
+  }
+  
+  const fileUrl = await getDownloadURL(storageReference);
+  const extractionData = extraction.value;
+  
   onProgress?.({
     stage: "analyzing",
     progress: 84,
@@ -136,37 +149,50 @@ export async function uploadPdfDocument({ uid, file, getIdToken, onProgress }) {
       message: "Preparing AI context..."
     });
 
+    const now = new Date();
+
     const documentPayload = {
-      title: extraction.title || normalizePdfTitle(file.name),
+      title: extractionData.title || normalizePdfTitle(file.name),
       fileName: file.name,
       fileUrl,
       storagePath,
-      extractedText: extraction.extractedText,
-      textTruncated: Boolean(extraction.textTruncated),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      pageCount: extraction.pageCount || 0,
+      extractedText: extractionData.extractedText,
+      textTruncated: Boolean(extractionData.textTruncated),
+      pageCount: extractionData.pageCount || 0,
       fileSize: file.size,
       fileSizeLabel: formatPdfFileSize(file.size),
-      chunkCount: extraction.chunkCount || 0,
-      uid
+      chunkCount: extractionData.chunkCount || 0,
+      uid,
+      createdAt: serverTimestamp(),   // only for Firestore
+      updatedAt: serverTimestamp()    // only for Firestore
     };
-
-    setDoc(doc(getDocumentsCollection(uid), documentId), documentPayload).catch((error) => {
+    
+    // Save to Firestore — non-blocking, don't await
+    setDoc(
+      doc(getDocumentsCollection(uid), documentId),
+      documentPayload
+    ).catch((error) => {
       console.warn("SYNAPSE PDF Firestore save failed:", error?.message || error);
     });
-
-    onProgress?.({
-      stage: "complete",
-      progress: 100,
-      message: "PDF intelligence workspace ready."
-    });
-
+    
+    onProgress?.({ stage: "complete", progress: 100, message: "PDF ready. Ask me anything." });
+    
+    // Return serializable object — no Firestore sentinels
     return {
       id: documentId,
-      ...documentPayload,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      title: extractionData.title || normalizePdfTitle(file.name),
+      fileName: file.name,
+      fileUrl,
+      storagePath,
+      extractedText: extractionData.extractedText,
+      textTruncated: Boolean(extractionData.textTruncated),
+      pageCount: extractionData.pageCount || 0,
+      fileSize: file.size,
+      fileSizeLabel: formatPdfFileSize(file.size),
+      chunkCount: extractionData.chunkCount || 0,
+      uid,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString()
     };
   } catch (error) {
     throw error;
