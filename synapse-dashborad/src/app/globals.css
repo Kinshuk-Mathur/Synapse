@@ -6342,11 +6342,19 @@ textarea {
   box-shadow: 0 18px 48px color-mix(in oklab, var(--color-ink) 26%, var(--transparent));
 }
 
-.from-user .message-shell {
-  border-color: color-mix(in oklab, var(--color-pulse) 44%, var(--transparent));
+from-user .message-shell {
+  max-width: 72%;
+  align-self: flex-end;
+  border-radius: 20px 4px 20px 20px;
+  border-color: color-mix(in oklab, var(--color-pulse) 52%, var(--transparent));
   background:
-    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 30%, var(--transparent)), color-mix(in oklab, var(--color-accent) 22%, var(--transparent))),
-    color-mix(in oklab, var(--panel) 78%, var(--transparent));
+    radial-gradient(circle at 90% 10%, color-mix(in oklab, var(--color-pulse) 32%, var(--transparent)), var(--transparent) 55%),
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 26%, var(--transparent)), color-mix(in oklab, var(--color-accent) 32%, var(--transparent))),
+    color-mix(in oklab, var(--panel) 82%, var(--transparent));
+  box-shadow:
+    0 8px 32px color-mix(in oklab, var(--color-pulse) 22%, var(--transparent)),
+    inset 0 1px 0 color-mix(in oklab, white 10%, var(--transparent));
+  padding: 13px 18px;
 }
 
 .synapse-markdown {
@@ -9601,7 +9609,9 @@ textarea {
 }
 
 .synapse-message.from-ai .message-shell {
+  border-radius: 4px 20px 20px 20px;
   border-color: color-mix(in oklab, var(--color-pulse) 22%, var(--color-text) 10%);
+  border-left: 3px solid color-mix(in oklab, var(--color-pulse) 72%, white 8%);
   background:
     radial-gradient(circle at 12% 0%, color-mix(in oklab, var(--color-pulse) 10%, var(--transparent)), var(--transparent) 34%),
     linear-gradient(145deg, color-mix(in oklab, var(--color-text) 5%, var(--transparent)), color-mix(in oklab, var(--color-surface) 70%, var(--transparent))),
@@ -10921,7 +10931,18 @@ textarea {
   .workspace-quick-actions::-webkit-scrollbar {
     display: none;
   }
-
+  .profile-avatar-menu {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 9999;
+  }
+  
+  .profile-avatar-trigger {
+    width: 48px;
+    height: 48px;
+  }
+  
   .workspace-quick-actions button {
     width: 190px;
     min-height: 50px;
@@ -10991,7 +11012,7 @@ textarea {
   width: 58px;
   height: 58px;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .profile-avatar-trigger > img,
@@ -11001,6 +11022,7 @@ textarea {
   width: 44px;
   height: 44px;
   border-radius: 999px;
+  overflow: hidden;
 }
 
 .profile-avatar-preview > img,
