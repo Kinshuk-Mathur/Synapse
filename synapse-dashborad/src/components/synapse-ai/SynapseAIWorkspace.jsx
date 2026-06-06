@@ -189,7 +189,7 @@ function createConversation(studentName = "Student") {
     id: `chat-${Date.now()}`,
     title: "New Chat",
     updatedAt: now,
-    messages: [createWelcomeMessage(studentName)]
+    messages: []
   };
 }
 
@@ -1873,7 +1873,7 @@ lastSendTimeRef.current = sendTime;
 
               <div className="synapse-chat-stream" ref={streamRef}>
               {/* Empty state — shows when no messages exist */}
-                {(!activeConversation?.messages?.length && !loading) ? (
+              {(!(activeConversation?.messages || []).filter(m => !m.synthetic).length && !loading) ? (
                   <motion.div
                     className="synapse-empty-state"
                     initial={{ opacity: 0, y: 16 }}
