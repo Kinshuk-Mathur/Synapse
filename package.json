@@ -6,5 +6,8 @@
     "dev": "npm --prefix synapse-dashborad run dev",
     "build": "npm --prefix synapse-dashborad run build",
     "start": "npm --prefix synapse-dashborad run start"
+  },
+  "dependencies": {
+    "pdf-parse": "^2.4.5"
   }
 }
