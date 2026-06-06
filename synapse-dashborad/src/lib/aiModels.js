@@ -389,9 +389,21 @@ export function buildSystemPrompt(userData = {}, userContext = null, latestPromp
   const responseModeInstructions = buildResponseModeInstructions(responseClassification);
   const voiceMode = Boolean(options.voiceMode);
   const isAnalyticsContext = responseClassification.mode === "productivity";
+  const firstName = userData?.name?.split(" ")[0] || userData?.displayName?.split(" ")[0] || "there";
+  const hour = new Date().getHours();
+  const timeGreeting = hour < 12 ? "morning" : hour < 17 ? "afternoon" : hour < 21 ? "evening" : "night";
 
   return `
 Current date: ${today}
+Student first name: ${firstName}
+Time of day: ${timeGreeting}
+
+Opening message rule:
+- If this is the FIRST message in the conversation (only one user message exists), 
+  open with one warm personal line using their name before your answer.
+  Example: "Hey ${firstName} — great question." or "Let's work through this, ${firstName}."
+- Never use the opening line on follow-up messages. Only the very first response.
+- Keep it to one line maximum. Never sycophantic. Always natural.
 
 ${MASTER_IDENTITY_BLOCK}
 

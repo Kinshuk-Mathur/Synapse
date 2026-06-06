@@ -10942,7 +10942,7 @@ from-user .message-shell {
     width: 48px;
     height: 48px;
   }
-  
+
   .workspace-quick-actions button {
     width: 190px;
     min-height: 50px;
@@ -11331,7 +11331,61 @@ from-user .message-shell {
         background: var(--color-pulse);
         box-shadow: 0 0 10px color-mix(in oklab, var(--color-pulse) 60%, var(--transparent));
       }
-      
+      /* === SYNAPSE Empty State === */
+    .synapse-empty-state {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(32px, 8vw, 80px) 24px;
+    }
+
+    .synapse-empty-greeting {
+      display: grid;
+      gap: 14px;
+      max-width: 520px;
+      text-align: center;
+    }
+
+    .synapse-empty-time {
+      color: var(--color-muted);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .synapse-empty-headline {
+      margin: 0;
+      background: linear-gradient(
+        135deg,
+        var(--color-text) 40%,
+        color-mix(in oklab, var(--color-pulse) 80%, white 8%)
+      );
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: clamp(26px, 4vw, 42px);
+      font-weight: 900;
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+    }
+
+    .synapse-empty-sub {
+      margin: 0;
+      color: var(--color-muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+      .synapse-empty-headline {
+        font-size: 26px;
+      }
+
+      .synapse-empty-greeting {
+        gap: 10px;
+      }
+    }
       .typing-dots i:nth-child(2) {
         background: color-mix(in oklab, var(--color-pulse) 70%, var(--color-sky));
         box-shadow: 0 0 10px color-mix(in oklab, var(--color-sky) 50%, var(--transparent));

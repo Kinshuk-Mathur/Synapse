@@ -58,9 +58,9 @@ const DASHBOARD_HREF = "/";
 const SUPPORTED_FILE_COPY = "PDF, JPG, PNG, HTML, text, Markdown, code, or JSON files";
 const SAFE_AI_ERROR = "SYNAPSE AI is currently busy. Please try again shortly.";
 const THINKING_STAGES = [
-  "Analyzing your question...",
-  "Building structured explanation...",
-  "Planning best response..."
+  "Reading your question...",
+  "Thinking this through...",
+  "Crafting your answer..."
 ];
 const VOICE_IDLE_STATUS = "Voice mode ready";
 const VOICE_STATUS_COPY = {
@@ -1872,6 +1872,34 @@ lastSendTimeRef.current = sendTime;
               </div>
 
               <div className="synapse-chat-stream" ref={streamRef}>
+              {/* Empty state — shows when no messages exist */}
+                {(!activeConversation?.messages?.length && !loading) ? (
+                  <motion.div
+                    className="synapse-empty-state"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <div className="synapse-empty-greeting">
+                      <span className="synapse-empty-time">
+                        {(() => {
+                          const hour = new Date().getHours();
+                          if (hour < 12) return "🌅 Good morning";
+                          if (hour < 17) return "☀️ Good afternoon";
+                          if (hour < 21) return "🌆 Good evening";
+                          return "🌙 Good night";
+                        })()}, {studentName}.
+                      </span>
+                      <h2 className="synapse-empty-headline">
+                        What are we building today?
+                      </h2>
+                      <p className="synapse-empty-sub">
+                        Ask me anything — a concept, a doubt, a study plan, or how to get unstuck.
+                      </p>
+                    </div>
+                  </motion.div>
+                ) : null}
                 <AnimatePresence initial={false}>
                   {(activeConversation?.messages || []).map((message) => (
                     <MessageBubble
