@@ -597,7 +597,17 @@ function getAttachmentIcon(attachment) {
   return FileText;
 }
 
-function MessageBubble({ message, studentName, onCopy, onMessageAction }) {
+function getInitials(name = "Student") {
+  return String(name)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "S";
+}
+
+function MessageBubble({ message, studentName, avatarSrc, displayName, onCopy, onMessageAction }) {
   const fromUser = message.role === "user";
   const AttachmentIcon = getAttachmentIcon(message.attachment);
   const rawContent = !fromUser && message.synthetic && message.id === "welcome"
@@ -678,6 +688,16 @@ function MessageBubble({ message, studentName, onCopy, onMessageAction }) {
           )}
         </footer>
       </div>
+
+      {fromUser ? (
+        <span className="message-avatar message-avatar-user" aria-hidden="true">
+          {avatarSrc ? (
+            <img src={avatarSrc} alt="" width={32} height={32} />
+          ) : (
+            <span className="message-avatar-initials">{getInitials(displayName)}</span>
+          )}
+        </span>
+      ) : null}
     </motion.article>
   );
 }
@@ -1906,6 +1926,8 @@ lastSendTimeRef.current = sendTime;
                       key={message.id}
                       message={message}
                       studentName={studentName}
+                      avatarSrc={profile?.avatarDataUrl || profile?.photoURL || user?.photoURL || ""}
+                      displayName={studentName}
                       onCopy={copyMessage}
                       onMessageAction={handleMessageAction}
                     />
