@@ -11331,3 +11331,112 @@ textarea {
         padding-top: clamp(28px, 4vw, 48px);
         scroll-padding-top: 20px;
       }
+
+/* ============================================
+   SYNAPSE CHAT UPGRADE — Human Brain Design
+   ============================================ */
+
+/* ── FIX 1: Profile ring visibility ── */
+/* overflow:hidden at line 10994 clips the SVG ring */
+/* Change overflow so ring shows outside avatar bounds */
+.profile-avatar-trigger {
+  overflow: visible;  /* overrides line 10994 */
+}
+
+/* Keep the avatar image itself circular and clipped */
+.profile-avatar-trigger > img,
+.profile-avatar-trigger > .profile-avatar-initials {
+  overflow: hidden;
+}
+
+/* ── FIX 2: User message bubble — asymmetric, human, premium ── */
+/* Human brains process asymmetry as natural/personal */
+/* Symmetric = robot. Asymmetric = conversation */
+.from-user .message-shell {
+  border-radius: 20px 4px 20px 20px;  /* top-right sharp = sent corner */
+  border-color: color-mix(in oklab, var(--color-pulse) 52%, var(--transparent));
+  background:
+    radial-gradient(circle at 90% 10%, color-mix(in oklab, var(--color-pulse) 28%, var(--transparent)), var(--transparent) 52%),
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 24%, var(--transparent)), color-mix(in oklab, var(--color-accent) 32%, var(--transparent))),
+    var(--panel);
+  box-shadow:
+    0 8px 32px color-mix(in oklab, var(--color-pulse) 20%, var(--transparent)),
+    inset 0 1px 0 color-mix(in oklab, white 8%, var(--transparent));
+  padding: 14px 18px;
+}
+
+/* ── FIX 3: AI message bubble — asymmetric opposite direction ── */
+.synapse-message.from-ai .message-shell {
+  border-radius: 4px 20px 20px 20px;  /* top-left sharp = receive corner */
+  border-left: 3px solid color-mix(in oklab, var(--color-pulse) 68%, white 8%);
+}
+
+/* ── FIX 4: Message avatar — cleaner, smaller, aligned to bubble ── */
+.message-avatar {
+  margin-top: 4px;   /* aligns avatar to top of bubble not center */
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-pulse) 16%, var(--transparent));
+  box-shadow: 0 0 18px color-mix(in oklab, var(--color-pulse) 24%, var(--transparent));
+}
+
+/* ── FIX 5: Chat stream — golden ratio spacing ── */
+/* 1.618 rhythm between messages feels natural to human eye */
+.synapse-chat-stream {
+  gap: clamp(20px, 2.8vw, 38px);
+}
+
+/* ── FIX 6: User message text — slightly smaller, right-aligned feel ── */
+.from-user .message-shell .synapse-markdown,
+.from-user .message-shell p {
+  font-size: 15px;
+  line-height: 1.62;
+  color: color-mix(in oklab, var(--color-text) 95%, white 4%);
+}
+
+/* ── FIX 7: Mobile — profile icon fix and spacing ── */
+@media (max-width: 768px) {
+
+  /* Profile icon — give it its own row so it doesn't eat AI chat space */
+  .profile-avatar-menu {
+    position: fixed;   /* fixed position — never moves, never overlaps */
+    top: 14px;
+    right: 14px;
+    z-index: 60;
+  }
+
+  /* User bubble — tighter on mobile */
+  .from-user .message-shell {
+    padding: 12px 15px;
+  }
+
+  /* AI bubble — full width mobile breathing */
+  .synapse-message.from-ai .message-shell {
+    border-radius: 4px 16px 16px 16px;
+    padding: 16px 14px;
+  }
+
+  /* Tighter message gap on small screen */
+  .synapse-chat-stream {
+    gap: 16px;
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+}
+
+/* ── FIX 8: Quick action cards — card grid not scrolling pills ── */
+.workspace-quick-actions button {
+  border-radius: 16px;
+  transition:
+    border-color 220ms ease,
+    background 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease;
+}
+
+.workspace-quick-actions button:hover {
+  border-color: color-mix(in oklab, var(--color-pulse) 42%, var(--transparent));
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 16%, var(--transparent)), color-mix(in oklab, var(--color-accent) 12%, var(--transparent)));
+  box-shadow: 0 8px 28px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
+  transform: translateY(-2px);
+}
