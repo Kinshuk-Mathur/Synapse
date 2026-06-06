@@ -3842,14 +3842,11 @@ textarea {
 .from-user .message-shell {
   max-width: 70%;
   border-radius: 20px 4px 20px 20px;
-  border-color: color-mix(in oklab, var(--color-pulse) 52%, var(--transparent));
-  background:
-    radial-gradient(circle at 90% 10%, color-mix(in oklab, var(--color-pulse) 32%, var(--transparent)), var(--transparent) 55%),
-    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 26%, var(--transparent)), color-mix(in oklab, var(--color-accent) 32%, var(--transparent))),
-    color-mix(in oklab, var(--panel) 82%, var(--transparent));
-  box-shadow:
-    0 8px 32px color-mix(in oklab, var(--color-pulse) 22%, var(--transparent)),
-    inset 0 1px 0 color-mix(in oklab, white 10%, var(--transparent));
+  border-color: color-mix(in oklab, var(--color-pulse) 35%, var(--transparent));  background:
+  radial-gradient(circle at 85% 8%, color-mix(in oklab, var(--color-pulse) 14%, var(--transparent)), var(--transparent) 48%),
+  linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 12%, var(--transparent)), color-mix(in oklab, var(--color-text) 4%, var(--transparent))),
+  color-mix(in oklab, var(--panel) 70%, var(--transparent));
+  box-shadow: 0 6px 24px color-mix(in oklab, var(--color-ink) 28%, var(--transparent)), 0 0 0 1px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
   padding: 13px 18px;
 }
 
@@ -6352,14 +6349,12 @@ textarea {
   max-width: 72%;
   align-self: flex-end;
   border-radius: 20px 4px 20px 20px;
-  border-color: color-mix(in oklab, var(--color-pulse) 52%, var(--transparent));
+  border-color: color-mix(in oklab, var(--color-pulse) 35%, var(--transparent));
   background:
-    radial-gradient(circle at 90% 10%, color-mix(in oklab, var(--color-pulse) 32%, var(--transparent)), var(--transparent) 55%),
-    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 26%, var(--transparent)), color-mix(in oklab, var(--color-accent) 32%, var(--transparent))),
-    color-mix(in oklab, var(--panel) 82%, var(--transparent));
-  box-shadow:
-    0 8px 32px color-mix(in oklab, var(--color-pulse) 22%, var(--transparent)),
-    inset 0 1px 0 color-mix(in oklab, white 10%, var(--transparent));
+  radial-gradient(circle at 85% 8%, color-mix(in oklab, var(--color-pulse) 14%, var(--transparent)), var(--transparent) 48%),
+  linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 12%, var(--transparent)), color-mix(in oklab, var(--color-text) 4%, var(--transparent))),
+  color-mix(in oklab, var(--panel) 70%, var(--transparent));
+  box-shadow: 0 6px 24px color-mix(in oklab, var(--color-ink) 28%, var(--transparent)), 0 0 0 1px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
   padding: 13px 18px;
 }
 
@@ -11436,14 +11431,12 @@ textarea {
 /* Symmetric = robot. Asymmetric = conversation */
 .from-user .message-shell {
   border-radius: 20px 4px 20px 20px;  /* top-right sharp = sent corner */
-  border-color: color-mix(in oklab, var(--color-pulse) 52%, var(--transparent));
+  border-color: color-mix(in oklab, var(--color-pulse) 35%, var(--transparent));
   background:
-    radial-gradient(circle at 90% 10%, color-mix(in oklab, var(--color-pulse) 28%, var(--transparent)), var(--transparent) 52%),
-    linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 24%, var(--transparent)), color-mix(in oklab, var(--color-accent) 32%, var(--transparent))),
-    var(--panel);
-  box-shadow:
-    0 8px 32px color-mix(in oklab, var(--color-pulse) 20%, var(--transparent)),
-    inset 0 1px 0 color-mix(in oklab, white 8%, var(--transparent));
+  radial-gradient(circle at 85% 8%, color-mix(in oklab, var(--color-pulse) 14%, var(--transparent)), var(--transparent) 48%),
+  linear-gradient(135deg, color-mix(in oklab, var(--color-pulse) 12%, var(--transparent)), color-mix(in oklab, var(--color-text) 4%, var(--transparent))),
+  color-mix(in oklab, var(--panel) 70%, var(--transparent));
+  box-shadow: 0 6px 24px color-mix(in oklab, var(--color-ink) 28%, var(--transparent)), 0 0 0 1px color-mix(in oklab, var(--color-pulse) 18%, var(--transparent));
   padding: 14px 18px;
 }
 
