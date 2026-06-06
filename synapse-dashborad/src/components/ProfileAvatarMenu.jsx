@@ -1,18 +1,32 @@
 "use client";
 
-import { AnimatePresence, animate, motion } from "framer-motion";
-import { ImagePlus, Pencil } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Clock, FileText, ImagePlus, Mic, Pencil, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useSynapseUsage } from "../hooks/useSynapseUsage";
 import { updateUserPersonalization } from "../services/firestore";
-import {
-  formatSynapseUsageDateKey,
-  getSecondsUntilNextLocalMidnight,
-  listenToTodaySynapseUsage,
-  normalizeSynapseUsage,
-  SYNAPSE_FREE_PLAN_LIMITS
-} from "../services/usageLimits";
 
 const avatarFileTypes = ["image/png", "image/jpeg"];
+const ringRadius = 25;
+const ringCircumference = 2 * Math.PI * ringRadius;
+
+const usageMetrics = [
+  {
+    key: "aiInteractions",
+    label: "AI",
+    icon: Sparkles
+  },
+  {
+    key: "pdfUploads",
+    label: "PDF",
+    icon: FileText
+  },
+  {
+    key: "voiceSessions",
+    label: "Voice",
+    icon: Mic
+  }
+];
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -48,132 +62,146 @@ async function createAvatarDataUrl(file) {
   return canvas.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.86);
 }
 
-function getUsagePercent(value, limit) {
+function clampPercent(value) {
+  return Math.min(100, Math.max(0, Math.round(Number(value) || 0)));
+}
+
+function getMetricPercent(value, limit) {
   if (!limit) return 0;
-  return Math.min(100, Math.round((value / limit) * 100));
+  return clampPercent((value / limit) * 100);
 }
 
-function getCompoundUsagePercent(usage) {
-  const aiPercent = getUsagePercent(usage.aiInteractions, SYNAPSE_FREE_PLAN_LIMITS.aiInteractions);
-  const pdfPercent = getUsagePercent(usage.pdfUploads, SYNAPSE_FREE_PLAN_LIMITS.pdfUploads);
-  return Math.max(aiPercent, pdfPercent);
+function getUsageToneClass(remainingPercent) {
+  if (remainingPercent <= 10) return "is-critical";
+  if (remainingPercent <= 40) return "is-warning";
+  if (remainingPercent <= 75) return "is-moderate";
+  return "is-healthy";
 }
 
-function formatResetCountdown(totalSeconds = 0) {
-  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
-  const hours = String(Math.floor(safeSeconds / 3600)).padStart(2, "0");
-  const minutes = String(Math.floor((safeSeconds % 3600) / 60)).padStart(2, "0");
-  const seconds = String(safeSeconds % 60).padStart(2, "0");
+function formatResetTime(totalMinutes = 0) {
+  const safeMinutes = Math.max(0, Math.ceil(Number(totalMinutes) || 0));
+  const hours = Math.floor(safeMinutes / 60);
+  const minutes = safeMinutes % 60;
 
-  return `${hours}:${minutes}:${seconds}`;
-}
-
-function getUsageNotice(percent) {
-  if (percent >= 100) {
-    return {
-      tone: "danger",
-      label: "Daily limit reached"
-    };
+  if (!hours) {
+    return `${minutes}m`;
   }
 
-  if (percent >= 95) {
-    return {
-      tone: "orange",
-      label: "Almost at today's limit"
-    };
-  }
-
-  if (percent >= 80) {
-    return {
-      tone: "amber",
-      label: "Approaching today's limit"
-    };
-  }
-
-  return null;
+  return `${hours}h ${minutes}m`;
 }
 
-function AnimatedUsageNumber({ value }) {
-  const [displayValue, setDisplayValue] = useState(value);
-  const previousValueRef = useRef(value);
-
-  useEffect(() => {
-    const controls = animate(previousValueRef.current, value, {
-      duration: 0.55,
-      ease: [0.22, 1, 0.36, 1],
-      onUpdate: (latest) => setDisplayValue(Math.round(latest))
-    });
-
-    previousValueRef.current = value;
-    return () => controls.stop();
-  }, [value]);
-
-  return <span>{displayValue}</span>;
+function getInitials(name = "Student") {
+  return String(name)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "S";
 }
 
-function SynapseUsageCard({ usage, secondsToReset, usageError }) {
-  const compoundPercent = getCompoundUsagePercent(usage);
-  const limitReached =
-    usage.aiInteractions >= SYNAPSE_FREE_PLAN_LIMITS.aiInteractions ||
-    usage.pdfUploads >= SYNAPSE_FREE_PLAN_LIMITS.pdfUploads;
-  const usageNotice = getUsageNotice(limitReached ? 100 : compoundPercent);
-  const resetCopy = formatResetCountdown(secondsToReset);
+function AvatarMedia({ src, displayName }) {
+  if (src) {
+    return <img src={src} alt="" />;
+  }
+
+  return <span className="profile-avatar-initials">{getInitials(displayName)}</span>;
+}
+
+function UsageBar({ percent, toneClass }) {
+  return (
+    <div className="profile-usage-bar" aria-hidden="true">
+      <motion.span
+        className={`profile-usage-bar-fill ${toneClass}`}
+        initial={false}
+        animate={{ width: `${clampPercent(percent)}%` }}
+        transition={{ duration: 0.28, ease: "easeOut" }}
+      />
+    </div>
+  );
+}
+
+function UsageRing({ remainingPercent, toneClass }) {
+  const safeRemaining = clampPercent(remainingPercent);
+  const strokeDashoffset = ringCircumference * (1 - safeRemaining / 100);
 
   return (
-    <motion.section
-      className={`ai-usage-card ${limitReached ? "is-limit-reached" : ""}`}
-      initial={{ opacity: 0, y: 10 }}
+    <svg className="profile-usage-ring-svg" viewBox="0 0 58 58" aria-hidden="true">
+      <circle className="profile-usage-ring-track" cx="29" cy="29" r={ringRadius} />
+      <motion.circle
+        className={`profile-usage-ring-progress ${toneClass}`}
+        cx="29"
+        cy="29"
+        r={ringRadius}
+        initial={false}
+        animate={{ strokeDashoffset }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        style={{ strokeDasharray: ringCircumference }}
+      />
+    </svg>
+  );
+}
+
+function UsagePopover({ usage, limits, minutesUntilReset, overallPercent, loading }) {
+  const remainingPercent = clampPercent(100 - overallPercent);
+  const overallToneClass = getUsageToneClass(remainingPercent);
+
+  return (
+    <motion.div
+      className={`profile-usage-popover ${overallToneClass}`}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, ease: "easeOut" }}
-      aria-label="Today's AI Usage"
+      exit={{ opacity: 0, y: 6 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      aria-busy={loading}
     >
-      <div className="ai-usage-card-head">
-        <div>
-          <p>Today's AI Usage</p>
-          <h3>
-            <AnimatedUsageNumber value={compoundPercent} />% usage
-          </h3>
-        </div>
-        <span>Free Plan</span>
+      <div className="profile-usage-popover-head">
+        <strong>Session Usage</strong>
+        <span>
+          <Clock size={13} />
+          Resets in {formatResetTime(minutesUntilReset)}
+        </span>
       </div>
 
-      <div
-        className="ai-usage-track"
-        aria-label={`Today's usage: ${compoundPercent}%`}
-        role="meter"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={compoundPercent}
-      >
-        <motion.span
-          className="ai-usage-fill"
-          initial={{ width: 0 }}
-          animate={{ width: `${compoundPercent}%` }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        />
+      <div className="profile-usage-overall">
+        <div className="profile-usage-overall-copy">
+          <span>Overall Usage</span>
+          <strong>{overallPercent}% used</strong>
+        </div>
+        <UsageBar percent={overallPercent} toneClass={overallToneClass} />
+        <div className="profile-usage-overall-meta">
+          <span>{overallPercent}% used</span>
+          <strong>{remainingPercent}% remaining</strong>
+        </div>
       </div>
 
-      {usageNotice ? (
-        <motion.div
-          className={`ai-usage-notice is-${usageNotice.tone}`}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <span aria-hidden="true">⚠</span>
-          <strong>{usageNotice.label}</strong>
-        </motion.div>
-      ) : null}
+      <div className="profile-usage-metrics">
+        {usageMetrics.map((metric) => {
+          const Icon = metric.icon;
+          const value = usage[metric.key] || 0;
+          const limit = limits[metric.key] || 0;
+          const percent = getMetricPercent(value, limit);
+          const metricToneClass = getUsageToneClass(100 - percent);
 
-      {limitReached ? (
-        <div className="ai-usage-reset">
-          <span>Resets In</span>
-          <strong>{resetCopy}</strong>
-        </div>
-      ) : null}
+          return (
+            <div className="profile-usage-row" key={metric.key}>
+              <div className="profile-usage-row-head">
+                <span>
+                  <Icon size={14} />
+                  {metric.label}
+                </span>
+                <strong>
+                  {value} / {limit} used
+                </strong>
+              </div>
+              <UsageBar percent={percent} toneClass={metricToneClass} />
+            </div>
+          );
+        })}
+      </div>
 
-      {usageError ? <p className="ai-usage-error">{usageError}</p> : null}
-    </motion.section>
+      <p>Limits reset every 6 hours</p>
+    </motion.div>
   );
 }
 
@@ -185,42 +213,18 @@ export default function ProfileAvatarMenu({
   onProfileUpdate
 }) {
   const [open, setOpen] = useState(false);
+  const [usagePopoverOpen, setUsagePopoverOpen] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [usageError, setUsageError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [usage, setUsage] = useState(() => normalizeSynapseUsage(profile?.usage));
-  const [usageDateKey, setUsageDateKey] = useState(() => formatSynapseUsageDateKey());
-  const [secondsToReset, setSecondsToReset] = useState(() => getSecondsUntilNextLocalMidnight());
   const menuRef = useRef(null);
   const inputRef = useRef(null);
-  const avatarSrc = profile?.avatarDataUrl || profile?.photoURL || user?.photoURL || "/assets/synapse-icon-cropped.png";
+  const openUsageTimerRef = useRef(null);
+  const closeUsageTimerRef = useRef(null);
+  const avatarSrc = profile?.avatarDataUrl || profile?.photoURL || user?.photoURL || "";
   const displayName = profile?.name || profile?.displayName || user?.displayName || studentName || "Student";
-
-  useEffect(() => {
-    const tick = () => {
-      setUsageDateKey(formatSynapseUsageDateKey());
-      setSecondsToReset(getSecondsUntilNextLocalMidnight());
-    };
-
-    tick();
-    const intervalId = window.setInterval(tick, 1000);
-    return () => window.clearInterval(intervalId);
-  }, []);
-
-  useEffect(() => {
-    if (!user?.uid) {
-      setUsage(normalizeSynapseUsage(profile?.usage, usageDateKey));
-      return undefined;
-    }
-
-    setUsageError("");
-    return listenToTodaySynapseUsage(
-      user.uid,
-      setUsage,
-      (error) => setUsageError(error.message || "Usage sync is temporarily unavailable."),
-      usageDateKey
-    );
-  }, [profile?.usage, usageDateKey, user?.uid]);
+  const { usage, limits, minutesUntilReset, overallPercent, loading } = useSynapseUsage(user?.uid);
+  const remainingPercent = clampPercent(100 - overallPercent);
+  const ringToneClass = getUsageToneClass(remainingPercent);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -233,6 +237,29 @@ export default function ProfileAvatarMenu({
     window.addEventListener("pointerdown", closeProfileMenu);
     return () => window.removeEventListener("pointerdown", closeProfileMenu);
   }, [open]);
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(openUsageTimerRef.current);
+      window.clearTimeout(closeUsageTimerRef.current);
+    };
+  }, []);
+
+  const openUsagePopoverAfterDelay = () => {
+    if (open || !window.matchMedia?.("(hover: hover)")?.matches) return;
+
+    window.clearTimeout(closeUsageTimerRef.current);
+    openUsageTimerRef.current = window.setTimeout(() => {
+      setUsagePopoverOpen(true);
+    }, 200);
+  };
+
+  const closeUsagePopoverAfterDelay = () => {
+    window.clearTimeout(openUsageTimerRef.current);
+    closeUsageTimerRef.current = window.setTimeout(() => {
+      setUsagePopoverOpen(false);
+    }, 300);
+  };
 
   const handleAvatarFile = async (event) => {
     const file = event.target.files?.[0];
@@ -264,18 +291,39 @@ export default function ProfileAvatarMenu({
   };
 
   return (
-    <div className="profile-avatar-menu" ref={menuRef}>
+    <div
+      className="profile-avatar-menu"
+      ref={menuRef}
+      onMouseEnter={openUsagePopoverAfterDelay}
+      onMouseLeave={closeUsagePopoverAfterDelay}
+    >
       <motion.button
-        className="profile-avatar-trigger"
+        className={`profile-avatar-trigger ${ringToneClass}`}
         type="button"
         aria-label="Open profile menu"
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          setUsagePopoverOpen(false);
+          setOpen((value) => !value);
+        }}
         whileHover={{ y: -2, scale: 1.03 }}
         whileTap={{ scale: 0.96 }}
       >
-        <img src={avatarSrc} alt="" />
+        <UsageRing remainingPercent={remainingPercent} toneClass={ringToneClass} />
+        <AvatarMedia src={avatarSrc} displayName={displayName} />
       </motion.button>
+
+      <AnimatePresence>
+        {usagePopoverOpen && !open ? (
+          <UsagePopover
+            usage={usage}
+            limits={limits}
+            minutesUntilReset={minutesUntilReset}
+            overallPercent={overallPercent}
+            loading={loading}
+          />
+        ) : null}
+      </AnimatePresence>
 
       <AnimatePresence>
         {open ? (
@@ -287,7 +335,7 @@ export default function ProfileAvatarMenu({
             transition={{ duration: 0.18 }}
           >
             <div className="profile-avatar-preview">
-              <img src={avatarSrc} alt="" />
+              <AvatarMedia src={avatarSrc} displayName={displayName} />
               <button
                 type="button"
                 aria-label="Change profile picture"
@@ -317,7 +365,6 @@ export default function ProfileAvatarMenu({
               onChange={handleAvatarFile}
             />
             {uploadError ? <p className="profile-avatar-error">{uploadError}</p> : null}
-            <SynapseUsageCard usage={usage} secondsToReset={secondsToReset} usageError={usageError} />
           </motion.div>
         ) : null}
       </AnimatePresence>

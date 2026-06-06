@@ -1,153 +1,194 @@
 import {
   doc,
-  onSnapshot,
+  getDoc,
   runTransaction,
   serverTimestamp,
-  setDoc
+  Timestamp
 } from "firebase/firestore";
 import { getFirebaseDb } from "../lib/firebase";
 import { COLLECTIONS } from "./firestore";
-import { formatDateKey } from "./todos";
 
 export const SYNAPSE_FREE_PLAN_LIMITS = {
-  aiInteractions: 100,
-  pdfUploads: 10
+  aiInteractions: 25,
+  pdfUploads: 3,
+  voiceSessions: 10
 };
 
-export function formatSynapseUsageDateKey(date = new Date()) {
-  return formatDateKey(date);
+export const SYNAPSE_USAGE_WINDOW_SLOTS = ["00", "06", "12", "18"];
+
+const usageKeys = ["aiInteractions", "pdfUploads", "voiceSessions"];
+
+function toUsageIncrement(value) {
+  return Math.max(0, Math.floor(Number(value) || 0));
 }
 
-function getLocalTimezone() {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-  } catch {
-    return "";
-  }
+function toUsageCount(value) {
+  return Math.max(0, Math.floor(Number(value) || 0));
 }
 
-function clampUsageCount(value, limit) {
-  return Math.min(limit, Math.max(0, Math.floor(Number(value) || 0)));
+function formatDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-export function normalizeSynapseUsage(usage = {}, dateKey = formatSynapseUsageDateKey()) {
-  if (!usage || usage.date !== dateKey) {
-    return {
-      date: dateKey,
-      aiInteractions: 0,
-      pdfUploads: 0,
-      timezone: getLocalTimezone()
-    };
-  }
+export function getCurrentUsageWindow(date = new Date()) {
+  const windowHour = Math.floor(date.getHours() / 6) * 6;
+  const windowSlot = String(windowHour).padStart(2, "0");
+  const windowStart = new Date(date);
+
+  windowStart.setHours(windowHour, 0, 0, 0);
 
   return {
-    date: dateKey,
-    aiInteractions: clampUsageCount(usage.aiInteractions, SYNAPSE_FREE_PLAN_LIMITS.aiInteractions),
-    pdfUploads: clampUsageCount(usage.pdfUploads, SYNAPSE_FREE_PLAN_LIMITS.pdfUploads),
-    timezone: usage.timezone || getLocalTimezone()
+    dateKey: formatDateKey(windowStart),
+    windowSlot,
+    windowStart
   };
 }
 
-export function getSecondsUntilNextLocalMidnight(date = new Date()) {
-  const nextMidnight = new Date(date);
-  nextMidnight.setHours(24, 0, 0, 0);
-  return Math.max(0, Math.ceil((nextMidnight.getTime() - date.getTime()) / 1000));
+export function getCurrentWindowId(uid, date = new Date()) {
+  if (!uid) return "";
+
+  const { dateKey, windowSlot } = getCurrentUsageWindow(date);
+  return `${uid}_${dateKey}_${windowSlot}`;
 }
 
-function createUsageLimitError(kind) {
-  const isAiLimit = kind === "aiInteractions";
-  const error = new Error(
-    isAiLimit
-      ? "Daily AI limit reached. Resets at midnight."
-      : "Daily PDF upload limit reached. Resets at midnight."
-  );
+export function getMinutesUntilNextUsageReset(date = new Date()) {
+  const nextReset = new Date(date);
+  const nextResetHour = Math.floor(date.getHours() / 6) * 6 + 6;
 
-  error.code = isAiLimit ? "synapse/ai-limit-reached" : "synapse/pdf-limit-reached";
+  nextReset.setHours(nextResetHour, 0, 0, 0);
+
+  return Math.max(0, Math.ceil((nextReset.getTime() - date.getTime()) / 60000));
+}
+
+function getUsageDocRef(uid, windowId = getCurrentWindowId(uid)) {
+  return doc(getFirebaseDb(), COLLECTIONS.users, uid, "usage", windowId);
+}
+
+function normalizeUsageSnapshot(data = {}, uid = "", windowId = getCurrentWindowId(uid), date = new Date()) {
+  const { windowSlot, windowStart } = getCurrentUsageWindow(date);
+
+  return {
+    uid,
+    windowId,
+    windowStart: data.windowStart || Timestamp.fromDate(windowStart),
+    windowSlot: data.windowSlot || windowSlot,
+    aiInteractions: toUsageCount(data.aiInteractions),
+    pdfUploads: toUsageCount(data.pdfUploads),
+    voiceSessions: toUsageCount(data.voiceSessions)
+  };
+}
+
+function createUsageLimitError(kind, minutesUntilReset = getMinutesUntilNextUsageReset()) {
+  const messages = {
+    aiInteractions: `AI limit reached for this session. Resets in ${minutesUntilReset} minutes.`,
+    pdfUploads: `PDF upload limit reached. Resets in ${minutesUntilReset} minutes.`,
+    voiceSessions: `Voice session limit reached. Resets in ${minutesUntilReset} minutes.`
+  };
+
+  const error = new Error(messages[kind] || messages.aiInteractions);
+  error.code = `synapse/${kind}-limit-reached`;
   error.limitKind = kind;
+  error.minutesUntilReset = minutesUntilReset;
   return error;
 }
 
-function getUserRef(uid) {
-  return doc(getFirebaseDb(), COLLECTIONS.users, uid);
-}
-
-export function listenToTodaySynapseUsage(uid, onNext, onError, dateKey = formatSynapseUsageDateKey()) {
-  if (!uid) {
-    onNext?.(normalizeSynapseUsage({}, dateKey));
-    return () => {};
-  }
-
-  const userRef = getUserRef(uid);
-
-  return onSnapshot(
-    userRef,
-    (snapshot) => {
-      const userData = snapshot.exists() ? snapshot.data() : {};
-      const normalizedUsage = normalizeSynapseUsage(userData?.usage, dateKey);
-      onNext?.(normalizedUsage);
-
-      if (userData?.usage?.date !== dateKey) {
-        setDoc(
-          userRef,
-          {
-            usage: {
-              ...normalizedUsage,
-              updatedAt: serverTimestamp()
-            }
-          },
-          { merge: true }
-        ).catch((error) => {
-          onError?.(error);
-        });
-      }
-    },
-    onError
-  );
-}
-
 export async function consumeSynapseUsage(uid, increments = {}) {
-  const aiIncrement = Math.max(0, Math.floor(Number(increments.aiInteractions) || 0));
-  const pdfIncrement = Math.max(0, Math.floor(Number(increments.pdfUploads) || 0));
+  const nextIncrements = {
+    aiInteractions: toUsageIncrement(increments.aiInteractions),
+    pdfUploads: toUsageIncrement(increments.pdfUploads),
+    voiceSessions: toUsageIncrement(increments.voiceSessions)
+  };
+  const hasIncrement = usageKeys.some((key) => nextIncrements[key] > 0);
 
-  if (!uid || (!aiIncrement && !pdfIncrement)) {
+  if (!uid || !hasIncrement) {
     return null;
   }
 
-  const dateKey = formatSynapseUsageDateKey();
-  const userRef = getUserRef(uid);
+  const now = new Date();
+  const windowId = getCurrentWindowId(uid, now);
+  const usageRef = getUsageDocRef(uid, windowId);
+  const { windowSlot, windowStart } = getCurrentUsageWindow(now);
+  const minutesUntilReset = getMinutesUntilNextUsageReset(now);
 
   return runTransaction(getFirebaseDb(), async (transaction) => {
-    const snapshot = await transaction.get(userRef);
-    const currentUsage = normalizeSynapseUsage(snapshot.exists() ? snapshot.data()?.usage : {}, dateKey);
-    const nextAiInteractions = currentUsage.aiInteractions + aiIncrement;
-    const nextPdfUploads = currentUsage.pdfUploads + pdfIncrement;
-
-    if (nextAiInteractions > SYNAPSE_FREE_PLAN_LIMITS.aiInteractions) {
-      throw createUsageLimitError("aiInteractions");
-    }
-
-    if (nextPdfUploads > SYNAPSE_FREE_PLAN_LIMITS.pdfUploads) {
-      throw createUsageLimitError("pdfUploads");
-    }
-
+    const snapshot = await transaction.get(usageRef);
+    const currentUsage = normalizeUsageSnapshot(
+      snapshot.exists() ? snapshot.data() : {},
+      uid,
+      windowId,
+      now
+    );
     const nextUsage = {
       ...currentUsage,
-      aiInteractions: nextAiInteractions,
-      pdfUploads: nextPdfUploads,
-      timezone: getLocalTimezone()
+      aiInteractions: currentUsage.aiInteractions + nextIncrements.aiInteractions,
+      pdfUploads: currentUsage.pdfUploads + nextIncrements.pdfUploads,
+      voiceSessions: currentUsage.voiceSessions + nextIncrements.voiceSessions
+    };
+
+    for (const key of usageKeys) {
+      if (nextUsage[key] > SYNAPSE_FREE_PLAN_LIMITS[key]) {
+        throw createUsageLimitError(key, minutesUntilReset);
+      }
+    }
+
+    const payload = {
+      uid,
+      windowId,
+      windowStart: Timestamp.fromDate(windowStart),
+      windowSlot,
+      aiInteractions: nextUsage.aiInteractions,
+      pdfUploads: nextUsage.pdfUploads,
+      voiceSessions: nextUsage.voiceSessions,
+      updatedAt: serverTimestamp()
     };
 
     transaction.set(
-      userRef,
-      {
-        usage: {
-          ...nextUsage,
-          updatedAt: serverTimestamp()
-        }
-      },
+      usageRef,
+      snapshot.exists()
+        ? payload
+        : {
+            ...payload,
+            createdAt: serverTimestamp()
+          },
       { merge: true }
     );
 
-    return nextUsage;
+    return {
+      ...nextUsage,
+      windowStart: payload.windowStart,
+      minutesUntilReset
+    };
   });
+}
+
+export async function fetchCurrentUsage(uid) {
+  const now = new Date();
+  const windowId = getCurrentWindowId(uid, now);
+  const minutesUntilReset = getMinutesUntilNextUsageReset(now);
+
+  if (!uid) {
+    const { windowStart } = getCurrentUsageWindow(now);
+
+    return {
+      aiInteractions: 0,
+      pdfUploads: 0,
+      voiceSessions: 0,
+      windowStart: Timestamp.fromDate(windowStart),
+      minutesUntilReset
+    };
+  }
+
+  const snapshot = await getDoc(getUsageDocRef(uid, windowId));
+  const usage = normalizeUsageSnapshot(snapshot.exists() ? snapshot.data() : {}, uid, windowId, now);
+
+  return {
+    aiInteractions: usage.aiInteractions,
+    pdfUploads: usage.pdfUploads,
+    voiceSessions: usage.voiceSessions,
+    windowStart: usage.windowStart,
+    minutesUntilReset
+  };
 }

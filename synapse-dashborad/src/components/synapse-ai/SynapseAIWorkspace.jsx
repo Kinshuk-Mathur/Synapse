@@ -1458,7 +1458,8 @@ lastSendTimeRef.current = sendTime;
     try {
       await consumeSynapseUsage(user?.uid, {
         aiInteractions: 1,
-        pdfUploads: attachedPdfFile ? 1 : 0
+        pdfUploads: attachedPdfFile ? 1 : 0,
+        voiceSessions: isVoiceRequest ? 1 : 0
       });
       setUploadError("");
     } catch (usageLimitError) {
