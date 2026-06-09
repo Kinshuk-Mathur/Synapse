@@ -50,7 +50,7 @@
   --glow-blue: color-mix(in oklab, var(--color-sky) 42%, var(--transparent));
   --shadow-card: 0 20px 70px color-mix(in oklab, var(--color-ink) 52%, var(--transparent));
   --shadow-glow: 0 0 42px color-mix(in oklab, var(--color-pulse) 32%, var(--transparent));
-  --synapse-cursor: url("/assets/synapse-cursor.png") 7 2, auto;
+
 }
 
 [data-theme="midnight"] {
