@@ -1,0 +1,19 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@tailwind",
+      "description": "Tailwind CSS directive expanded by the project's PostCSS pipeline."
+    }
+  ],
+  "properties": [
+    {
+      "name": "rx",
+      "description": "SVG geometry property for the x-axis corner radius of a rectangle."
+    },
+    {
+      "name": "ry",
+      "description": "SVG geometry property for the y-axis corner radius of a rectangle."
+    }
+  ]
+}
