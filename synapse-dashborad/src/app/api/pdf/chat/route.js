@@ -4,6 +4,7 @@ import {
   splitResponseForStreaming,
   SYNAPSE_AI_BUSY_MESSAGE
 } from "../../../../lib/aiModels";
+import { ConstitutionEngine } from "../../../../lib/ai/constitutionEngine.js";
 import { createGroqClient } from "../../../../lib/groq";
 import {
   buildPdfContextBlock,
@@ -94,6 +95,45 @@ function streamingResponse(work) {
   );
 }
 
+function publicModelName() {
+  return ConstitutionEngine.publicModelName("pdf");
+}
+
+function directConstitutionResponse(req, body, message) {
+  if (wantsStreaming(req, body)) {
+    return streamingResponse(async ({ send }) => {
+      send({
+        type: "meta",
+        modelUsed: publicModelName(),
+        emergency: false,
+        chunksUsed: 0
+      });
+
+      for (const chunk of splitResponseForStreaming(message)) {
+        send({
+          type: "token",
+          content: chunk
+        });
+        await sleep(8);
+      }
+
+      send({
+        type: "done",
+        modelUsed: publicModelName(),
+        emergency: false,
+        chunksUsed: 0
+      });
+    });
+  }
+
+  return jsonResponse({
+    message,
+    modelUsed: publicModelName(),
+    emergency: false,
+    chunksUsed: 0
+  });
+}
+
 function normalizeMessages(messages = []) {
   if (!Array.isArray(messages)) return [];
 
@@ -121,7 +161,7 @@ function buildPdfSystemPrompt(documentData, contextBlock, options = {}) {
   const actionKey = options.actionKey || "";
   const actionPrompt = getActionPrompt(actionKey);
 
-  return `
+  const basePrompt = `
 You are SYNAPSE AI PDF Intelligence, a premium study mentor for students.
 
 Active study document:
@@ -149,6 +189,12 @@ ${actionPrompt ? `Requested PDF intelligence action:\n${actionPrompt}` : ""}
 Relevant PDF context:
 ${contextBlock}
 `;
+
+  return ConstitutionEngine.inject({
+    basePrompt,
+    domain: "pdf-ai",
+    latestPrompt: options.latestPrompt || actionPrompt
+  });
 }
 
 function buildGroqPdfMessages(body) {
@@ -173,7 +219,8 @@ function buildGroqPdfMessages(body) {
       {
         role: "system",
         content: buildPdfSystemPrompt(documentData, contextBlock, {
-          actionKey: body.action
+          actionKey: body.action,
+          latestPrompt
         })
       },
       ...messages
@@ -193,6 +240,14 @@ export async function POST(req) {
     }
 
     const body = await readJsonBody(req);
+    const rawMessages = normalizeMessages(body.messages);
+    const rawLatestPrompt = latestUserMessage(rawMessages) || getActionPrompt(body.action) || "";
+    const constitutionReply = ConstitutionEngine.getDirectResponse(rawLatestPrompt);
+
+    if (constitutionReply) {
+      return directConstitutionResponse(req, body, constitutionReply);
+    }
+
     const built = buildGroqPdfMessages(body);
 
     if (wantsStreaming(req, body)) {
@@ -204,12 +259,14 @@ export async function POST(req) {
 
         send({
           type: "meta",
-          modelUsed: routedResponse.modelUsed,
+          modelUsed: publicModelName(),
           emergency: Boolean(routedResponse.emergency),
           chunksUsed: built.chunksUsed
         });
 
-        for (const chunk of splitResponseForStreaming(routedResponse.message)) {
+        const safeMessage = ConstitutionEngine.sanitizeResponse(routedResponse.message, built.latestPrompt);
+
+        for (const chunk of splitResponseForStreaming(safeMessage)) {
           send({
             type: "token",
             content: chunk
@@ -219,7 +276,7 @@ export async function POST(req) {
 
         send({
           type: "done",
-          modelUsed: routedResponse.modelUsed,
+          modelUsed: publicModelName(),
           emergency: Boolean(routedResponse.emergency),
           chunksUsed: built.chunksUsed
         });
@@ -232,8 +289,8 @@ export async function POST(req) {
     });
 
     return jsonResponse({
-      message: routedResponse.message,
-      modelUsed: routedResponse.modelUsed,
+      message: ConstitutionEngine.sanitizeResponse(routedResponse.message, built.latestPrompt),
+      modelUsed: publicModelName(),
       emergency: Boolean(routedResponse.emergency),
       chunksUsed: built.chunksUsed
     });

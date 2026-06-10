@@ -13,6 +13,7 @@ import {
   executeAiAction,
   parseAiActionResponse
 } from "../../../lib/aiContextEngine.js";
+import { ConstitutionEngine } from "../../../lib/ai/constitutionEngine.js";
 import { createGroqClient } from "../../../lib/groq.js";
 import { fetchUserProfileFromFirestore, saveAiMemoryToFirestore } from "../../../lib/serverFirestore.js";
 
@@ -101,7 +102,49 @@ async function getRoutedGroqResponse(client, cleanMessages, systemPrompt, reques
   );
 }
 
-async function prepareAiResponse(rawMessage, uid, idToken, userContext, requestId) {
+function publicModelName() {
+  return ConstitutionEngine.publicModelName("chat");
+}
+
+function directConstitutionResponse(req, body, message) {
+  if (wantsStreaming(req, body)) {
+    return streamingResponse(async ({ send }) => {
+      send({
+        type: "meta",
+        modelUsed: publicModelName(),
+        emergency: false,
+        action: null,
+        actionResult: null
+      });
+
+      for (const chunk of splitResponseForStreaming(message)) {
+        send({
+          type: "token",
+          content: chunk
+        });
+        await sleep(8);
+      }
+
+      send({
+        type: "done",
+        modelUsed: publicModelName(),
+        emergency: false,
+        action: null,
+        actionResult: null
+      });
+    });
+  }
+
+  return jsonResponse({
+    message,
+    modelUsed: publicModelName(),
+    emergency: false,
+    action: null,
+    actionResult: null
+  });
+}
+
+async function prepareAiResponse(rawMessage, uid, idToken, userContext, requestId, latestPrompt = "") {
   const parsedResponse = parseAiActionResponse(rawMessage);
 
   if (/\bclean Markdown user-facing answer\b/i.test(parsedResponse.reply || "")) {
@@ -116,7 +159,10 @@ async function prepareAiResponse(rawMessage, uid, idToken, userContext, requestI
     : null;
 
   return {
-    message: composeActionReply(parsedResponse.reply, actionResult),
+    message: ConstitutionEngine.sanitizeResponse(
+      composeActionReply(parsedResponse.reply, actionResult),
+      latestPrompt
+    ),
     action: parsedResponse.action,
     actionResult
   };
@@ -128,6 +174,26 @@ export async function POST(req) {
 
   try {
     console.info(`[SYNAPSE AI ${requestId}] Groq API request received.`);
+    const body = await readJsonBody(req);
+    const cleanMessages = normalizeChatMessages(body.messages);
+    const latestPrompt = cleanMessages.filter((message) => message.role === "user").at(-1)?.content || "";
+
+    if (!cleanMessages.length) {
+      return jsonResponse(
+        {
+          message: "Ask SYNAPSE AI a question to begin."
+        },
+        400
+      );
+    }
+
+    const constitutionReply = ConstitutionEngine.getDirectResponse(latestPrompt);
+
+    if (constitutionReply) {
+      console.info(`[SYNAPSE AI ${requestId}] Constitution direct response.`);
+      return directConstitutionResponse(req, body, constitutionReply);
+    }
+
     const groq = createGroqClient();
 
     if (!groq) {
@@ -135,8 +201,6 @@ export async function POST(req) {
       return jsonResponse({ message: SYNAPSE_AI_BUSY_MESSAGE }, 503);
     }
 
-    const body = await readJsonBody(req);
-    const cleanMessages = normalizeChatMessages(body.messages);
     const uid = typeof body.uid === "string" ? body.uid : "";
     const idToken = getBearerToken(req);
     const userProfile = uid && idToken ? await fetchUserProfileFromFirestore(uid, idToken, requestId) : null;
@@ -147,7 +211,6 @@ export async function POST(req) {
           requestId
         })
       : null;
-    const latestPrompt = cleanMessages.filter((message) => message.role === "user").at(-1)?.content || "";
     const systemPrompt = buildSystemPrompt(userProfile, userContext, latestPrompt, {
       voiceMode: Boolean(body.voiceMode)
     });
@@ -172,15 +235,6 @@ export async function POST(req) {
       )}`
     );
 
-    if (!cleanMessages.length) {
-      return jsonResponse(
-        {
-          message: "Ask SYNAPSE AI a question to begin."
-        },
-        400
-      );
-    }
-
     if (wantsStreaming(req, body)) {
       return streamingResponse(async ({ send }) => {
         const routedResponse = await getRoutedGroqResponse(groq, cleanMessages, systemPrompt, requestId, true);
@@ -189,7 +243,8 @@ export async function POST(req) {
           uid,
           idToken,
           userContext,
-          requestId
+          requestId,
+          latestPrompt
         );
 
         console.info(
@@ -200,7 +255,7 @@ export async function POST(req) {
 
         send({
           type: "meta",
-          modelUsed: routedResponse.modelUsed,
+          modelUsed: publicModelName(),
           emergency: Boolean(routedResponse.emergency),
           action: aiResponse.action,
           actionResult: aiResponse.actionResult
@@ -216,7 +271,7 @@ export async function POST(req) {
 
         send({
           type: "done",
-          modelUsed: routedResponse.modelUsed,
+          modelUsed: publicModelName(),
           emergency: Boolean(routedResponse.emergency),
           action: aiResponse.action,
           actionResult: aiResponse.actionResult
@@ -230,7 +285,8 @@ export async function POST(req) {
       uid,
       idToken,
       userContext,
-      requestId
+      requestId,
+      latestPrompt
     );
 
     console.info(
@@ -241,7 +297,7 @@ export async function POST(req) {
 
     return jsonResponse({
       message: aiResponse.message,
-      modelUsed: routedResponse.modelUsed,
+      modelUsed: publicModelName(),
       emergency: Boolean(routedResponse.emergency),
       action: aiResponse.action,
       actionResult: aiResponse.actionResult

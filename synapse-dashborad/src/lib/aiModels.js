@@ -1,5 +1,6 @@
 import { orderGroqModels } from "./groq";
 import { getAiRouterDecision } from "./ai/router.js";
+import { ConstitutionEngine } from "./ai/constitutionEngine.js";
 import { formatUserContextForPrompt } from "./aiContextEngine";
 
 export const SYNAPSE_AI_BUSY_MESSAGE =
@@ -393,7 +394,7 @@ export function buildSystemPrompt(userData = {}, userContext = null, latestPromp
   const hour = new Date().getHours();
   const timeGreeting = hour < 12 ? "morning" : hour < 17 ? "afternoon" : hour < 21 ? "evening" : "night";
 
-  return `
+  const basePrompt = `
 Current date: ${today}
 Student first name: ${firstName}
 Time of day: ${timeGreeting}
@@ -449,6 +450,12 @@ Formatting rules:
 - For study explanations, prefer: quick definition, simple explanation, example, and key takeaway.
 - REMINDER: Regardless of conversation length, always use ## headings with emojis, structured sections, and full formatting. Never compress responses to plain paragraphs. The formatting contract applies to every single reply.
 `;
+
+  return ConstitutionEngine.inject({
+    basePrompt,
+    domain: "core-chat",
+    latestPrompt
+  });
 }
 
 

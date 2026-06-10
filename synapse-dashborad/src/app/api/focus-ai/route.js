@@ -1,4 +1,5 @@
 import { createGroqClient } from "../../../lib/groq.js";
+import { ConstitutionEngine } from "../../../lib/ai/constitutionEngine.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,11 +53,11 @@ function cleanSession(session = {}) {
   };
 }
 
-function buildChatSystemPrompt(session = {}, pageContext = {}) {
+function buildChatSystemPrompt(session = {}, pageContext = {}, latestPrompt = "") {
   const clean = cleanSession(session);
   const pageTitle = cleanText(pageContext.title || clean.lockedTitle || "current study page", 180);
 
-  return [
+  const basePrompt = [
     "You are SYNAPSE AI Companion, a silent study mentor inside a FocusLock session.",
     "You are not a generic chatbot. You support deep work without interrupting the student.",
     "Respond like an intelligent teacher, study mentor, and productivity coach.",
@@ -76,14 +77,26 @@ function buildChatSystemPrompt(session = {}, pageContext = {}) {
     `Current study page: ${pageTitle}.`,
     `Blocked distraction attempts this session: ${clean.violations}.`
   ].join("\n");
+
+  return ConstitutionEngine.inject({
+    basePrompt,
+    domain: "focus-ai-chat",
+    latestPrompt
+  });
 }
 
 function buildSummarySystemPrompt() {
-  return [
+  const basePrompt = [
     "Create a concise SYNAPSE FocusLock session summary in clean Markdown.",
     "Include exactly these sections: Topics Covered, Questions Asked, Weak Areas, Key Concepts, Suggested Revision.",
     "Be specific and useful for revision. Do not output JSON. Do not over-explain."
   ].join("\n");
+
+  return ConstitutionEngine.inject({
+    basePrompt,
+    domain: "focus-ai-summary",
+    latestPrompt: "FocusLock session summary"
+  });
 }
 
 function normalizeRecentMessages(messages = []) {
@@ -102,7 +115,7 @@ function buildChatMessages(body = {}) {
   const prompt = cleanText(body.prompt || "", 5000);
 
   return [
-    { role: "system", content: buildChatSystemPrompt(body.session || {}, pageContext) },
+    { role: "system", content: buildChatSystemPrompt(body.session || {}, pageContext, prompt) },
     ...normalizeRecentMessages(body.recentMessages),
     {
       role: "user",
@@ -162,6 +175,16 @@ export async function POST(req) {
       return jsonResponse({ message: "Ask a study question first." }, 400);
     }
 
+    const constitutionReply = mode === "chat" ? ConstitutionEngine.getDirectResponse(prompt) : "";
+
+    if (constitutionReply) {
+      return jsonResponse({
+        message: constitutionReply,
+        modelUsed: ConstitutionEngine.publicModelName("focus"),
+        requestId
+      });
+    }
+
     const completion = await groq.chat.completions.create({
       model: FOCUS_AI_MODEL,
       temperature: mode === "summary" ? 0.45 : 0.6,
@@ -169,12 +192,15 @@ export async function POST(req) {
       messages: mode === "summary" ? buildSummaryMessages(body) : buildChatMessages(body)
     });
 
-    const message = completion.choices?.[0]?.message?.content?.trim();
+    const message = ConstitutionEngine.sanitizeResponse(
+      completion.choices?.[0]?.message?.content?.trim(),
+      prompt
+    );
     if (!message) throw new Error("Empty Focus AI response.");
 
     return jsonResponse({
       message,
-      modelUsed: FOCUS_AI_MODEL,
+      modelUsed: ConstitutionEngine.publicModelName("focus"),
       requestId
     });
   } catch (error) {
