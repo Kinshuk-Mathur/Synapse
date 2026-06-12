@@ -5,9 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowUpRight,
   Brain,
+  Camera,
   Check,
-  ChevronLeft,
+  ChevronDown,
   ChevronRight,
   ClipboardList,
   Copy,
@@ -15,7 +17,6 @@ import {
   FileQuestion,
   FileText,
   GraduationCap,
-  Home,
   History,
   ImageIcon,
   Menu,
@@ -23,18 +24,15 @@ import {
   Mic,
   NotebookPen,
   Paperclip,
-  Plus,
   RefreshCw,
   Search,
-  Send,
   Sigma,
   Sparkles,
   ThumbsDown,
   ThumbsUp,
   Trash2,
   Upload,
-  X,
-  Zap
+  X
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { recordMeaningfulAiUsage } from "../../services/analytics";
@@ -82,14 +80,19 @@ const VOICE_ERROR_COPY = {
 
 const quickActions = [
   {
-    label: "Ask PDF",
-    icon: Search,
-    prompt: "Ask a precise question about the active PDF:"
+    label: "Explain Topic",
+    icon: MessageSquareText,
+    prompt: "Explain this topic simply, then give examples and common mistakes:"
   },
   {
     label: "Solve Doubt",
-    icon: Sparkles,
+    icon: FileQuestion,
     prompt: "Solve this doubt step by step like a teacher:"
+  },
+  {
+    label: "Quiz Me",
+    icon: Brain,
+    prompt: "Quiz me on this topic with answers and short explanations:"
   },
   {
     label: "Study Plan",
@@ -97,14 +100,14 @@ const quickActions = [
     prompt: "Create a focused study plan for my next exam with daily tasks and revision blocks."
   },
   {
-    label: "Explain Topic",
-    icon: MessageSquareText,
-    prompt: "Explain this topic simply, then give examples and common mistakes:"
+    label: "Summarize Notes",
+    icon: FileText,
+    prompt: "Summarize my notes into key ideas, definitions, examples, and a revision checklist:"
   },
   {
-    label: "Productivity Help",
-    icon: Zap,
-    prompt: "Analyze my current productivity status and give me a structured performance snapshot with strengths, areas needing attention, and my single highest-impact next step."
+    label: "Ask PDF",
+    icon: Search,
+    prompt: "Ask a precise question about the active PDF:"
   }
 ];
 
@@ -215,6 +218,18 @@ function formatTime(value) {
     hour: "numeric",
     minute: "2-digit"
   }).format(new Date(value));
+}
+
+function formatHistoryTimestamp(value) {
+  const date = new Date(value);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const targetDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const dayDiff = Math.round((today - targetDay) / 86_400_000);
+
+  if (dayDiff <= 0) return `Today, ${formatTime(value)}`;
+  if (dayDiff === 1) return "Yesterday";
+  return `${dayDiff} days ago`;
 }
 
 function fileSize(bytes = 0) {
@@ -576,6 +591,7 @@ function VoiceModeOrb({
         <span className="voice-orb-core" aria-hidden="true">
           <Mic size={24} />
         </span>
+        <span className="voice-button-label">Voice</span>
         <span className="voice-waveform" aria-hidden="true">
           {[0, 1, 2, 3, 4, 5, 6].map((bar) => (
             <i key={bar} style={{ animationDelay: `${bar * -120}ms` }} />
@@ -712,7 +728,14 @@ function ChatSidebar({
   onClose
 }) {
   const sorted = useMemo(
-    () => [...conversations].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
+    () =>
+      [...conversations]
+        .filter(
+          (conversation) =>
+            conversation.title !== "New Chat" ||
+            (conversation.messages || []).some((message) => !message.synthetic)
+        )
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
     [conversations]
   );
 
@@ -720,15 +743,17 @@ function ChatSidebar({
     <motion.aside
       className={`synapse-ai-sidebar ${open ? "is-open" : "is-collapsed"}`}
       initial={false}
-      animate={{ width: open ? 280 : 0 }}
-      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+      animate={{ x: open ? 0 : "-112%" }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      aria-hidden={!open}
     >
       <div className="synapse-ai-brand">
-        <Link href={DASHBOARD_HREF} aria-label="Go to SYNAPSE dashboard">
-          <Image src="/assets/main-logo.jpeg" alt="SYNAPSE" width={138} height={52} priority />
+        <Link className="synapse-ai-brand-link" href={DASHBOARD_HREF} aria-label="Go to SYNAPSE dashboard">
+          <Image src="/assets/synapse-icon-cropped.png" alt="" width={42} height={42} priority />
+          <span className="sidebar-label">Synapse</span>
         </Link>
-        <button type="button" aria-label={open ? "Collapse sidebar" : "Expand sidebar"} onClick={onClose}>
-          {open ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+        <button className="sidebar-collapse-button" type="button" aria-label="Close sidebar" onClick={onClose}>
+          <X size={18} />
         </button>
       </div>
 
@@ -740,9 +765,9 @@ function ChatSidebar({
         onClick={onNewChat}
       >
         <i className="new-chat-icon" aria-hidden="true">
-          <Plus size={17} />
+          <Sparkles size={17} />
         </i>
-        <span>New Chat</span>
+        <span className="sidebar-label">New Chat</span>
       </motion.button>
 
       <div className="chat-history-label">
@@ -761,7 +786,10 @@ function ChatSidebar({
             >
               <button type="button" onClick={() => onOpenChat(conversation.id)} title={conversation.title}>
                 <MessageSquareText size={16} />
-                <span>{conversation.title}</span>
+                <span className="history-row-copy sidebar-label">
+                  <strong>{conversation.title}</strong>
+                  <small>{formatHistoryTimestamp(conversation.updatedAt)}</small>
+                </span>
               </button>
               <button
                 className="delete-history-button"
@@ -781,14 +809,28 @@ function ChatSidebar({
         )}
       </div>
 
+      <nav className="ai-sidebar-nav" aria-label="AI workspace sections">
+        <Link className="ai-sidebar-nav-item" href="/goals">
+          <NotebookPen size={17} />
+          <span className="sidebar-label">Study Spaces</span>
+        </Link>
+        <Link className="ai-sidebar-nav-item" href="/resources">
+          <FileText size={17} />
+          <span className="sidebar-label">Documents</span>
+        </Link>
+        <Link className="ai-sidebar-nav-item" href="/settings">
+          <Sparkles size={17} />
+          <span className="sidebar-label">Settings</span>
+        </Link>
+      </nav>
+
       <div className="synapse-sidebar-footer-brand">
-        <Image src="/assets/synapse-icon-cropped.png" alt="" width={42} height={42} />
-        <div>
-          <strong>SYNAPSE AI</strong>
-          <span>Online study companion</span>
+        <Sparkles size={18} />
+        <div className="sidebar-label">
+          <strong>Synapse Pro</strong>
+          <span>Upgrade for more</span>
           <Link href={DASHBOARD_HREF}>
-            <Home size={14} />
-            Main dashboard
+            <ChevronRight size={14} />
           </Link>
         </div>
       </div>
@@ -898,6 +940,16 @@ export default function SynapseAIWorkspace() {
 
   const studentName = profile?.name || user?.displayName?.split(" ")[0] || "Student";
   const activeConversation = conversations.find((conversation) => conversation.id === activeId);
+  const hasRealMessages = Boolean(
+    (activeConversation?.messages || []).filter((message) => !message.synthetic).length
+  );
+  const timeGreeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    if (hour < 21) return "Good evening";
+    return "Good night";
+  }, []);
   const SelectedFileIcon = getAttachmentIcon(
     selectedFile
       ? {
@@ -924,10 +976,17 @@ export default function SynapseAIWorkspace() {
   useEffect(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
-      const valid = Array.isArray(saved) && saved.length > 0 ? limitStoredConversations(saved) : [createConversation(studentName)];
+      const savedConversations = Array.isArray(saved)
+        ? limitStoredConversations(saved).filter(
+            (conversation) =>
+              conversation.title !== "New Chat" ||
+              (conversation.messages || []).some((message) => !message.synthetic)
+          )
+        : [];
+      const freshConversation = createConversation(studentName);
 
-      setConversations(valid);
-      setActiveId(valid[0].id);
+      setConversations([freshConversation, ...savedConversations]);
+      setActiveId(freshConversation.id);
     } catch {
       const firstConversation = createConversation(studentName);
       setConversations([firstConversation]);
@@ -936,6 +995,19 @@ export default function SynapseAIWorkspace() {
       setHydrated(true);
     }
   }, [studentName]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [sidebarOpen]);
 
   useEffect(() => {
     try {
@@ -1844,7 +1916,7 @@ lastSendTimeRef.current = sendTime;
           }}
           onDeleteChat={handleDeleteChat}
           open={sidebarOpen}
-          onClose={() => setSidebarOpen((value) => !value)}
+          onClose={() => setSidebarOpen(false)}
         />
 
         <section className="synapse-ai-workspace">
@@ -1859,6 +1931,7 @@ lastSendTimeRef.current = sendTime;
             </button>
 
             <div className="synapse-ai-actions">
+              <span className="top-user-name">{studentName}</span>
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}
@@ -1866,48 +1939,14 @@ lastSendTimeRef.current = sendTime;
                 modeLabel="Focus Mode"
                 onProfileUpdate={setProfile}
               />
+              <ChevronDown className="top-user-chevron" size={16} />
             </div>
           </header>
 
           <div className="synapse-ai-layout">
-            <section className="synapse-chat-panel">
-              <div className="workspace-quick-actions">
-                {quickActions.map((action, index) => {
-                  const Icon = action.icon;
-                  return (
-                    <motion.button
-                      key={action.label}
-                      type="button"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.26, delay: index * 0.04 }}
-                      whileHover={{ y: -3 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handlePrompt(action.prompt)}
-                    >
-                      <Icon size={18} />
-                      <span>
-                        <strong>{action.label}</strong>
-                        <small>
-                          {action.label === "Ask PDF"
-                            ? "Use document context"
-                            : action.label === "Solve Doubt"
-                              ? "Clear explanations"
-                              : action.label === "Study Plan"
-                                ? "Plan your week"
-                                : action.label === "Explain Topic"
-                                  ? "Simple examples"
-                                  : "Focus support"}
-                        </small>
-                      </span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-
+            <section className={`synapse-chat-panel ${hasRealMessages || loading ? "has-chat" : "is-empty"}`}>
               <div className="synapse-chat-stream" ref={streamRef}>
-              {/* Empty state — shows when no messages exist */}
-              {(!(activeConversation?.messages || []).filter(m => !m.synthetic).length && !loading) ? (
+              {!hasRealMessages && !loading ? (
                   <motion.div
                     className="synapse-empty-state"
                     initial={{ opacity: 0, y: 16 }}
@@ -1917,19 +1956,14 @@ lastSendTimeRef.current = sendTime;
                   >
                     <div className="synapse-empty-greeting">
                       <span className="synapse-empty-time">
-                        {(() => {
-                          const hour = new Date().getHours();
-                          if (hour < 12) return "🌅 Good morning";
-                          if (hour < 17) return "☀️ Good afternoon";
-                          if (hour < 21) return "🌆 Good evening";
-                          return "🌙 Good night";
-                        })()}, {studentName}.
+                        <Sparkles size={18} />
+                        {timeGreeting}, {studentName}
                       </span>
-                      <h2 className="synapse-empty-headline">
-                        What are we building today?
-                      </h2>
+                      <h1 className="synapse-empty-headline">
+                        What do you want<br />to <span>learn</span> today?
+                      </h1>
                       <p className="synapse-empty-sub">
-                        Ask me anything — a concept, a doubt, a study plan, or how to get unstuck.
+                        Explain a concept, solve a doubt, upload notes, or build a study plan.
                       </p>
                     </div>
                   </motion.div>
@@ -1976,7 +2010,7 @@ lastSendTimeRef.current = sendTime;
               </div>
 
               <motion.div
-                className="synapse-ai-composer"
+                className={`synapse-ai-composer ${hasRealMessages || loading ? "is-compact" : "is-large"}`}
                 initial={{ opacity: 0, y: 22 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.38, delay: 0.1 }}
@@ -2036,7 +2070,7 @@ lastSendTimeRef.current = sendTime;
                     onToggle={handleVoiceToggle}
                     onStop={stopVoiceMode}
                   />
-                  <div className="attachment-plus-wrap" ref={attachmentMenuRef}>
+                  <div className="attachment-plus-wrap legacy-attachment-menu" ref={attachmentMenuRef}>
                     <motion.button
                       className="attachment-plus-button"
                       type="button"
@@ -2078,6 +2112,24 @@ lastSendTimeRef.current = sendTime;
                     </AnimatePresence>
                   </div>
 
+                  <button
+                    className="composer-tool-button attach-pdf-direct"
+                    type="button"
+                    onClick={() => openFilePicker(".pdf,application/pdf")}
+                  >
+                    <FileText size={16} />
+                    <span>Attach PDF</span>
+                  </button>
+
+                  <button
+                    className="composer-tool-button camera-direct"
+                    type="button"
+                    onClick={() => openFilePicker("image/png,image/jpeg")}
+                  >
+                    <Camera size={16} />
+                    <span>Camera</span>
+                  </button>
+
                   <motion.button
                     className="send-ai-button"
                     type="button"
@@ -2087,13 +2139,36 @@ lastSendTimeRef.current = sendTime;
                     whileTap={{ scale: 0.95 }}
                     aria-label="Send message"
                   >
-                    <Send size={20} />
+                    <ArrowUpRight size={20} />
                   </motion.button>
                 </div>
               </motion.div>
 
+              {!hasRealMessages && !loading ? (
+                <div className="workspace-quick-actions" aria-label="Suggested prompts">
+                  {quickActions.map((action, index) => {
+                    const Icon = action.icon;
+                    return (
+                      <motion.button
+                        key={action.label}
+                        type="button"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.22, delay: index * 0.035 }}
+                        whileHover={{ y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handlePrompt(action.prompt)}
+                      >
+                        <Icon size={16} />
+                        <span>{action.label}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              ) : null}
+
               <p className="synapse-ai-disclaimer">
-                SYNAPSE AI can make mistakes. Check important study, code, and planning details.
+                Synapse AI is here to help you learn, focus, and grow.
               </p>
             </section>
           </div>
