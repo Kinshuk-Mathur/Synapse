@@ -908,6 +908,20 @@ export default function SynapseAIWorkspace() {
   );
 
   useEffect(() => {
+    const normalizeTheme = (theme) =>
+      ({
+        obsidian: "obsidian-neon",
+        midnight: "midnight-tech",
+        inferno: "inferno-focus",
+        pink: "pink-aura"
+      })[theme] || theme || "obsidian-neon";
+
+    const savedTheme = normalizeTheme(window.localStorage.getItem("synapse-theme"));
+    document.documentElement.dataset.theme = savedTheme;
+    window.localStorage.setItem("synapse-theme", savedTheme);
+  }, []);
+
+  useEffect(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
       const valid = Array.isArray(saved) && saved.length > 0 ? limitStoredConversations(saved) : [createConversation(studentName)];

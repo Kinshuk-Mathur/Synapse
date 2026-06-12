@@ -9,6 +9,29 @@ import ProtectedRoute from "../../components/ProtectedRoute";
 import { useAuth } from "../../context/AuthContext";
 import { updateUserPersonalization } from "../../services/firestore";
 
+const themeOptions = [
+  {
+    id: "obsidian-neon",
+    name: "Obsidian Neon",
+    description: "Violet and magenta glow"
+  },
+  {
+    id: "midnight-tech",
+    name: "Midnight Tech",
+    description: "Cool indigo workspace"
+  },
+  {
+    id: "inferno-focus",
+    name: "Inferno Focus",
+    description: "Warm red-orange focus"
+  },
+  {
+    id: "pink-aura",
+    name: "Pink Aura",
+    description: "Soft creative bloom"
+  }
+];
+
 const subjectOptions = ["Physics", "Chemistry", "Maths", "Biology", "Computer Science", "English"];
 const educationOptions = ["Class 9", "Class 10", "Class 11 PCM", "Class 12 PCM", "JEE", "NEET", "College", "Coding", "Self Learning"];
 const goalOptions = ["Boards", "JEE", "NEET", "Coding", "Productivity", "Skill Learning", "Startup Building"];
@@ -41,6 +64,48 @@ function normalizeOtherValue(value) {
     .filter(Boolean)
     .slice(0, 2)
     .join(" ");
+}
+
+function normalizeTheme(theme) {
+  return (
+    {
+      obsidian: "obsidian-neon",
+      midnight: "midnight-tech",
+      inferno: "inferno-focus",
+      pink: "pink-aura"
+    }[theme] || theme || "obsidian-neon"
+  );
+}
+
+function ThemeSelector({ value, onChange }) {
+  return (
+    <section className="settings-field settings-theme-field">
+      <h2>Workspace theme</h2>
+      <div className="settings-theme-grid">
+        {themeOptions.map((theme) => (
+          <motion.button
+            key={theme.id}
+            type="button"
+            className={`settings-theme-option ${value === theme.id ? "is-selected" : ""}`}
+            data-theme-preview={theme.id}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onChange(theme.id)}
+          >
+            <span className="settings-theme-preview" aria-hidden="true">
+              <i />
+              <b />
+            </span>
+            <span className="settings-theme-copy">
+              <strong>{theme.name}</strong>
+              <small>{theme.description}</small>
+            </span>
+            {value === theme.id ? <Check size={16} /> : null}
+          </motion.button>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function ChipGroup({ label, value, options, onChange }) {
@@ -131,6 +196,14 @@ function SettingsContent() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [theme, setTheme] = useState("obsidian-neon");
+
+  useEffect(() => {
+    const savedTheme = normalizeTheme(window.localStorage.getItem("synapse-theme"));
+    setTheme(savedTheme);
+    document.documentElement.dataset.theme = savedTheme;
+    window.localStorage.setItem("synapse-theme", savedTheme);
+  }, []);
 
   useEffect(() => {
     if (!profile) return;
@@ -153,6 +226,12 @@ function SettingsContent() {
       ...current,
       [key]: value
     }));
+  };
+
+  const applyTheme = (nextTheme) => {
+    setTheme(nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
+    window.localStorage.setItem("synapse-theme", nextTheme);
   };
 
   const saveSettings = async () => {
@@ -239,6 +318,7 @@ function SettingsContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.1 }}
           >
+            <ThemeSelector value={theme} onChange={applyTheme} />
             <ChipGroup
               label="Education level"
               value={form.educationLevel}
