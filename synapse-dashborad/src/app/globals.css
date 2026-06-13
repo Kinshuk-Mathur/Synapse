@@ -14458,3 +14458,16 @@ body.synapse-scroll-locked {
     padding: 0 18px !important;
   }
 }
+
+/* Dashboard side rail: goal progress first, then pending tasks */
+.dashboard-side-column .goals-panel {
+  order: 1;
+}
+
+.dashboard-side-column .todo-panel {
+  order: 2;
+}
+
+.dashboard-side-column {
+  grid-auto-rows: max-content;
+}

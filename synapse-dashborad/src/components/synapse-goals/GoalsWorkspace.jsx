@@ -17,7 +17,6 @@ import {
   getMonthName
 } from "../../services/monthlyGoals";
 import NotificationCenter from "../NotificationCenter";
-import ProfileAvatarMenu from "../ProfileAvatarMenu";
 import GoalCard from "./GoalCard";
 import GoalForm from "./GoalForm";
 import GoalsOverviewPanel from "./GoalsOverviewPanel";
@@ -43,7 +42,7 @@ export default function GoalsWorkspace() {
   const [actionError, setActionError] = useState("");
   const [navigationOpen, setNavigationOpen] = useState(false);
   useSynapseTheme();
-  const { user, profile, setProfile, logout } = useAuth();
+  const { logout } = useAuth();
   const {
     selectedGoals,
     selectedTrend,
@@ -62,7 +61,6 @@ export default function GoalsWorkspace() {
     return selectedGoals.filter((goal) => goal.status === filter);
   }, [filter, selectedGoals]);
   const monthTitle = `${getMonthName(selectedMonth)} ${selectedYear}`;
-  const studentName = profile?.name || user?.displayName?.split(" ")[0] || "STUDENT";
 
   useEffect(() => {
     if (!navigationOpen) return undefined;
@@ -138,13 +136,6 @@ export default function GoalsWorkspace() {
                 Today
               </button>
               <span className="goals-current-month">{monthTitle}</span>
-              <ProfileAvatarMenu
-                user={user}
-                profile={profile}
-                studentName={studentName}
-                modeLabel="Goal Mode"
-                onProfileUpdate={setProfile}
-              />
               <NotificationCenter />
               <button className="logout-button" type="button" onClick={() => runGoalAction(logout)}>
                 <LogOut size={17} />
