@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
+  BookOpen,
   Brain,
   Camera,
   Check,
@@ -13,6 +14,7 @@ import {
   ChevronRight,
   ClipboardList,
   Copy,
+  Crown,
   FileCode2,
   FileQuestion,
   FileText,
@@ -26,6 +28,7 @@ import {
   Paperclip,
   RefreshCw,
   Search,
+  Settings,
   Sigma,
   Sparkles,
   ThumbsDown,
@@ -749,8 +752,8 @@ function ChatSidebar({
     >
       <div className="synapse-ai-brand">
         <Link className="synapse-ai-brand-link" href={DASHBOARD_HREF} aria-label="Go to SYNAPSE dashboard">
-          <Image src="/assets/synapse-icon-cropped.png" alt="" width={42} height={42} priority />
-          <span className="sidebar-label">Synapse</span>
+          <span className="synapse-brand-badge" aria-hidden="true">S</span>
+          <span className="sidebar-label synapse-brand-wordmark">Synapse</span>
         </Link>
         <button className="sidebar-collapse-button" type="button" aria-label="Close sidebar" onClick={onClose}>
           <X size={18} />
@@ -811,7 +814,7 @@ function ChatSidebar({
 
       <nav className="ai-sidebar-nav" aria-label="AI workspace sections">
         <Link className="ai-sidebar-nav-item" href="/goals">
-          <NotebookPen size={17} />
+          <BookOpen size={17} />
           <span className="sidebar-label">Study Spaces</span>
         </Link>
         <Link className="ai-sidebar-nav-item" href="/resources">
@@ -819,13 +822,13 @@ function ChatSidebar({
           <span className="sidebar-label">Documents</span>
         </Link>
         <Link className="ai-sidebar-nav-item" href="/settings">
-          <Sparkles size={17} />
+          <Settings size={17} />
           <span className="sidebar-label">Settings</span>
         </Link>
       </nav>
 
       <div className="synapse-sidebar-footer-brand">
-        <Sparkles size={18} />
+        <Crown size={18} />
         <div className="sidebar-label">
           <strong>Synapse Pro</strong>
           <span>Upgrade for more</span>
