@@ -54,7 +54,6 @@ import {
 import { formatDateKey, parseDateKey } from "../../services/todos";
 import NotificationCenter from "../NotificationCenter";
 import ProfileAvatarMenu from "../ProfileAvatarMenu";
-import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
@@ -314,7 +313,7 @@ function GoalPie({ summary }) {
 
 export default function AnalyticsWorkspace() {
   const { user, profile, setProfile, logout } = useAuth();
-  const { theme, applyTheme } = useSynapseTheme();
+  useSynapseTheme();
   const { stats: userStats, loading: statsLoading } = useUserStats();
   const startDate = useMemo(() => getUserAnalyticsStartDate(profile, user), [profile, user]);
   const monthOptions = useMemo(() => buildAvailableAnalyticsMonths(startDate), [startDate]);
@@ -428,8 +427,6 @@ export default function AnalyticsWorkspace() {
             </div>
 
             <div className="analytics-top-actions">
-              <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
-              <NotificationCenter />
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}
@@ -437,6 +434,7 @@ export default function AnalyticsWorkspace() {
                 modeLabel="Focus Mode"
                 onProfileUpdate={setProfile}
               />
+              <NotificationCenter />
               <button className="logout-button" type="button" onClick={handleLogout}>
                 <LogOut size={17} />
                 <span>Logout</span>

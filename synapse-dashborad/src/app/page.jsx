@@ -61,13 +61,6 @@ const todoAppUrl = "/todo";
 const goalsAppUrl = "/goals";
 const synapseAiUrl = "/synapse-ai";
 
-const themes = [
-  { id: "obsidian", name: "Obsidian Neon", tone: "Default OS" },
-  { id: "midnight", name: "Midnight Tech", tone: "Deep Focus" },
-  { id: "inferno", name: "Inferno Focus", tone: "Exam Sprint" },
-  { id: "pink", name: "Pink Aura", tone: "Dark Bloom" }
-];
-
 const themeAliases = {
   "obsidian-neon": "obsidian",
   "midnight-tech": "midnight",
@@ -308,63 +301,6 @@ function MiniLine({ color, ready }) {
   );
 }
 
-function ThemeSwitcher({ theme, onChange }) {
-  const [open, setOpen] = useState(false);
-  const current = themes.find((item) => item.id === theme) ?? themes[0];
-
-  return (
-    <div className="theme-switcher">
-      <motion.button
-        className="theme-trigger"
-        whileHover={{ y: -2, scale: 1.02 }}
-        whileTap={{ scale: 0.97 }}
-        onClick={() => setOpen((value) => !value)}
-        aria-label="Select SYNAPSE theme"
-      >
-        <span className="theme-orb" aria-hidden="true" />
-        <span className="theme-label">{current.name.split(" ")[0]}</span>
-        <ChevronDown size={16} />
-      </motion.button>
-
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            className="theme-menu"
-            initial={{ opacity: 0, y: 12, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.96 }}
-            transition={{ duration: 0.18 }}
-          >
-            {themes.map((item) => (
-              <button
-                key={item.id}
-                className={`theme-option ${theme === item.id ? "is-active" : ""}`}
-                onClick={() => {
-                  onChange(item.id);
-                  setOpen(false);
-                }}
-              >
-                <span className="theme-copy">
-                  <strong>{item.name}</strong>
-                  <small>{item.tone}</small>
-                </span>
-                <span className="theme-preview" aria-hidden="true">
-                  {[1, 2, 3, 4].map((index) => (
-                    <span
-                      key={index}
-                      style={{ "--swatch": `var(--theme-${item.id}-${index})` }}
-                    />
-                  ))}
-                </span>
-              </button>
-            ))}
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
-}
-
 function MomentumTimeline({ days = [] }) {
   const completedCount = days.filter((day) => day.completed).length;
 
@@ -460,7 +396,6 @@ function MomentumExplainerModal({ open, onClose }) {
 
 export default function Home() {
   const router = useRouter();
-  const [theme, setTheme] = useState("obsidian");
   const [mounted, setMounted] = useState(false);
   const [logoutError, setLogoutError] = useState("");
   const [dashboardTodos, setDashboardTodos] = useState([]);
@@ -492,19 +427,10 @@ export default function Home() {
 
   useEffect(() => {
     const savedTheme = normalizeTheme(window.localStorage.getItem("synapse-theme"));
-    setTheme(savedTheme);
     document.documentElement.dataset.theme = savedTheme;
     window.localStorage.setItem("synapse-theme", savedTheme);
     setMounted(true);
   }, []);
-
-  const applyTheme = (nextTheme) => {
-    const normalizedTheme = normalizeTheme(nextTheme);
-    setTheme(normalizedTheme);
-    document.documentElement.dataset.theme = normalizedTheme;
-    window.localStorage.setItem("synapse-theme", normalizedTheme);
-    window.dispatchEvent(new CustomEvent("synapse-theme-change", { detail: { theme: normalizedTheme } }));
-  };
 
   useEffect(() => {
     if (!momentumModalOpen) return undefined;
@@ -868,14 +794,13 @@ export default function Home() {
             <MomentumTimeline days={weeklyProgress} />
 
             <div className="top-actions">
-              <ThemeSwitcher theme={theme} onChange={applyTheme} />
-              <NotificationCenter />
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}
                 studentName={studentName}
                 onProfileUpdate={setProfile}
               />
+              <NotificationCenter />
               <button className="logout-button" type="button" onClick={handleLogout}>
                 <LogOut size={17} />
                 <span>Logout</span>

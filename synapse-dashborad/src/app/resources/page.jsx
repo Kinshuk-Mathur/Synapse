@@ -27,7 +27,6 @@ import {
 import NotificationCenter from "../../components/NotificationCenter";
 import ProfileAvatarMenu from "../../components/ProfileAvatarMenu";
 import ProtectedRoute from "../../components/ProtectedRoute";
-import TodoThemeSwitcher from "../../components/todo/TodoThemeSwitcher";
 import { useAuth } from "../../context/AuthContext";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
 
@@ -203,7 +202,7 @@ function ResourceLabVisual() {
 function ResourcesWorkspace() {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [actionError, setActionError] = useState("");
-  const { theme, applyTheme } = useSynapseTheme();
+  useSynapseTheme();
   const { user, profile, setProfile, logout } = useAuth();
   const studentName = profile?.name || user?.displayName?.split(" ")[0] || "STUDENT";
   const handleLogout = async () => {
@@ -257,8 +256,6 @@ function ResourcesWorkspace() {
             </div>
 
             <div className="resources-top-actions">
-              <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
-              <NotificationCenter />
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}
@@ -266,6 +263,7 @@ function ResourcesWorkspace() {
                 modeLabel="Resource Mode"
                 onProfileUpdate={setProfile}
               />
+              <NotificationCenter />
               <button className="logout-button" type="button" onClick={handleLogout}>
                 <LogOut size={17} />
                 <span>Logout</span>

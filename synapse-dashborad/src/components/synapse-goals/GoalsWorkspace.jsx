@@ -18,7 +18,6 @@ import {
 } from "../../services/monthlyGoals";
 import NotificationCenter from "../NotificationCenter";
 import ProfileAvatarMenu from "../ProfileAvatarMenu";
-import TodoThemeSwitcher from "../todo/TodoThemeSwitcher";
 import GoalCard from "./GoalCard";
 import GoalForm from "./GoalForm";
 import GoalsOverviewPanel from "./GoalsOverviewPanel";
@@ -43,7 +42,7 @@ export default function GoalsWorkspace() {
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [actionError, setActionError] = useState("");
   const [navigationOpen, setNavigationOpen] = useState(false);
-  const { theme, applyTheme } = useSynapseTheme();
+  useSynapseTheme();
   const { user, profile, setProfile, logout } = useAuth();
   const {
     selectedGoals,
@@ -126,8 +125,6 @@ export default function GoalsWorkspace() {
                 Today
               </button>
               <span className="goals-current-month">{monthTitle}</span>
-              <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
-              <NotificationCenter />
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}
@@ -135,6 +132,7 @@ export default function GoalsWorkspace() {
                 modeLabel="Goal Mode"
                 onProfileUpdate={setProfile}
               />
+              <NotificationCenter />
               <button className="logout-button" type="button" onClick={() => runGoalAction(logout)}>
                 <LogOut size={17} />
                 <span>Logout</span>

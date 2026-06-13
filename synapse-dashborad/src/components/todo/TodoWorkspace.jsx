@@ -21,7 +21,6 @@ import QuickAddTask from "./QuickAddTask";
 import TodoCalendar from "./TodoCalendar";
 import TodoSidebar from "./TodoSidebar";
 import TodoTaskList from "./TodoTaskList";
-import TodoThemeSwitcher from "./TodoThemeSwitcher";
 
 function moveDate(dateKey, days) {
   const date = parseDateKey(dateKey);
@@ -34,7 +33,7 @@ export default function TodoWorkspace() {
   const [currentMonth, setCurrentMonth] = useState(() => parseDateKey(formatDateKey()));
   const [actionError, setActionError] = useState("");
   const [navigationOpen, setNavigationOpen] = useState(false);
-  const { theme, applyTheme } = useSynapseTheme();
+  useSynapseTheme();
   const { user, profile, setProfile, logout } = useAuth();
   const {
     tasksForSelectedDate,
@@ -145,8 +144,6 @@ export default function TodoWorkspace() {
             </div>
 
             <div className="todo-top-actions">
-              <TodoThemeSwitcher theme={theme} onChange={applyTheme} />
-              <NotificationCenter />
               <ProfileAvatarMenu
                 user={user}
                 profile={profile}
@@ -154,6 +151,7 @@ export default function TodoWorkspace() {
                 modeLabel="Focus Mode"
                 onProfileUpdate={setProfile}
               />
+              <NotificationCenter />
               <button className="logout-button" type="button" onClick={handleLogout}>
                 <LogOut size={17} />
                 <span>Logout</span>

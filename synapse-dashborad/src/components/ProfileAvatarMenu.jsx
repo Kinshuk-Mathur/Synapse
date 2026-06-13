@@ -187,6 +187,8 @@ export default function ProfileAvatarMenu({
   const inputRef = useRef(null);
   const openUsageTimerRef = useRef(null);
   const closeUsageTimerRef = useRef(null);
+  const touchUsageTimerRef = useRef(null);
+  const longPressTriggeredRef = useRef(false);
   const avatarSrc = profile?.avatarDataUrl || profile?.photoURL || user?.photoURL || "";
   const displayName = profile?.name || profile?.displayName || user?.displayName || studentName || "Student";
   const { hasActiveWindow, minutesUntilReset, overallPercent, loading } = useSynapseUsage(user?.uid);
@@ -209,6 +211,7 @@ export default function ProfileAvatarMenu({
     return () => {
       window.clearTimeout(openUsageTimerRef.current);
       window.clearTimeout(closeUsageTimerRef.current);
+      window.clearTimeout(touchUsageTimerRef.current);
     };
   }, []);
 
@@ -226,6 +229,30 @@ export default function ProfileAvatarMenu({
     closeUsageTimerRef.current = window.setTimeout(() => {
       setUsagePopoverOpen(false);
     }, 300);
+  };
+
+  const clearTouchUsageTimer = () => {
+    window.clearTimeout(touchUsageTimerRef.current);
+  };
+
+  const openUsagePopoverFromTouch = () => {
+    setOpen(false);
+    setUsagePopoverOpen(true);
+    window.clearTimeout(closeUsageTimerRef.current);
+    closeUsageTimerRef.current = window.setTimeout(() => {
+      setUsagePopoverOpen(false);
+    }, 4200);
+  };
+
+  const handleAvatarPointerDown = (event) => {
+    if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
+
+    longPressTriggeredRef.current = false;
+    window.clearTimeout(touchUsageTimerRef.current);
+    touchUsageTimerRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      openUsagePopoverFromTouch();
+    }, 520);
   };
 
   const handleAvatarFile = async (event) => {
@@ -269,7 +296,22 @@ export default function ProfileAvatarMenu({
         type="button"
         aria-label="Open profile menu"
         aria-expanded={open}
-        onClick={() => {
+        onPointerDown={handleAvatarPointerDown}
+        onPointerUp={clearTouchUsageTimer}
+        onPointerCancel={clearTouchUsageTimer}
+        onPointerLeave={clearTouchUsageTimer}
+        onContextMenu={(event) => {
+          if (longPressTriggeredRef.current || usagePopoverOpen) {
+            event.preventDefault();
+          }
+        }}
+        onClick={(event) => {
+          if (longPressTriggeredRef.current) {
+            event.preventDefault();
+            longPressTriggeredRef.current = false;
+            return;
+          }
+
           setUsagePopoverOpen(false);
           setOpen((value) => !value);
         }}
