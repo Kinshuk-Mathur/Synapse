@@ -23,6 +23,14 @@ export const COLLECTIONS = {
   notifications: "notifications"
 };
 
+export const CURRENT_CONSENT_VERSION = "1.0";
+
+export function hasCurrentConsent(profile) {
+  return Boolean(
+    profile?.consentCompleted === true && profile?.consentVersion === CURRENT_CONSENT_VERSION
+  );
+}
+
 export function getCollectionRefs() {
   const db = getFirebaseDb();
 
@@ -100,6 +108,36 @@ export async function saveUserOnboarding(uid, data) {
   };
 
   await setDoc(userRef, payload, { merge: true });
+  return getUserProfile(uid);
+}
+
+export async function saveUserConsent(uid) {
+  if (!uid) {
+    throw new Error("A user id is required to save consent.");
+  }
+
+  const db = getFirebaseDb();
+  const userRef = doc(db, COLLECTIONS.users, uid);
+
+  await setDoc(
+    userRef,
+    {
+      consentCompleted: true,
+      privacyAccepted: true,
+      privacyAcceptedAt: serverTimestamp(),
+      termsAccepted: true,
+      termsAcceptedAt: serverTimestamp(),
+      chatStorageConsent: true,
+      chatStorageConsentAt: serverTimestamp(),
+      mediaProcessingConsent: true,
+      mediaProcessingConsentAt: serverTimestamp(),
+      personalizationConsent: true,
+      personalizationConsentAt: serverTimestamp(),
+      consentVersion: CURRENT_CONSENT_VERSION
+    },
+    { merge: true }
+  );
+
   return getUserProfile(uid);
 }
 

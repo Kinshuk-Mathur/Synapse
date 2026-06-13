@@ -6,6 +6,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { ArrowRight, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { hasCurrentConsent } from "../../services/firestore";
+
+function getPostLoginPath(profile, nextPath) {
+  if (!hasCurrentConsent(profile)) {
+    return `/consent?next=${encodeURIComponent(nextPath)}`;
+  }
+
+  return profile?.onboardingCompleted ? nextPath : `/onboarding?next=${encodeURIComponent(nextPath)}`;
+}
 
 function LoginContent() {
   const { user, profile, profileLoading, loading, error, loginWithGoogle } = useAuth();
@@ -17,7 +26,7 @@ function LoginContent() {
 
   useEffect(() => {
     if (!loading && !profileLoading && user) {
-      router.replace(profile?.onboardingCompleted ? nextPath : `/onboarding?next=${encodeURIComponent(nextPath)}`);
+      router.replace(getPostLoginPath(profile, nextPath));
     }
   }, [loading, nextPath, profile, profileLoading, router, user]);
 
@@ -25,9 +34,7 @@ function LoginContent() {
     try {
       setIsSigningIn(true);
       const result = await loginWithGoogle();
-      router.replace(
-        result.profile?.onboardingCompleted ? nextPath : `/onboarding?next=${encodeURIComponent(nextPath)}`
-      );
+      router.replace(getPostLoginPath(result.profile, nextPath));
     } catch {
       // AuthContext owns the user-facing error state.
     } finally {

@@ -4,10 +4,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Check, Loader2, Save, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Save, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import { useAuth } from "../../context/AuthContext";
-import { updateUserPersonalization } from "../../services/firestore";
+import {
+  CURRENT_CONSENT_VERSION,
+  hasCurrentConsent,
+  updateUserPersonalization
+} from "../../services/firestore";
 
 const themeOptions = [
   {
@@ -75,6 +79,34 @@ function normalizeTheme(theme) {
       "pink-aura": "pink"
     }[theme] || theme || "obsidian"
   );
+}
+
+function toConsentDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === "function") return value.toDate();
+  if (typeof value.seconds === "number") return new Date(value.seconds * 1000);
+
+  const parsedDate = new Date(value);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+}
+
+function formatConsentDate(profile) {
+  const acceptedDate = toConsentDate(
+    profile?.privacyAcceptedAt ||
+      profile?.termsAcceptedAt ||
+      profile?.chatStorageConsentAt ||
+      profile?.mediaProcessingConsentAt ||
+      profile?.personalizationConsentAt
+  );
+
+  if (!acceptedDate) return "Not available";
+
+  return acceptedDate.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  });
 }
 
 function ThemeSelector({ value, onChange }) {
@@ -190,6 +222,48 @@ function ChipGroup({ label, value, options, onChange }) {
   );
 }
 
+function PrivacyConsentSummary({ profile }) {
+  const currentConsent = hasCurrentConsent(profile);
+  const status = currentConsent ? "Accepted" : profile?.consentCompleted ? "Update required" : "Not accepted";
+
+  return (
+    <section className="settings-consent-summary">
+      <div className="settings-consent-heading">
+        <span>
+          <ShieldCheck size={16} />
+        </span>
+        <div>
+          <h2>Privacy & Consent</h2>
+          <p>Consent details for your SYNAPSE account.</p>
+        </div>
+      </div>
+      <div className="settings-consent-meta">
+        <span>Version</span>
+        <strong>{profile?.consentVersion || CURRENT_CONSENT_VERSION}</strong>
+        <span>Accepted</span>
+        <strong>{formatConsentDate(profile)}</strong>
+        <span>Status</span>
+        <strong>{status}</strong>
+      </div>
+    </section>
+  );
+}
+
+function DeleteAccountPlaceholder() {
+  return (
+    <section className="settings-delete-placeholder">
+      <div>
+        <Trash2 size={17} />
+        <h2>Delete Account</h2>
+      </div>
+      <p>Account deletion and data removal controls will be added here.</p>
+      <button type="button" disabled>
+        Coming soon
+      </button>
+    </section>
+  );
+}
+
 function SettingsContent() {
   const { user, profile, setProfile } = useAuth();
   const [form, setForm] = useState(defaultForm);
@@ -300,19 +374,39 @@ function SettingsContent() {
         </motion.div>
 
         <div className="settings-grid">
-          <motion.section
-            className="settings-card settings-name-card"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.05 }}
-          >
-            <h2>What should SYNAPSE call you?</h2>
-            <input
-              value={form.name}
-              onChange={(event) => updateField("name", event.target.value)}
-              placeholder="Your name"
-            />
-          </motion.section>
+          <div className="settings-side-stack">
+            <motion.section
+              className="settings-card settings-name-card"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.05 }}
+            >
+              <h2>What should SYNAPSE call you?</h2>
+              <input
+                value={form.name}
+                onChange={(event) => updateField("name", event.target.value)}
+                placeholder="Your name"
+              />
+            </motion.section>
+
+            <motion.section
+              className="settings-card settings-consent-card"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.08 }}
+            >
+              <PrivacyConsentSummary profile={profile} />
+            </motion.section>
+
+            <motion.section
+              className="settings-card settings-delete-card"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.11 }}
+            >
+              <DeleteAccountPlaceholder />
+            </motion.section>
+          </div>
 
           <motion.section
             className="settings-card settings-fields-card"
