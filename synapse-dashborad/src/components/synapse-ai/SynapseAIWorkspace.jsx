@@ -2135,6 +2135,8 @@ lastSendTimeRef.current = sendTime;
                   <button
                     className="composer-tool-button attach-pdf-direct"
                     type="button"
+                    aria-label="Attach PDF"
+                    title="Attach PDF"
                     onClick={() => openFilePicker(".pdf,application/pdf")}
                   >
                     <FileText size={16} />
@@ -2154,6 +2156,8 @@ lastSendTimeRef.current = sendTime;
                   <button
                     className="composer-tool-button camera-direct"
                     type="button"
+                    aria-label="Upload image"
+                    title="Camera"
                     onClick={() => openFilePicker("image/png,image/jpeg")}
                   >
                     <Camera size={16} />
