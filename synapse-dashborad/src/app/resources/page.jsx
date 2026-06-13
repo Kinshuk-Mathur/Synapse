@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BarChart3,
   BookOpenCheck,
@@ -205,6 +205,20 @@ function ResourcesWorkspace() {
   useSynapseTheme();
   const { user, profile, setProfile, logout } = useAuth();
   const studentName = profile?.name || user?.displayName?.split(" ")[0] || "STUDENT";
+
+  useEffect(() => {
+    if (!navigationOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.classList.add("synapse-scroll-locked");
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.classList.remove("synapse-scroll-locked");
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [navigationOpen]);
+
   const handleLogout = async () => {
     try {
       setActionError("");

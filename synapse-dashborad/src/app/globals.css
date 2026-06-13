@@ -13801,3 +13801,568 @@ textarea {
     height: 50px;
   }
 }
+
+/* SYNAPSE OS refinement pass: mobile-first spacing, hierarchy, cards, and overflow safety */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --synapse-radius-card: 18px;
+  --synapse-radius-control: 14px;
+  --synapse-card-border: color-mix(in oklab, var(--color-text, #ffffff) 11%, transparent);
+  --synapse-card-border-strong: color-mix(in oklab, var(--color-pulse, #ec4899) 30%, transparent);
+  --synapse-card-bg:
+    linear-gradient(145deg, color-mix(in oklab, var(--panel, #17131f) 86%, transparent), color-mix(in oklab, var(--color-bg, #08070d) 82%, transparent)),
+    color-mix(in oklab, var(--panel, #17131f) 82%, transparent);
+  --synapse-soft-shadow:
+    0 18px 50px color-mix(in oklab, #000000 28%, transparent),
+    0 0 24px color-mix(in oklab, var(--color-pulse, #ec4899) 8%, transparent);
+}
+
+.panel,
+.metric-card,
+.todo-card,
+.quick-add-card,
+.todo-task-card,
+.todo-calendar-card,
+.motivation-panel,
+.goals-workspace-panel,
+.goal-card,
+.month-card,
+.analytics-panel,
+.analytics-control-card,
+.resources-hero,
+.resources-status-pill,
+.resource-preview-card,
+.synapse-ai-composer,
+.message-shell {
+  border-color: var(--synapse-card-border);
+  border-radius: var(--synapse-radius-card);
+  box-shadow: var(--synapse-soft-shadow);
+}
+
+.topbar,
+.todo-topbar,
+.goals-topbar,
+.analytics-topbar,
+.resources-topbar {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.todo-title-block,
+.goals-heading-block,
+.analytics-title-block,
+.resources-title-block {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.hero h1,
+.welcome-card h1,
+.todo-title-block h1,
+.goals-heading-block h1,
+.analytics-title-block h1,
+.resources-title-block h1 {
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.todo-title-block h1,
+.goals-heading-block h1,
+.analytics-title-block h1,
+.resources-title-block h1 {
+  font-size: clamp(32px, 3.2vw, 40px);
+  line-height: 1.06;
+}
+
+.todo-title-block p,
+.goals-heading-block p,
+.analytics-title-block p,
+.resources-title-block p,
+.welcome-card p {
+  max-width: 720px;
+  color: color-mix(in oklab, var(--color-muted, #a7a2b4) 88%, var(--color-text, #fff));
+  font-size: clamp(15px, 1.35vw, 17px);
+  line-height: 1.5;
+}
+
+.top-actions,
+.todo-top-actions,
+.goals-header-actions,
+.analytics-top-actions,
+.resources-top-actions,
+.synapse-ai-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.profile-avatar-menu,
+.notification-center-shell {
+  flex: 0 0 auto;
+}
+
+.profile-avatar-trigger {
+  position: relative;
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  overflow: visible;
+  border-radius: 999px;
+  filter: drop-shadow(0 0 16px color-mix(in oklab, var(--color-pulse, #ec4899) 18%, transparent));
+}
+
+.profile-avatar-trigger > img,
+.profile-avatar-trigger > .profile-avatar-initials {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+}
+
+.profile-usage-ring-svg {
+  position: absolute;
+  inset: 50%;
+  width: 62px;
+  height: 62px;
+  overflow: visible;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.notification-trigger,
+.logout-button {
+  display: inline-grid;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
+  min-height: 58px;
+  place-items: center;
+  border-radius: var(--synapse-radius-control);
+}
+
+.notification-badge {
+  top: -7px;
+  right: -7px;
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 2px solid color-mix(in oklab, var(--panel, #17131f) 90%, #000000);
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.logout-button span {
+  white-space: nowrap;
+}
+
+.todo-date-toolbar,
+.analytics-controls,
+.goals-header-actions {
+  margin-top: 8px;
+}
+
+.todo-page-grid,
+.goals-layout-grid,
+.analytics-grid,
+.analytics-dashboard-grid,
+.resources-workspace,
+.content-grid {
+  gap: 24px;
+}
+
+.workspace-quick-actions {
+  flex-wrap: wrap !important;
+  justify-content: center;
+  gap: 12px;
+  overflow: visible;
+}
+
+.workspace-quick-actions button {
+  min-width: max-content;
+}
+
+.sidebar,
+.synapse-ai-sidebar {
+  transition:
+    transform 230ms ease,
+    opacity 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.sidebar-scrim,
+.synapse-ai-scrim {
+  backdrop-filter: blur(10px);
+}
+
+body.synapse-scroll-locked {
+  overflow: hidden;
+  touch-action: none;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-frame,
+  .todo-dashboard-frame,
+  .goals-dashboard-frame,
+  .analytics-dashboard-frame,
+  .resources-dashboard-frame {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .workspace,
+  .todo-workspace,
+  .goals-workspace,
+  .analytics-workspace,
+  .resources-workspace {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-frame,
+  .todo-dashboard-frame,
+  .goals-dashboard-frame,
+  .analytics-dashboard-frame,
+  .resources-dashboard-frame {
+    padding: 0;
+    overflow-x: clip;
+  }
+
+  .workspace,
+  .todo-workspace,
+  .goals-workspace,
+  .analytics-workspace,
+  .resources-workspace {
+    gap: 24px;
+    padding: 16px;
+  }
+
+  .topbar,
+  .todo-topbar,
+  .goals-topbar,
+  .analytics-topbar,
+  .resources-topbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start !important;
+    gap: 16px !important;
+    margin-bottom: 12px;
+  }
+
+  .topbar .app-sidebar-toggle,
+  .todo-title-block .app-sidebar-toggle,
+  .goals-heading-block .app-sidebar-toggle,
+  .analytics-title-block .app-sidebar-toggle,
+  .resources-title-block .app-sidebar-toggle {
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
+    border-radius: 16px;
+  }
+
+  .todo-title-block,
+  .goals-heading-block,
+  .analytics-title-block,
+  .resources-title-block {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .todo-title-block > div,
+  .goals-heading-block > div,
+  .analytics-title-block > div,
+  .resources-title-block > div:last-child {
+    min-width: 0;
+  }
+
+  .todo-title-block h1,
+  .goals-heading-block h1,
+  .analytics-title-block h1,
+  .resources-title-block h1 {
+    margin: 0;
+    font-size: clamp(28px, 8.2vw, 34px);
+    line-height: 1.08;
+  }
+
+  .todo-title-block p,
+  .goals-heading-block p,
+  .analytics-title-block p,
+  .resources-title-block p {
+    margin-top: 8px;
+    font-size: 15px;
+    line-height: 1.48;
+  }
+
+  .top-actions,
+  .todo-top-actions,
+  .goals-header-actions,
+  .analytics-top-actions,
+  .resources-top-actions {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    padding-left: 0;
+  }
+
+  .goals-header-actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, 54px);
+    gap: 12px !important;
+  }
+
+  .goals-header-actions .profile-avatar-menu {
+    order: 1;
+  }
+
+  .goals-header-actions .notification-center-shell {
+    order: 2;
+  }
+
+  .goals-header-actions .logout-button {
+    order: 3;
+  }
+
+  .goals-header-actions > button:not(.icon-button):not(.logout-button),
+  .goals-current-month {
+    order: 4;
+    grid-column: 1 / -1;
+    width: 100% !important;
+    min-height: 56px;
+  }
+
+  .goals-current-month {
+    order: 5;
+  }
+
+  .todo-date-toolbar,
+  .analytics-controls {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .todo-date-toolbar .date-stepper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .todo-date-toolbar > button,
+  .todo-date-toolbar label,
+  .analytics-select-shell {
+    width: 100% !important;
+    min-width: 0;
+    flex-basis: auto;
+  }
+
+  .profile-avatar-trigger,
+  .profile-avatar-trigger > img,
+  .profile-avatar-trigger > .profile-avatar-initials {
+    width: 54px !important;
+    height: 54px !important;
+  }
+
+  .profile-avatar-trigger > img,
+  .profile-avatar-trigger > .profile-avatar-initials {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .profile-usage-ring-svg {
+    width: 62px;
+    height: 62px;
+  }
+
+  .notification-trigger,
+  .logout-button {
+    width: 54px !important;
+    min-width: 54px !important;
+    height: 54px !important;
+    min-height: 54px !important;
+  }
+
+  .content-grid,
+  .todo-page-grid,
+  .todo-right-column,
+  .goals-layout-grid,
+  .analytics-grid,
+  .analytics-report-grid,
+  .resources-hero {
+    grid-template-columns: 1fr !important;
+  }
+
+  .month-cards,
+  .goals-month-strip,
+  .analytics-week-list {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .month-cards::-webkit-scrollbar,
+  .goals-month-strip::-webkit-scrollbar,
+  .analytics-week-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .month-card,
+  .goal-card,
+  .analytics-panel,
+  .panel,
+  .quick-add-card,
+  .resources-hero {
+    border-radius: 18px;
+  }
+
+  .welcome-card h1,
+  .synapse-empty-headline {
+    font-size: clamp(40px, 11vw, 48px);
+  }
+
+  .workspace-quick-actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 10px;
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    scroll-padding-inline: 16px;
+    scrollbar-width: none;
+  }
+
+  .workspace-quick-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .workspace-quick-actions button {
+    min-height: 46px;
+    flex: 0 0 auto;
+    padding-inline: 16px;
+  }
+
+  .synapse-ai-actions {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 92;
+    width: auto !important;
+  }
+
+  .synapse-ai-shell .profile-avatar-trigger,
+  .synapse-ai-shell .profile-avatar-trigger > img,
+  .synapse-ai-shell .profile-avatar-trigger > .profile-avatar-initials {
+    width: 54px !important;
+    height: 54px !important;
+  }
+
+  .synapse-ai-shell .profile-avatar-trigger > img,
+  .synapse-ai-shell .profile-avatar-trigger > .profile-avatar-initials {
+    width: 44px !important;
+    height: 44px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .workspace,
+  .todo-workspace,
+  .goals-workspace,
+  .analytics-workspace,
+  .resources-workspace {
+    padding: 14px;
+  }
+
+  .todo-title-block,
+  .goals-heading-block,
+  .analytics-title-block,
+  .resources-title-block {
+    grid-template-columns: 50px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .todo-title-block h1,
+  .goals-heading-block h1,
+  .analytics-title-block h1,
+  .resources-title-block h1 {
+    font-size: clamp(28px, 8.6vw, 32px);
+  }
+
+  .resources-title-block h1 {
+    font-size: clamp(26px, 8vw, 31px);
+  }
+
+  .profile-avatar-trigger,
+  .profile-avatar-trigger > img,
+  .profile-avatar-trigger > .profile-avatar-initials,
+  .notification-trigger,
+  .logout-button {
+    width: 50px !important;
+    min-width: 50px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+  }
+
+  .profile-avatar-trigger > img,
+  .profile-avatar-trigger > .profile-avatar-initials {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .profile-usage-ring-svg {
+    width: 58px;
+    height: 58px;
+  }
+
+  .synapse-ai-actions {
+    top: 16px;
+    right: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .workspace,
+  .todo-workspace,
+  .goals-workspace,
+  .analytics-workspace,
+  .resources-workspace {
+    padding: 12px;
+  }
+
+  .top-actions,
+  .todo-top-actions,
+  .goals-header-actions,
+  .analytics-top-actions,
+  .resources-top-actions {
+    gap: 8px !important;
+  }
+
+  .profile-avatar-trigger,
+  .notification-trigger,
+  .logout-button {
+    width: 46px !important;
+    min-width: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+  }
+}

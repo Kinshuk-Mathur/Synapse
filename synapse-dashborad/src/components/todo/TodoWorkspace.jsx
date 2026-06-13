@@ -9,7 +9,7 @@ import {
   LogOut,
   Menu
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
 import { useTodos } from "../../hooks/useTodos";
@@ -63,6 +63,19 @@ export default function TodoWorkspace() {
     const completed = tasksForSelectedDate.filter((todo) => todo.completed).length;
     return `${completed}/${total || 0} complete`;
   }, [tasksForSelectedDate]);
+
+  useEffect(() => {
+    if (!navigationOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.classList.add("synapse-scroll-locked");
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.classList.remove("synapse-scroll-locked");
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [navigationOpen]);
 
   const setDateAndMonth = (dateKey) => {
     setSelectedDate(dateKey);

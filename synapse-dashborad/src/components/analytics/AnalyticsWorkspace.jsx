@@ -323,6 +323,20 @@ export default function AnalyticsWorkspace() {
   });
   const [navigationOpen, setNavigationOpen] = useState(false);
   const selectedMonthDate = useMemo(() => parseMonthValue(selectedMonthValue), [selectedMonthValue]);
+
+  useEffect(() => {
+    if (!navigationOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.classList.add("synapse-scroll-locked");
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.classList.remove("synapse-scroll-locked");
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [navigationOpen]);
+
   const weeks = useMemo(
     () => buildUserAnchoredMonthWeeks(selectedMonthDate, startDate),
     [selectedMonthDate, startDate]

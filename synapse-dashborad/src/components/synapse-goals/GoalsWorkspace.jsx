@@ -7,7 +7,7 @@ import {
   Plus,
   SlidersHorizontal
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useMonthlyGoals } from "../../hooks/useMonthlyGoals";
 import { useSynapseTheme } from "../../hooks/useSynapseTheme";
@@ -63,6 +63,19 @@ export default function GoalsWorkspace() {
   }, [filter, selectedGoals]);
   const monthTitle = `${getMonthName(selectedMonth)} ${selectedYear}`;
   const studentName = profile?.name || user?.displayName?.split(" ")[0] || "STUDENT";
+
+  useEffect(() => {
+    if (!navigationOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.classList.add("synapse-scroll-locked");
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.classList.remove("synapse-scroll-locked");
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [navigationOpen]);
 
   const runGoalAction = async (action) => {
     try {

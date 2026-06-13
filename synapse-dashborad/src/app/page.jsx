@@ -433,6 +433,19 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!navigationOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.classList.add("synapse-scroll-locked");
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.classList.remove("synapse-scroll-locked");
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [navigationOpen]);
+
+  useEffect(() => {
     if (!momentumModalOpen) return undefined;
 
     const closeOnEscape = (event) => {

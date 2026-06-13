@@ -1028,14 +1028,21 @@ export default function SynapseAIWorkspace() {
   useEffect(() => {
     if (!sidebarOpen) return undefined;
 
+    const previousOverflow = document.body.style.overflow;
     const closeOnEscape = (event) => {
       if (event.key === "Escape") {
         setSidebarOpen(false);
       }
     };
 
+    document.body.classList.add("synapse-scroll-locked");
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.classList.remove("synapse-scroll-locked");
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
   }, [sidebarOpen]);
 
   useEffect(() => {
