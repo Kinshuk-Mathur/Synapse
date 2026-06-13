@@ -14366,3 +14366,95 @@ body.synapse-scroll-locked {
     min-height: 46px !important;
   }
 }
+
+/* Desktop action bar correction: logout pill + centered profile ring */
+@media (min-width: 769px) {
+  .top-actions,
+  .todo-top-actions,
+  .goals-header-actions,
+  .analytics-top-actions,
+  .resources-top-actions {
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  .top-actions .logout-button,
+  .todo-top-actions .logout-button,
+  .goals-header-actions .logout-button,
+  .analytics-top-actions .logout-button,
+  .resources-top-actions .logout-button {
+    display: inline-flex !important;
+    width: auto !important;
+    min-width: 112px !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    border-radius: 14px !important;
+    padding: 0 18px !important;
+    white-space: nowrap !important;
+  }
+
+  .top-actions .logout-button span,
+  .todo-top-actions .logout-button span,
+  .goals-header-actions .logout-button span,
+  .analytics-top-actions .logout-button span,
+  .resources-top-actions .logout-button span {
+    display: inline-flex !important;
+    align-items: center;
+    color: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .profile-avatar-menu {
+    display: inline-flex !important;
+    width: 62px;
+    height: 62px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .profile-avatar-trigger {
+    width: 62px !important;
+    height: 62px !important;
+    overflow: visible !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .profile-avatar-trigger > img,
+  .profile-avatar-trigger > .profile-avatar-initials {
+    width: 46px !important;
+    height: 46px !important;
+    border-radius: 999px !important;
+  }
+
+  .profile-usage-ring-svg {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 62px !important;
+    height: 62px !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  .profile-usage-ring-track,
+  .profile-usage-ring-progress {
+    stroke-width: 3.5px !important;
+  }
+
+  .goals-header-actions > button:not(.icon-button):not(.logout-button),
+  .goals-header-actions label,
+  .goals-current-month {
+    height: 58px !important;
+    min-height: 58px !important;
+    align-items: center !important;
+    border-radius: 14px !important;
+    padding: 0 18px !important;
+  }
+}
