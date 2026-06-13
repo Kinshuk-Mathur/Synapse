@@ -11,22 +11,22 @@ import { updateUserPersonalization } from "../../services/firestore";
 
 const themeOptions = [
   {
-    id: "obsidian-neon",
+    id: "obsidian",
     name: "Obsidian Neon",
     description: "Violet and magenta glow"
   },
   {
-    id: "midnight-tech",
+    id: "midnight",
     name: "Midnight Tech",
     description: "Cool indigo workspace"
   },
   {
-    id: "inferno-focus",
+    id: "inferno",
     name: "Inferno Focus",
     description: "Warm red-orange focus"
   },
   {
-    id: "pink-aura",
+    id: "pink",
     name: "Pink Aura",
     description: "Soft creative bloom"
   }
@@ -69,11 +69,11 @@ function normalizeOtherValue(value) {
 function normalizeTheme(theme) {
   return (
     {
-      obsidian: "obsidian-neon",
-      midnight: "midnight-tech",
-      inferno: "inferno-focus",
-      pink: "pink-aura"
-    }[theme] || theme || "obsidian-neon"
+      "obsidian-neon": "obsidian",
+      "midnight-tech": "midnight",
+      "inferno-focus": "inferno",
+      "pink-aura": "pink"
+    }[theme] || theme || "obsidian"
   );
 }
 
@@ -196,7 +196,7 @@ function SettingsContent() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-  const [theme, setTheme] = useState("obsidian-neon");
+  const [theme, setTheme] = useState("obsidian");
 
   useEffect(() => {
     const savedTheme = normalizeTheme(window.localStorage.getItem("synapse-theme"));
@@ -229,9 +229,11 @@ function SettingsContent() {
   };
 
   const applyTheme = (nextTheme) => {
-    setTheme(nextTheme);
-    document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem("synapse-theme", nextTheme);
+    const normalizedTheme = normalizeTheme(nextTheme);
+    setTheme(normalizedTheme);
+    document.documentElement.dataset.theme = normalizedTheme;
+    window.localStorage.setItem("synapse-theme", normalizedTheme);
+    window.dispatchEvent(new CustomEvent("synapse-theme-change", { detail: { theme: normalizedTheme } }));
   };
 
   const saveSettings = async () => {

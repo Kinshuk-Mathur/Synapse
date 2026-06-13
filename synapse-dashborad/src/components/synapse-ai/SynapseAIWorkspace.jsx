@@ -752,8 +752,14 @@ function ChatSidebar({
     >
       <div className="synapse-ai-brand">
         <Link className="synapse-ai-brand-link" href={DASHBOARD_HREF} aria-label="Go to SYNAPSE dashboard">
-          <span className="synapse-brand-badge" aria-hidden="true">S</span>
-          <span className="sidebar-label synapse-brand-wordmark">Synapse</span>
+          <Image
+            src="/assets/main-logo.jpeg"
+            alt="Synapse"
+            width={158}
+            height={62}
+            className="synapse-brand-logo"
+            priority
+          />
         </Link>
         <button className="sidebar-collapse-button" type="button" aria-label="Close sidebar" onClick={onClose}>
           <X size={18} />
@@ -965,15 +971,35 @@ export default function SynapseAIWorkspace() {
   useEffect(() => {
     const normalizeTheme = (theme) =>
       ({
-        obsidian: "obsidian-neon",
-        midnight: "midnight-tech",
-        inferno: "inferno-focus",
-        pink: "pink-aura"
-      })[theme] || theme || "obsidian-neon";
+        "obsidian-neon": "obsidian",
+        "midnight-tech": "midnight",
+        "inferno-focus": "inferno",
+        "pink-aura": "pink"
+      })[theme] || theme || "obsidian";
 
-    const savedTheme = normalizeTheme(window.localStorage.getItem("synapse-theme"));
-    document.documentElement.dataset.theme = savedTheme;
-    window.localStorage.setItem("synapse-theme", savedTheme);
+    const syncTheme = (theme) => {
+      const nextTheme = normalizeTheme(theme || window.localStorage.getItem("synapse-theme"));
+      document.documentElement.dataset.theme = nextTheme;
+      window.localStorage.setItem("synapse-theme", nextTheme);
+    };
+
+    const handleStorage = (event) => {
+      if (event.key === "synapse-theme") syncTheme(event.newValue);
+    };
+
+    const handleThemeEvent = (event) => syncTheme(event.detail?.theme);
+    const handleFocus = () => syncTheme();
+
+    syncTheme();
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("synapse-theme-change", handleThemeEvent);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("synapse-theme-change", handleThemeEvent);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
   useEffect(() => {
@@ -2064,15 +2090,6 @@ lastSendTimeRef.current = sendTime;
                       event.target.value = "";
                     }}
                   />
-                  <VoiceModeOrb
-                    status={voiceStatus}
-                    transcript={voiceTranscript}
-                    interimTranscript={voiceInterimTranscript}
-                    error={voiceError}
-                    noticeDismissed={voiceNoticeDismissed}
-                    onToggle={handleVoiceToggle}
-                    onStop={stopVoiceMode}
-                  />
                   <div className="attachment-plus-wrap legacy-attachment-menu" ref={attachmentMenuRef}>
                     <motion.button
                       className="attachment-plus-button"
@@ -2123,6 +2140,16 @@ lastSendTimeRef.current = sendTime;
                     <FileText size={16} />
                     <span>Attach PDF</span>
                   </button>
+
+                  <VoiceModeOrb
+                    status={voiceStatus}
+                    transcript={voiceTranscript}
+                    interimTranscript={voiceInterimTranscript}
+                    error={voiceError}
+                    noticeDismissed={voiceNoticeDismissed}
+                    onToggle={handleVoiceToggle}
+                    onStop={stopVoiceMode}
+                  />
 
                   <button
                     className="composer-tool-button camera-direct"

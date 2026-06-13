@@ -68,6 +68,17 @@ const themes = [
   { id: "pink", name: "Pink Aura", tone: "Dark Bloom" }
 ];
 
+const themeAliases = {
+  "obsidian-neon": "obsidian",
+  "midnight-tech": "midnight",
+  "inferno-focus": "inferno",
+  "pink-aura": "pink"
+};
+
+function normalizeTheme(theme) {
+  return themeAliases[theme] || theme || "obsidian";
+}
+
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/", active: true },
   { label: "SYNAPSE AI", icon: Sparkles, href: synapseAiUrl },
@@ -480,16 +491,19 @@ export default function Home() {
   } = useSynapseFocus(user);
 
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem("synapse-theme") || "obsidian";
+    const savedTheme = normalizeTheme(window.localStorage.getItem("synapse-theme"));
     setTheme(savedTheme);
     document.documentElement.dataset.theme = savedTheme;
+    window.localStorage.setItem("synapse-theme", savedTheme);
     setMounted(true);
   }, []);
 
   const applyTheme = (nextTheme) => {
-    setTheme(nextTheme);
-    document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem("synapse-theme", nextTheme);
+    const normalizedTheme = normalizeTheme(nextTheme);
+    setTheme(normalizedTheme);
+    document.documentElement.dataset.theme = normalizedTheme;
+    window.localStorage.setItem("synapse-theme", normalizedTheme);
+    window.dispatchEvent(new CustomEvent("synapse-theme-change", { detail: { theme: normalizedTheme } }));
   };
 
   useEffect(() => {
